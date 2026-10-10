@@ -1,0 +1,38 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0-windows</TargetFramework>
+    <RootNamespace>SSGen.Emulator</RootNamespace>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="FFmpeg.AutoGen" />
+    <PackageReference Include="SkiaSharp" />
+    <PackageReference Include="SkiaSharp.NativeAssets.Win32" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" />
+    <PackageReference Include="Grpc.Net.Client" />
+    <PackageReference Include="Google.Protobuf" />
+    <PackageReference Include="Grpc.Tools" PrivateAssets="All" />
+  </ItemGroup>
+
+  <!-- Android Emulator gRPC API (Apache-2.0), copied from <sdk>/emulator/lib. Generated code is excluded from analyzers. -->
+  <ItemGroup>
+    <Protobuf Include="Protos\emulator_controller.proto" GrpcServices="Client" Access="Internal" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\SSGen.Core\SSGen.Core.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="SSGen.Emulator.Tests" />
+  </ItemGroup>
+
+  <!-- Third-party binaries fetched by tools/fetch-deps.ps1 (not in git). Copied next to the app. -->
+  <ItemGroup>
+    <None Include="..\..\third_party\scrcpy\scrcpy-server-v*" Link="tools\scrcpy\%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" Condition="Exists('..\..\third_party\scrcpy')" />
+    <None Include="..\..\third_party\ffmpeg\*.dll" Link="tools\ffmpeg\%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" Condition="Exists('..\..\third_party\ffmpeg')" />
+  </ItemGroup>
+
+</Project>

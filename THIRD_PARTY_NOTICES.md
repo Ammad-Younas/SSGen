@@ -24,7 +24,7 @@ SSGen uses the following third-party components. Only permissive licences are al
 |---|---|---|
 | [scrcpy-server v5.0.1](https://github.com/Genymobile/scrcpy) (Genymobile) | Apache-2.0 | Pushed to USB phones to stream the screen (H.264) and inject input. Licence text: `tools/scrcpy/LICENSE` |
 | [FFmpeg 9.0](https://ffmpeg.org/legal.html), **LGPL shared build** by [BtbN/FFmpeg-Builds](https://github.com/BtbN/FFmpeg-Builds): avcodec, avutil, swscale, swresample DLLs only | LGPL-2.1-or-later | H.264 decoding for the phone preview. **Dynamically loaded and unmodified.** Users may replace the DLLs in `tools/ffmpeg/` with their own compatible build. Build info: `tools/ffmpeg/BUILD.txt`; source: https://github.com/FFmpeg/FFmpeg |
-| `emulator_controller.proto` from the Android Emulator (`<sdk>/emulator/lib`) | Apache-2.0 (header retained) | Generated client for the emulator's gRPC API: `src/StoreShot.Emulator/Protos/` |
+| `emulator_controller.proto` from the Android Emulator (`<sdk>/emulator/lib`) | Apache-2.0 (header retained) | Generated client for the emulator's gRPC API: `src/SSGen.Emulator/Protos/` |
 
 ## Development, build and test only (not shipped)
 

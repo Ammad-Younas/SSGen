@@ -1,0 +1,31 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net10.0-windows</TargetFramework>
+    <UseWPF>true</UseWPF>
+    <AssemblyName>SSGen</AssemblyName>
+    <RootNamespace>SSGen.App</RootNamespace>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+    <!-- WPF Fluent ThemeMode is flagged experimental; we opt in deliberately. -->
+    <!-- CA1822: view-model properties are bound from XAML and must stay instance members. -->
+    <NoWarn>$(NoWarn);WPF0001;CA1822</NoWarn>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Using Include="System.IO" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="CommunityToolkit.Mvvm" />
+    <PackageReference Include="Microsoft.Extensions.Hosting" />
+    <PackageReference Include="Serilog.Extensions.Hosting" />
+    <PackageReference Include="Serilog.Sinks.File" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\SSGen.Core\SSGen.Core.csproj" />
+    <ProjectReference Include="..\SSGen.Emulator\SSGen.Emulator.csproj" />
+  </ItemGroup>
+
+</Project>

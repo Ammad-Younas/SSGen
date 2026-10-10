@@ -388,7 +388,7 @@ dotnet_naming_style.s_camelcase.word_separator =
 dotnet_naming_style.s_camelcase.capitalization = camel_case
 
 
-# --- StoreShot Studio overrides ---
+# --- SSGen overrides ---
 [*.cs]
 csharp_style_namespace_declarations = file_scoped:warning
 # LoggerMessage source-gen delegates are overkill for this app's log volume.

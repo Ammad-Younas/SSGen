@@ -16,9 +16,9 @@ Turn an Android APK into upload-ready store listing screenshots for Google Play 
 
 ```powershell
 powershell -File tools/fetch-deps.ps1   # once: downloads scrcpy-server, FFmpeg (LGPL DLLs) and a sample APK
-dotnet build StoreShot.slnx
-dotnet test StoreShot.slnx
-dotnet run --project src/StoreShot.App
+dotnet build SSGen.slnx
+dotnet test SSGen.slnx
+dotnet run --project src/SSGen.App
 ```
 
 ## First run

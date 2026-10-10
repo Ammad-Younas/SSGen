@@ -4,7 +4,7 @@ Windows desktop app: import an Android APK → run it in the emulator → (optio
 
 ## Decisions (from the owner; they override the original brief)
 
-- **Product name is "SSGen"** (renamed from "StoreShot Studio" after M2). All user-facing text, the exe (`SSGen.exe`), the data folder (`%LOCALAPPDATA%\SSGen`, migrated automatically from `StoreShotStudio`) and the default projects folder (`Documents\SSGen\Projects`) use it. Code namespaces, project names and internal keys (`StoreShot.*`, `storeshot.managed`, the DPAPI entropy) are unchanged unless the owner asks. The existing AVD keeps the name `StoreShot_Pixel_API36`; new AVDs are named `SSGen_*`.
+- **Product and code are named "SSGen"** (renamed from "StoreShot Studio" after M2): exe `SSGen.exe`, solution `SSGen.slnx`, projects and namespaces `SSGen.*`, data folder `%LOCALAPPDATA%\SSGen` (migrated automatically from `StoreShotStudio`), and the default projects folder `Documents\SSGen\Projects`. Legacy values are still read so existing data keeps working: the AVD marker `storeshot.managed` (new devices get `ssgen.managed`), the DPAPI entropy `StoreShotStudio.Secrets.v1`, and the AVD name `StoreShot_Pixel_API36`. New AVDs are named `SSGen_*`.
 - **Windows 10/11 only.** C# / .NET 10 (LTS) / **WPF** with the built-in Fluent theme (`Application.ThemeMode`). No Electron, macOS, Linux, Docker mode or CI.
 - **MVVM** with CommunityToolkit.Mvvm (partial-property `[ObservableProperty]`, `[RelayCommand]`), DI via Microsoft.Extensions.DependencyInjection.
 - **SkiaSharp** for both the editor canvas and the export renderer, driven by **one JSON scene-document format** shared by templates, editor and export. Undo/redo uses the command pattern.
@@ -18,10 +18,10 @@ Windows desktop app: import an Android APK → run it in the emulator → (optio
 ## Layout
 
 ```
-StoreShot.slnx
+SSGen.slnx
 Directory.Build.props        # net10, nullable, warnings-as-errors, analyzers (latest-recommended)
 Directory.Packages.props     # central package versions — add versions here, not in csproj
-src/StoreShot.Core/          # no UI: data, settings, secrets, projects, process runner, setup checks
+src/SSGen.Core/          # no UI: data, settings, secrets, projects, process runner, setup checks
   AppPaths.cs                # %LOCALAPPDATA%\SSGen\{app.db,logs,cache}
   Data/                      # SqliteDatabase, MigrationRunner, Migrations/{App,Project}/NNNN_name.sql (embedded)
   Settings/                  # AppSettings record (JSON in settings table), SettingsService
@@ -29,32 +29,32 @@ src/StoreShot.Core/          # no UI: data, settings, secrets, projects, process
   Projects/ProjectService.cs # project = folder with project.db + screens/ renders/ export/
   Processes/ProcessRunner.cs # IProcessRunner: timeouts, cancellation, kill-tree, line callbacks, stdin
   Setup/                     # AndroidSdk(+Locator), JavaLocator, SdkPackages (list parser + installer), ISetupCheck impls, SetupService
-src/StoreShot.App/           # WPF shell (assembly name SSGen -> SSGen.exe)
+src/SSGen.App/           # WPF shell (assembly name SSGen -> SSGen.exe)
   App.xaml(.cs)              # composition root, Serilog, global exception handlers
   Services/                  # ThemeService, DialogService (all modal UI), NavigationService (PageKey)
   ViewModels/ Views/         # page VMs are singletons; PageTemplates.xaml maps VM type -> View
   Resources/Styles.xaml      # shared styles; colours come from Fluent DynamicResource brushes
-src/StoreShot.Emulator/      # devices: no UI
+src/SSGen.Emulator/      # devices: no UI
   DeviceHub.cs               # entry point: resolves SDK from settings, providers, APK inspector, mirror selection
   Adb/                       # AdbClient (adb.exe wrapper), LongRunningProcess, output parsers, install-error mapping
   Apk/                       # ApkInspector (aapt2 + managed AXML fallback, icon extraction), ProjectApkStore
-  Avd/AvdManager.cs          # reads/writes AVD .ini files directly; only deletes/wipes AVDs marked storeshot.managed=yes
+  Avd/AvdManager.cs          # reads/writes AVD .ini files directly; only deletes/wipes AVDs marked ssgen.managed=yes (or legacy storeshot.managed=yes)
   Devices/                   # IDevice (what the agent uses), AdbDevice, MockDevice; IEmulatorProvider: LocalAvd/ConnectedPhone/Mock
-  Interop/JobObject.cs       # kill-on-close job: emulators die with StoreShot even on crash
+  Interop/JobObject.cs       # kill-on-close job: emulators die with SSGen even on crash
   Mirror/                    # IScreenMirror: EmulatorGrpcMirror (emulators), ScrcpyMirror+H264Decoder (phones), ScreencapMirror (fallback)
   Logcat/                    # threadtime parser + batched streaming session
   Protos/                    # emulator_controller.proto (Apache-2.0) -> generated gRPC client
-tests/StoreShot.Core.Tests/      # xUnit
-tests/StoreShot.Emulator.Tests/  # xUnit; EmulatorIntegrationTests is opt-in (see Commands)
+tests/SSGen.Core.Tests/      # xUnit
+tests/SSGen.Emulator.Tests/  # xUnit; EmulatorIntegrationTests is opt-in (see Commands)
 tools/fetch-deps.ps1         # downloads scrcpy-server, FFmpeg LGPL DLLs, sample APK into third_party/ (git-ignored)
 ```
 
-Planned projects, each added in the milestone that needs it: `StoreShot.Ai` and `StoreShot.Agent` (M3), `StoreShot.Scene` (SkiaSharp scene doc + renderer) and `StoreShot.Templates` (M5).
+Planned projects, each added in the milestone that needs it: `SSGen.Ai` and `SSGen.Agent` (M3), `SSGen.Scene` (SkiaSharp scene doc + renderer) and `SSGen.Templates` (M5).
 
 ## Device pipeline (M2): what is verified and why it's built this way
 
 - **Live preview by device type** (`DeviceHub.StartMirrorAsync`):
-  - **Emulators** use the emulator's gRPC `streamScreenshot`. StoreShot launches emulators with `-grpc <port> -grpc-use-token`; the port and token are read from `%LOCALAPPDATA%\Temp\avd\running\pid_*.ini`. Measured **33 fps** during scrolling.
+  - **Emulators** use the emulator's gRPC `streamScreenshot`. SSGen launches emulators with `-grpc <port> -grpc-use-token`; the port and token are read from `%LOCALAPPDATA%\Temp\avd\running\pid_*.ini`. Measured **33 fps** during scrolling.
   - **Why not scrcpy on emulators:** emulators only have *software* H.264 encoders, which manage about 5 fps. That was measured, with host-GPU rendering making no difference.
   - **Phones** use scrcpy. Its protocol is pinned to v5.0.1, which must match `ScrcpyProtocol.ServerVersion` and `fetch-deps.ps1`.
   - **Fallback** for everything is screencap polling.
@@ -67,21 +67,21 @@ Planned projects, each added in the milestone that needs it: `StoreShot.Ai` and 
 ## Commands
 
 ```powershell
-dotnet build StoreShot.slnx
-dotnet test StoreShot.slnx
-dotnet run --project src/StoreShot.App
+dotnet build SSGen.slnx
+dotnet test SSGen.slnx
+dotnet run --project src/SSGen.App
 powershell -File tools/fetch-deps.ps1            # once after cloning: scrcpy-server, FFmpeg DLLs, sample APK
-$env:STORESHOT_INTEGRATION='1'; dotnet test tests/StoreShot.Emulator.Tests   # + real emulator end-to-end (~1-2 min)
+$env:SSGEN_INTEGRATION='1'; dotnet test tests/SSGen.Emulator.Tests   # + real emulator end-to-end (~1-2 min)
 ```
 
-Diagnostics env vars: `STORESHOT_MOCK_DEVICE=1` shows a mock device in the app; `STORESHOT_SCRCPY_LOG=verbose` logs scrcpy server output (`ScrcpyMirror.ServerOutput`).
+Diagnostics env vars: `SSGEN_MOCK_DEVICE=1` shows a mock device in the app; `SSGEN_SCRCPY_LOG=verbose` logs scrcpy server output (`ScrcpyMirror.ServerOutput`).
 
 To reset first-run state, delete `%LOCALAPPDATA%\SSGen` (it holds app.db, logs and cache).
 
 ## Conventions
 
 - File-scoped namespaces; `_camelCase` private fields; one public concept per file (small related records may share a file).
-- The build treats warnings as errors. Fix analyzer warnings rather than suppressing them. Project-wide suppressions live in `.editorconfig` (`StoreShot Studio overrides`) and need a reason.
+- The build treats warnings as errors. Fix analyzer warnings rather than suppressing them. Project-wide suppressions live in `.editorconfig` (`SSGen overrides`) and need a reason.
 - **Errors the user sees** are thrown as `UserFacingException(message, suggestedFix)`. `DialogService.Describe` formats them. Never fail silently: the setup assistant converts any exception into a Fail result.
 - **Never block the UI thread.** Process and file-heavy work runs via `Task.Run` or async; VMs report progress through `IProgress<T>`.
 - All external tools run through `IProcessRunner` (mockable). Pass args via `ArgumentList` and never build command strings.
@@ -116,5 +116,5 @@ To reset first-run state, delete `%LOCALAPPDATA%\SSGen` (it holds app.db, logs a
 - Android SDK at `D:\App_Development_Setup\Android_SDK` (ANDROID_HOME). Emulator 36.6, WHPX acceleration.
 - Installed images: API 36, 36.1 and 37.0 (ps16k), Google Play x86_64.
 - JDK 21 at `D:\App_Development_Setup\Java_JDK`. .NET SDK 10.0.401.
-- `StoreShot_Pixel_API36` exists (created by StoreShot from the API 36 Play image, marked managed). Its first cold boot is ~50 s; quick boot ~6 s.
+- `StoreShot_Pixel_API36` exists (created by SSGen from the API 36 Play image, marked managed). Its first cold boot is ~50 s; quick boot ~6 s.
 - Exploration lesson: `android emulator create` with no arguments *creates* an AVD. Only call these CLIs with `-h` when exploring.
