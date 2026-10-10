@@ -21,19 +21,50 @@
 
         <GridSplitter x:Name="DeviceSplitter" Grid.Column="1" Style="{StaticResource PaneSplitter}" DragStarted="OnSplitterDragStarted" DragCompleted="OnSplitterDragCompleted"
                       AutomationProperties.Name="Resize device panel" />
+
+        <!-- Collapse handle on the device divider (column 1 is the splitter's 14px column; negative margins keep it there). -->
+        <Button x:Name="CollapseHandle" Grid.Column="1" Panel.ZIndex="1" Style="{StaticResource RoundHandleButton}"
+                VerticalAlignment="Top" Margin="-5,74,-5,0" Command="{Binding ToggleDevicePanelCommand}"
+                ToolTip="Collapse device panel" AutomationProperties.Name="Collapse device panel">
+            <TextBlock Style="{StaticResource Icon}" Text="&#xE76B;" FontSize="10" />
+        </Button>
+
+        <!-- Collapsed device panel: a slim rail. Click it (or ») to expand; Stop stays reachable while running. -->
+        <Border x:Name="DeviceRail" Grid.Column="0" Width="44" Visibility="Collapsed" Margin="0,0,10,0" CornerRadius="8" Cursor="Hand"
+                Background="{DynamicResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}"
+                BorderThickness="1" MouseLeftButtonUp="OnRailClicked" ToolTip="Expand device panel"
+                AutomationProperties.Name="Device panel (collapsed)">
+            <DockPanel Margin="0,6">
+                <Button DockPanel.Dock="Top" Style="{StaticResource IconButton}" Command="{Binding ToggleDevicePanelCommand}" HorizontalAlignment="Center"
+                        Padding="8,6" ToolTip="Expand device panel" AutomationProperties.Name="Expand device panel">
+                    <TextBlock Style="{StaticResource Icon}" Text="&#xE76C;" FontSize="12" />
+                </Button>
+                <Button DockPanel.Dock="Bottom" Style="{StaticResource IconButton}" Command="{Binding StopCommand}" HorizontalAlignment="Center"
+                        Padding="8,6" ToolTip="Stop device" AutomationProperties.Name="Stop device"
+                        Visibility="{Binding HasDevice, Converter={StaticResource BoolToVisibility}}">
+                    <TextBlock Style="{StaticResource Icon}" Text="&#xE71A;" FontSize="13" Foreground="{DynamicResource SystemFillColorCriticalBrush}" />
+                </Button>
+                <Ellipse DockPanel.Dock="Top" Width="8" Height="8" Margin="0,10,0,10" HorizontalAlignment="Center"
+                         Fill="{DynamicResource SystemFillColorSuccessBrush}" ToolTip="Running"
+                         Visibility="{Binding HasDevice, Converter={StaticResource BoolToVisibility}}" />
+                <!-- Rotated after layout via a Canvas host so the text is measured along the rail's height, not its width. -->
+                <Canvas x:Name="RailTitleHost" ClipToBounds="True" HorizontalAlignment="Stretch">
+                    <TextBlock x:Name="RailTitleText" Text="{Binding RailTitle}" FontWeight="SemiBold"
+                               Foreground="{DynamicResource TextFillColorSecondaryBrush}" TextTrimming="CharacterEllipsis">
+                        <TextBlock.RenderTransform>
+                            <RotateTransform Angle="90" />
+                        </TextBlock.RenderTransform>
+                    </TextBlock>
+                </Canvas>
+            </DockPanel>
+        </Border>
         <GridSplitter Grid.Column="3" Style="{StaticResource PaneSplitter}" DragStarted="OnSplitterDragStarted" DragCompleted="OnSplitterDragCompleted"
                       AutomationProperties.Name="Resize log panel" />
 
         <!-- ============================== Device ============================== -->
         <ScrollViewer x:Name="DevicePanel" Grid.Column="0" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
             <StackPanel>
-                <DockPanel Margin="0,0,0,4">
-                    <Button DockPanel.Dock="Left" Style="{StaticResource IconButton}" Command="{Binding ToggleDevicePanelCommand}" Margin="-8,0,6,0"
-                            VerticalAlignment="Center" ToolTip="Hide device panel" AutomationProperties.Name="Hide device panel">
-                        <TextBlock Style="{StaticResource Icon}" Text="&#xE700;" />
-                    </Button>
-                    <TextBlock Style="{StaticResource PageTitle}" Text="Emulator" FontSize="24" Margin="0" VerticalAlignment="Center" />
-                </DockPanel>
+                <TextBlock Style="{StaticResource PageTitle}" Text="Emulator" FontSize="24" />
                 <TextBlock Style="{StaticResource Caption}" Margin="0,0,0,16"
                            Text="Run the app on a virtual device (or a USB phone) and see its screen live." />
 
@@ -106,23 +137,6 @@
 
         <!-- ============================== Preview ============================== -->
         <DockPanel Grid.Column="2">
-            <!-- While the device panel is hidden: hamburger to bring it back, plus the running device and Stop. -->
-            <DockPanel DockPanel.Dock="Top" Margin="0,0,0,8" LastChildFill="False"
-                       Visibility="{Binding IsDevicePanelOpen, Converter={StaticResource BoolToVisibility}, ConverterParameter=invert}">
-                <Button DockPanel.Dock="Left" Style="{StaticResource IconButton}" Command="{Binding ToggleDevicePanelCommand}"
-                        ToolTip="Show device panel" AutomationProperties.Name="Show device panel">
-                    <TextBlock Style="{StaticResource Icon}" Text="&#xE700;" />
-                </Button>
-                <StackPanel DockPanel.Dock="Right" Orientation="Horizontal"
-                            Visibility="{Binding ShowDeviceStrip, Converter={StaticResource BoolToVisibility}}">
-                    <TextBlock VerticalAlignment="Center" Margin="0,0,10,0" TextTrimming="CharacterEllipsis" MaxWidth="220">
-                        <Run Text="●" Foreground="{DynamicResource SystemFillColorSuccessBrush}" />
-                        <Run Text="{Binding Device.DisplayName, Mode=OneWay}" Foreground="{DynamicResource TextFillColorPrimaryBrush}" />
-                    </TextBlock>
-                    <Button Content="Stop" Command="{Binding StopCommand}" AutomationProperties.Name="Stop device" />
-                </StackPanel>
-            </DockPanel>
-
             <StackPanel DockPanel.Dock="Bottom" Margin="0,10,0,0">
                 <WrapPanel HorizontalAlignment="Center">
                     <Button Command="{Binding BackCommand}" ToolTip="Back" AutomationProperties.Name="Back" Margin="3" Padding="12,6"

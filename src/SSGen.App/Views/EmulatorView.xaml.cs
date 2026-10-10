@@ -26,6 +26,7 @@ public partial class EmulatorView : UserControl
     public EmulatorView()
     {
         InitializeComponent();
+        RailTitleHost.SizeChanged += (_, _) => LayoutRailTitle();
         Loaded += (_, _) =>
         {
             CompositionTarget.Rendering += OnRendering;
@@ -69,8 +70,10 @@ public partial class EmulatorView : UserControl
 
         if (open)
         {
+            DeviceRail.Visibility = Visibility.Collapsed;
             DevicePanel.Visibility = Visibility.Visible;
             DeviceSplitter.Visibility = Visibility.Visible;
+            CollapseHandle.Visibility = Visibility.Visible;
             LeftColumn.MinWidth = 220;
             LeftColumn.Width = new GridLength(_hiddenLeftWeight, GridUnitType.Star);
         }
@@ -79,17 +82,33 @@ public partial class EmulatorView : UserControl
             NormalizePaneWeights();
             _hiddenLeftWeight = Math.Max(220, LeftColumn.Width.Value);
             LeftColumn.MinWidth = 0;
-            LeftColumn.Width = new GridLength(0);
+            LeftColumn.Width = GridLength.Auto; // sized to the rail
             DevicePanel.Visibility = Visibility.Collapsed;
             DeviceSplitter.Visibility = Visibility.Collapsed;
+            CollapseHandle.Visibility = Visibility.Collapsed;
+            DeviceRail.Visibility = Visibility.Visible;
         }
     }
 
-    /// <summary>
-    /// GridSplitter rewrites only the two adjacent star columns, in pixel-scale weights, leaving the third at its
-    /// old weight, which then collapses to its MinWidth. Normalising all three to their current pixel widths first
-    /// keeps every weight on the same scale.
-    /// </summary>
+    /// <summary>Lays the rotated rail title along the rail: its width is the available height, centred horizontally.</summary>
+    private void LayoutRailTitle()
+    {
+        RailTitleText.Width = Math.Max(0, RailTitleHost.ActualHeight - 4);
+        RailTitleText.Measure(new Size(RailTitleText.Width, double.PositiveInfinity));
+        var lineHeight = RailTitleText.DesiredSize.Height;
+        Canvas.SetLeft(RailTitleText, (RailTitleHost.ActualWidth + lineHeight) / 2);
+        Canvas.SetTop(RailTitleText, 0);
+    }
+
+    /// <summary>Clicking anywhere on the collapsed rail (except its buttons) expands the panel.</summary>
+    private void OnRailClicked(object sender, MouseButtonEventArgs e)
+    {
+        if (Vm is { IsDevicePanelOpen: false } vm)
+        {
+            vm.IsDevicePanelOpen = true;
+            e.Handled = true;
+        }
+    }
     private void OnSplitterDragStarted(object sender, System.Windows.Controls.Primitives.DragStartedEventArgs e) => NormalizePaneWeights();
 
     private void OnSplitterDragCompleted(object sender, System.Windows.Controls.Primitives.DragCompletedEventArgs e)

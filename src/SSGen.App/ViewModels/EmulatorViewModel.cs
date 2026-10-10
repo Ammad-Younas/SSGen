@@ -77,19 +77,18 @@ public sealed partial class EmulatorViewModel : ObservableObject, IPageActivated
     /// it stops; the user can toggle it at any time.
     /// </summary>
     [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(DevicePanelToggleText), nameof(ShowDeviceStrip))]
     public partial bool IsDevicePanelOpen { get; set; } = true;
 
-    public string DevicePanelToggleText => IsDevicePanelOpen ? "Hide device panel" : "Show device panel";
-
-    /// <summary>Compact device name + Stop shown above the screen while the panel is hidden.</summary>
-    public bool ShowDeviceStrip => Device is not null && !IsDevicePanelOpen;
+    /// <summary>Text on the collapsed rail: the running device, or the selected one.</summary>
+    public string RailTitle => Device?.DisplayName ?? SelectedTarget?.DisplayName ?? "Devices";
 
     partial void OnDeviceChanged(IDevice? value)
     {
         IsDevicePanelOpen = value is null;
-        OnPropertyChanged(nameof(ShowDeviceStrip));
+        OnPropertyChanged(nameof(RailTitle));
     }
+
+    partial void OnSelectedTargetChanged(DeviceTarget? value) => OnPropertyChanged(nameof(RailTitle));
 
     [RelayCommand]
     private void ToggleDevicePanel() => IsDevicePanelOpen = !IsDevicePanelOpen;
