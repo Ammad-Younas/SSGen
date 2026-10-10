@@ -31,7 +31,7 @@
             <TextBlock Style="{StaticResource Icon}" Text="&#xE76B;" FontSize="10" />
         </Button>
         <Button x:Name="ExpandArrow" Grid.Column="0" Panel.ZIndex="2" VerticalAlignment="Top" HorizontalAlignment="Left" Margin="10,10,0,0"
-                Width="24" Height="24" Padding="0" Style="{StaticResource IconButton}" Command="{Binding ToggleDevicePanelCommand}"
+                Style="{StaticResource PlainArrowButton}" Command="{Binding ToggleDevicePanelCommand}"
                 ToolTip="Expand device panel" AutomationProperties.Name="Expand device panel"
                 Visibility="{Binding IsDevicePanelOpen, Converter={StaticResource BoolToVisibility}, ConverterParameter=invert}">
             <TextBlock Style="{StaticResource Icon}" Text="&#xE76C;" FontSize="12" />
