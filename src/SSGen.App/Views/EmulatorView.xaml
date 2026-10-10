@@ -22,9 +22,10 @@
         <GridSplitter x:Name="DeviceSplitter" Grid.Column="1" Style="{StaticResource PaneSplitter}" DragStarted="OnSplitterDragStarted" DragCompleted="OnSplitterDragCompleted"
                       AutomationProperties.Name="Resize device panel" />
 
-        <!-- One round arrow handle on the device divider for both directions: it stays in the same place and flips
-             (‹ collapse / › expand). Column 1 is the splitter's 14px column; negative margins keep it there. -->
-        <Button x:Name="CollapseHandle" Grid.Column="1" Panel.ZIndex="1" VerticalAlignment="Top" Margin="-5,74,-5,0"
+        <!-- One round arrow handle for both directions, fixed at the top-left of the device column: centred on the
+             collapsed rail (44px wide -> 10 + 24/2 = 22) and in the same spot before the title when expanded. It flips
+             between › (expand) and ‹ (collapse). -->
+        <Button x:Name="CollapseHandle" Grid.Column="0" Panel.ZIndex="2" VerticalAlignment="Top" HorizontalAlignment="Left" Margin="10,10,0,0"
                 Command="{Binding ToggleDevicePanelCommand}">
             <Button.Style>
                 <Style TargetType="Button" BasedOn="{StaticResource RoundHandleButton}">
@@ -55,13 +56,13 @@
                 Background="{DynamicResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}"
                 BorderThickness="1" MouseLeftButtonUp="OnRailClicked" ToolTip="Expand device panel"
                 AutomationProperties.Name="Device panel (collapsed)">
-            <DockPanel Margin="0,6">
+            <DockPanel Margin="0,0,0,6">
                 <Button DockPanel.Dock="Bottom" Style="{StaticResource IconButton}" Command="{Binding StopCommand}" HorizontalAlignment="Center"
                         Padding="8,6" ToolTip="Stop device" AutomationProperties.Name="Stop device"
                         Visibility="{Binding HasDevice, Converter={StaticResource BoolToVisibility}}">
                     <TextBlock Style="{StaticResource Icon}" Text="&#xE71A;" FontSize="13" Foreground="{DynamicResource SystemFillColorCriticalBrush}" />
                 </Button>
-                <Ellipse DockPanel.Dock="Top" Width="8" Height="8" Margin="0,8,0,10" HorizontalAlignment="Center"
+                <Ellipse DockPanel.Dock="Top" Width="8" Height="8" Margin="0,40,0,10" HorizontalAlignment="Center"
                          Fill="{DynamicResource SystemFillColorSuccessBrush}" ToolTip="Running"
                          Visibility="{Binding HasDevice, Converter={StaticResource BoolToVisibility}}" />
                 <!-- Rotated after layout via a Canvas host so the text is measured along the rail's height, not its width. -->
@@ -81,7 +82,8 @@
         <!-- ============================== Device ============================== -->
         <ScrollViewer x:Name="DevicePanel" Grid.Column="0" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
             <StackPanel>
-                <TextBlock Style="{StaticResource PageTitle}" Text="Emulator" FontSize="24" />
+                <!-- Indented so the collapse handle (top-left, see CollapseHandle) sits in front of the title. -->
+                <TextBlock Style="{StaticResource PageTitle}" Text="Emulator" FontSize="24" Margin="40,2,0,4" />
                 <TextBlock Style="{StaticResource Caption}" Margin="0,0,0,16"
                            Text="Run the app on a virtual device (or a USB phone) and see its screen live." />
 
