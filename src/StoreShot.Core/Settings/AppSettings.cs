@@ -27,6 +27,12 @@ public sealed record AppSettings
     /// <summary>True once the user has finished (or explicitly skipped) the first-run setup assistant.</summary>
     public bool SetupCompleted { get; init; }
 
+    /// <summary>
+    /// Emulator page pane proportions (device | screen | app &amp; logcat) as star weights; null = defaults.
+    /// Proportions, not pixels, so the layout always fits the window.
+    /// </summary>
+    public double[]? EmulatorPaneWeights { get; init; }
+
     /// <summary>Left navigation collapsed to icons only.</summary>
     public bool NavCollapsed { get; init; }
 

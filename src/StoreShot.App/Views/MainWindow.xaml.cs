@@ -9,5 +9,6 @@ public partial class MainWindow : Window
     {
         InitializeComponent();
         DataContext = viewModel;
+        Services.HorizontalScrollSupport.Attach(this);
     }
 }

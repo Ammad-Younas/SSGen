@@ -72,7 +72,7 @@
                                                 <Setter TargetName="Bd" Property="BorderBrush" Value="{DynamicResource TextFillColorPrimaryBrush}" />
                                             </Trigger>
                                             <Trigger Property="IsSelected" Value="True">
-                                                <Setter TargetName="Bd" Property="Background" Value="{DynamicResource {x:Static SystemColors.AccentColorDark2BrushKey}}" />
+                                                <Setter TargetName="Bd" Property="Background" Value="{DynamicResource NavSelectedBrush}" />
                                                 <Setter Property="Foreground" Value="White" />
                                             </Trigger>
                                         </ControlTemplate.Triggers>

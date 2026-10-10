@@ -9,15 +9,23 @@
              mc:Ignorable="d"
              d:DataContext="{d:DesignInstance Type=vm:EmulatorViewModel}"
              d:DesignWidth="1100" d:DesignHeight="760">
-    <Grid Margin="24,20,24,16">
+    <!-- Three resizable sections: device | screen | app & logcat. Splitter positions are remembered. -->
+    <Grid Margin="20,20,20,16">
         <Grid.ColumnDefinitions>
-            <ColumnDefinition Width="270" />
-            <ColumnDefinition Width="*" />
-            <ColumnDefinition Width="340" />
+            <ColumnDefinition x:Name="LeftColumn" Width="270*" MinWidth="220" />
+            <ColumnDefinition Width="Auto" />
+            <ColumnDefinition x:Name="CenterColumn" Width="400*" MinWidth="240" />
+            <ColumnDefinition Width="Auto" />
+            <ColumnDefinition x:Name="RightColumn" Width="340*" MinWidth="260" />
         </Grid.ColumnDefinitions>
 
+        <GridSplitter Grid.Column="1" Style="{StaticResource PaneSplitter}" DragStarted="OnSplitterDragStarted" DragCompleted="OnSplitterDragCompleted"
+                      AutomationProperties.Name="Resize device panel" />
+        <GridSplitter Grid.Column="3" Style="{StaticResource PaneSplitter}" DragStarted="OnSplitterDragStarted" DragCompleted="OnSplitterDragCompleted"
+                      AutomationProperties.Name="Resize log panel" />
+
         <!-- ============================== Device ============================== -->
-        <ScrollViewer Grid.Column="0" VerticalScrollBarVisibility="Auto" Margin="0,0,16,0">
+        <ScrollViewer Grid.Column="0" VerticalScrollBarVisibility="Auto">
             <StackPanel>
                 <TextBlock Style="{StaticResource PageTitle}" Text="Emulator" FontSize="24" />
                 <TextBlock Style="{StaticResource Caption}" Margin="0,0,0,16"
@@ -91,7 +99,7 @@
         </ScrollViewer>
 
         <!-- ============================== Preview ============================== -->
-        <DockPanel Grid.Column="1" Margin="0,0,16,0">
+        <DockPanel Grid.Column="2">
             <StackPanel DockPanel.Dock="Bottom" Margin="0,10,0,0">
                 <WrapPanel HorizontalAlignment="Center">
                     <Button Command="{Binding BackCommand}" ToolTip="Back" AutomationProperties.Name="Back" Margin="3" Padding="12,6"
@@ -126,30 +134,33 @@
                     <Run Text="{Binding CapturedText, Mode=OneWay}" />
                 </TextBlock>
             </StackPanel>
-            <!-- Sized to the device image (Stretch=Uniform), not the whole column; Min* keeps a phone-shaped empty state. -->
-            <Border CornerRadius="14" Background="#FF101010" BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}" BorderThickness="1"
-                    ClipToBounds="True" HorizontalAlignment="Center" VerticalAlignment="Center" MinWidth="250" MinHeight="480">
-                <Grid>
+            <!-- The dark frame exists only while a device is running and hugs the device image (Stretch=Uniform). -->
+            <Grid>
+                <Border CornerRadius="14" Background="#FF101010" BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}" BorderThickness="1"
+                        ClipToBounds="True" HorizontalAlignment="Center" VerticalAlignment="Center"
+                        Visibility="{Binding HasDevice, Converter={StaticResource BoolToVisibility}}">
                     <Image x:Name="Preview" Stretch="Uniform" Cursor="Hand" Focusable="True" RenderOptions.BitmapScalingMode="HighQuality"
                            AutomationProperties.Name="Device screen. Click to tap, drag to swipe, type to send keys."
                            MouseLeftButtonDown="OnPreviewMouseDown" MouseMove="OnPreviewMouseMove" MouseLeftButtonUp="OnPreviewMouseUp"
                            MouseWheel="OnPreviewMouseWheel" KeyDown="OnPreviewKeyDown" TextInput="OnPreviewTextInput"
                            Margin="8" />
-                    <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center"
-                                Visibility="{Binding HasDevice, Converter={StaticResource BoolToVisibility}, ConverterParameter=invert}">
-                        <TextBlock Style="{StaticResource Icon}" Text="&#xE8EA;" FontSize="44" HorizontalAlignment="Center" Foreground="#80FFFFFF" />
-                        <TextBlock Text="Start a device to see its screen here" Foreground="#B0FFFFFF" Margin="0,12,0,0" HorizontalAlignment="Center" />
-                        <TextBlock Text="Click to tap · drag to swipe · scroll to scroll · type to send keys" Foreground="#70FFFFFF" FontSize="12"
-                                   Margin="0,4,0,0" HorizontalAlignment="Center" />
-                    </StackPanel>
-                </Grid>
-            </Border>
+                </Border>
+                <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" MaxWidth="280"
+                            Visibility="{Binding HasDevice, Converter={StaticResource BoolToVisibility}, ConverterParameter=invert}">
+                    <TextBlock Style="{StaticResource Icon}" Text="&#xE8EA;" FontSize="40" HorizontalAlignment="Center"
+                               Foreground="{DynamicResource TextFillColorTertiaryBrush}" />
+                    <TextBlock Text="Start a device to see its screen here" Margin="0,12,0,0" HorizontalAlignment="Center" TextAlignment="Center"
+                               TextWrapping="Wrap" Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+                    <TextBlock Style="{StaticResource Caption}" Text="Click to tap · drag to swipe · scroll to scroll · type to send keys"
+                               Margin="0,4,0,0" HorizontalAlignment="Center" TextAlignment="Center" />
+                </StackPanel>
+            </Grid>
         </DockPanel>
 
         <!-- ============================== App + Logcat ============================== -->
         <!-- Own tab strip instead of TabControl: the Fluent TabControl hosts content without a height constraint,
              which left the log list unbounded (no scrolling). This Grid row gives each panel a real viewport. -->
-        <Grid Grid.Column="2">
+        <Grid Grid.Column="4">
             <Grid.RowDefinitions>
                 <RowDefinition Height="Auto" />
                 <RowDefinition Height="*" />
@@ -158,7 +169,7 @@
                 <RadioButton x:Name="AppTab" Content="App" GroupName="EmulatorTabs" IsChecked="True" Style="{StaticResource TabStripButton}" />
                 <RadioButton x:Name="LogTab" Content="Logcat" GroupName="EmulatorTabs" Style="{StaticResource TabStripButton}" />
             </StackPanel>
-            <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto"
+            <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled"
                           Visibility="{Binding IsChecked, ElementName=AppTab, Converter={StaticResource BoolToVisibility}}">
                     <StackPanel Margin="0,12,0,0">
                         <Border Style="{StaticResource Card}" Visibility="{Binding HasProject, Converter={StaticResource BoolToVisibility}, ConverterParameter=invert}">

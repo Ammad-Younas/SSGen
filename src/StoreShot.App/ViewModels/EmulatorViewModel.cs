@@ -83,6 +83,13 @@ public sealed partial class EmulatorViewModel : ObservableObject, IPageActivated
 
     partial void OnShowEmulatorWindowChanged(bool value) => _settings.Save(_settings.Current with { ShowEmulatorWindow = value });
 
+    /// <summary>Remembered pane proportions (device, screen, app/logcat), or null for layout defaults.</summary>
+    public IReadOnlyList<double>? PaneWeights =>
+        _settings.Current.EmulatorPaneWeights is { Length: 3 } w && w.All(v => v > 0) ? w : null;
+
+    public void SavePaneWeights(double left, double center, double right) =>
+        _settings.Save(_settings.Current with { EmulatorPaneWeights = [Math.Round(left), Math.Round(center), Math.Round(right)] });
+
     // ------------------------------------------------------ create device
 
     public IReadOnlyList<DeviceProfile> Profiles => DeviceProfile.All;

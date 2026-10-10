@@ -92,7 +92,10 @@ To reset first-run state, delete `%LOCALAPPDATA%\SSGen` (it holds app.db, logs a
 - Theme colours: use Fluent brush keys via `DynamicResource` (e.g. `TextFillColorPrimaryBrush`, `CardBackgroundFillColorDefaultBrush`, `SystemFillColorCriticalBrush`).
 - Accessibility: buttons whose content is not plain text need `AutomationProperties.Name`. UI Automation drives the app in manual tests.
 - Don't use the Fluent `TabControl` for panels that need to scroll. It hosts content without a height constraint (lists grow unbounded and never scroll). Use the `TabStripButton` RadioButton strip with a `*` Grid row instead.
-- Nav selection and accent underlines use `{DynamicResource {x:Static SystemColors.AccentColorDark2BrushKey}}` (the same in light and dark). `DynamicResource` on a brush's `Color` inside a resource dictionary throws at runtime.
+- Selected nav items, tab underlines and splitter highlights use `{DynamicResource NavSelectedBrush}`. `ThemeService` sets it per effective theme: light uses `AccentColorDark1` (the same red as accent buttons); dark uses `AccentColorDark2`. `DynamicResource` on a brush's `Color` inside a resource dictionary throws at runtime, so set brushes from code.
+- Resizable panes use star columns plus `PaneSplitter`. Normalise **all** star columns to their pixel widths on `DragStarted`, because `GridSplitter` only rescales the two adjacent columns and the third collapses to its MinWidth. Persist proportions, never pixels.
+- WPF has no horizontal-wheel event. `HorizontalScrollSupport` (attached to MainWindow) handles `WM_MOUSEHWHEEL` (two-finger sideways swipe, tilt wheel) and Shift+wheel for any ScrollViewer under the pointer.
+- A `ScrollViewer` around wrapping content needs `HorizontalScrollBarVisibility="Disabled"`. Otherwise text never wraps and gets clipped.
 - Store specs (dimensions, limits) are never invented. They go in config with the source URL and the verified date (M5).
 - When writing files from PowerShell, use UTF-8 explicitly. `Get-Content -Raw` without an encoding has corrupted `…` before.
 - Every new third-party dependency or bundled asset gets a line in `THIRD_PARTY_NOTICES.md`. Permissive licences only (LGPL only if dynamically linked).

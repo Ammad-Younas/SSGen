@@ -31,7 +31,7 @@
                         <StackPanel>
                             <ContentPresenter HorizontalAlignment="Center" />
                             <Border x:Name="Underline" Height="3" CornerRadius="1.5" Margin="0,5,0,0" Width="18"
-                                    Background="{DynamicResource {x:Static SystemColors.AccentColorDark2BrushKey}}" Visibility="Hidden" />
+                                    Background="{DynamicResource NavSelectedBrush}" Visibility="Hidden" />
                         </StackPanel>
                     </Border>
                     <ControlTemplate.Triggers>
@@ -46,6 +46,40 @@
                         <Trigger Property="IsKeyboardFocused" Value="True">
                             <Setter TargetName="Bd" Property="BorderBrush" Value="{DynamicResource TextFillColorPrimaryBrush}" />
                             <Setter TargetName="Bd" Property="BorderThickness" Value="1" />
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <!-- Vertical pane splitter: 14px hit area with a thin divider that turns accent on hover/drag. -->
+    <Style x:Key="PaneSplitter" TargetType="GridSplitter">
+        <Setter Property="Width" Value="14" />
+        <Setter Property="HorizontalAlignment" Value="Stretch" />
+        <Setter Property="VerticalAlignment" Value="Stretch" />
+        <Setter Property="ResizeBehavior" Value="PreviousAndNext" />
+        <Setter Property="ResizeDirection" Value="Columns" />
+        <Setter Property="Cursor" Value="SizeWE" />
+        <Setter Property="Focusable" Value="True" />
+        <Setter Property="ToolTip" Value="Drag to resize" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="GridSplitter">
+                    <Grid Background="Transparent">
+                        <Border x:Name="Line" Width="1" HorizontalAlignment="Center" Margin="0,8"
+                                Background="{DynamicResource DividerStrokeColorDefaultBrush}" />
+                        <Border x:Name="Grip" Width="4" Height="36" CornerRadius="2" HorizontalAlignment="Center" VerticalAlignment="Center"
+                                Background="{DynamicResource ControlStrokeColorDefaultBrush}" />
+                    </Grid>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="Line" Property="Background" Value="{DynamicResource NavSelectedBrush}" />
+                            <Setter TargetName="Grip" Property="Background" Value="{DynamicResource NavSelectedBrush}" />
+                        </Trigger>
+                        <Trigger Property="IsDragging" Value="True">
+                            <Setter TargetName="Line" Property="Background" Value="{DynamicResource NavSelectedBrush}" />
+                            <Setter TargetName="Grip" Property="Background" Value="{DynamicResource NavSelectedBrush}" />
                         </Trigger>
                     </ControlTemplate.Triggers>
                 </ControlTemplate>

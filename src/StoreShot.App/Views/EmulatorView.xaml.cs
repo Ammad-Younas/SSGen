@@ -26,11 +26,41 @@ public partial class EmulatorView : UserControl
     public EmulatorView()
     {
         InitializeComponent();
-        Loaded += (_, _) => CompositionTarget.Rendering += OnRendering;
+        Loaded += (_, _) =>
+        {
+            CompositionTarget.Rendering += OnRendering;
+            if (Vm?.PaneWeights is [var l, var c, var r])
+            {
+                LeftColumn.Width = new GridLength(l, GridUnitType.Star);
+                CenterColumn.Width = new GridLength(c, GridUnitType.Star);
+                RightColumn.Width = new GridLength(r, GridUnitType.Star);
+            }
+        };
         Unloaded += (_, _) => CompositionTarget.Rendering -= OnRendering;
     }
 
     private EmulatorViewModel? Vm => DataContext as EmulatorViewModel;
+
+    /// <summary>
+    /// GridSplitter rewrites only the two adjacent star columns, in pixel-scale weights, leaving the third at its
+    /// old weight, which then collapses to its MinWidth. Normalising all three to their current pixel widths first
+    /// keeps every weight on the same scale.
+    /// </summary>
+    private void OnSplitterDragStarted(object sender, System.Windows.Controls.Primitives.DragStartedEventArgs e) => NormalizePaneWeights();
+
+    private void OnSplitterDragCompleted(object sender, System.Windows.Controls.Primitives.DragCompletedEventArgs e)
+    {
+        NormalizePaneWeights();
+        Vm?.SavePaneWeights(LeftColumn.ActualWidth, CenterColumn.ActualWidth, RightColumn.ActualWidth);
+    }
+
+    private void NormalizePaneWeights()
+    {
+        foreach (var column in new[] { LeftColumn, CenterColumn, RightColumn })
+        {
+            column.Width = new GridLength(Math.Max(1, column.ActualWidth), GridUnitType.Star);
+        }
+    }
 
     private void OnRendering(object? sender, EventArgs e)
     {
