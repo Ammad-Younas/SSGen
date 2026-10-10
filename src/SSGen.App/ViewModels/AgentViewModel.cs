@@ -30,6 +30,9 @@ public sealed partial class ScreenThumbViewModel : ObservableObject
     public partial string Title { get; set; } = "";
 }
 
+/// <summary>One prerequisite in the "get ready" checklist.</summary>
+public sealed record ReadyStep(string Title, string Hint, bool Done);
+
 /// <summary>One line of the run log.</summary>
 public sealed record AgentLogLine(string Time, string Glyph, string Kind, string Message);
 
@@ -41,12 +44,15 @@ public sealed partial class AgentViewModel : ObservableObject, IPageActivated, I
     private readonly AiService _ai;
     private readonly ISettingsService _settings;
     private readonly IDialogService _dialogs;
+    private readonly INavigationService _navigation;
     private readonly ILogger<AgentViewModel> _log;
+    private PageKey _fixPage = PageKey.Home;
     private CancellationTokenSource? _cts;
     private AgentControl? _control;
 
-    public AgentViewModel(EmulatorViewModel emulator, IProjectService projects, AiService ai, ISettingsService settings, IDialogService dialogs, ILogger<AgentViewModel> log)
+    public AgentViewModel(EmulatorViewModel emulator, IProjectService projects, AiService ai, ISettingsService settings, IDialogService dialogs, INavigationService navigation, ILogger<AgentViewModel> log)
     {
+        _navigation = navigation;
         _emulator = emulator;
         _projects = projects;
         _ai = ai;
@@ -75,6 +81,17 @@ public sealed partial class AgentViewModel : ObservableObject, IPageActivated, I
     public partial string? Blocker { get; set; }
 
     public bool HasBlocker => Blocker is not null;
+
+    /// <summary>Project, APK, device: what must be ready before exploring, in order.</summary>
+    [ObservableProperty]
+    public partial IReadOnlyList<ReadyStep> ReadySteps { get; set; } = [];
+
+    /// <summary>Button text for the first unfinished step ("Go to Home", "Open Emulator").</summary>
+    [ObservableProperty]
+    public partial string FixActionText { get; set; } = "";
+
+    [RelayCommand]
+    private void GoToFix() => _navigation.NavigateTo(_fixPage);
 
     partial void OnBlockerChanged(string? value) => OnPropertyChanged(nameof(HasBlocker));
 
@@ -137,10 +154,21 @@ public sealed partial class AgentViewModel : ObservableObject, IPageActivated, I
             return;
         }
 
-        Blocker = _projects.Current is null ? "Open or create a project first (Home)."
-            : _emulator.Apk is null ? "Import the app's APK on the Emulator page."
-            : _emulator.Device is null ? "Start a device on the Emulator page."
+        var hasProject = _projects.Current is not null;
+        var hasApk = hasProject && _emulator.Apk is not null;
+        var hasDevice = _emulator.Device is not null;
+        ReadySteps =
+        [
+            new("Open a project", "Create or open one on Home.", hasProject),
+            new("Import the app's APK", "On the Emulator page: Import APK.", hasApk),
+            new("Start a device", "On the Emulator page: pick a device and Start.", hasDevice),
+        ];
+        Blocker = !hasProject ? "Open or create a project first."
+            : !hasApk ? "Import the APK of the app you want to explore."
+            : !hasDevice ? "Start a virtual device or connect a phone."
             : null;
+        _fixPage = hasProject ? PageKey.Emulator : PageKey.Home;
+        FixActionText = hasProject ? "Open Emulator" : "Go to Home";
 
         var resolved = _ai.ResolveTask(AiTask.Exploration);
         AiAvailable = resolved is not null;

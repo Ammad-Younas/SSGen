@@ -18,6 +18,41 @@
         <Setter Property="FontSize" Value="16" />
     </Style>
 
+    <!-- Panel header bar: icon + title (+ optional badge or actions on the right), divider underneath.
+         Use inside a Card with Padding="0"; give the panel body its own margin. -->
+    <Style x:Key="PanelHeader" TargetType="Border">
+        <Setter Property="DockPanel.Dock" Value="Top" />
+        <Setter Property="Padding" Value="16,11" />
+        <Setter Property="BorderThickness" Value="0,0,0,1" />
+        <Setter Property="BorderBrush" Value="{DynamicResource DividerStrokeColorDefaultBrush}" />
+        <Setter Property="Background" Value="{DynamicResource SubtleFillColorTertiaryBrush}" />
+        <!-- Card corner (8) minus its border (1); headers in the middle of a card set 0. -->
+        <Setter Property="CornerRadius" Value="7,7,0,0" />
+    </Style>
+    <Style x:Key="PanelHeaderIcon" TargetType="TextBlock" BasedOn="{StaticResource Icon}">
+        <Setter Property="FontSize" Value="16" />
+        <Setter Property="Margin" Value="0,0,10,0" />
+        <Setter Property="Foreground" Value="{DynamicResource AccentTextFillColorPrimaryBrush}" />
+    </Style>
+    <Style x:Key="PanelHeaderTitle" TargetType="TextBlock">
+        <Setter Property="FontSize" Value="14" />
+        <Setter Property="FontWeight" Value="SemiBold" />
+        <Setter Property="VerticalAlignment" Value="Center" />
+        <Setter Property="TextTrimming" Value="CharacterEllipsis" />
+        <Setter Property="Foreground" Value="{DynamicResource TextFillColorPrimaryBrush}" />
+    </Style>
+    <!-- Small rounded count ("5") next to a header title. -->
+    <Style x:Key="CountBadge" TargetType="Border">
+        <Setter Property="CornerRadius" Value="10" />
+        <Setter Property="Padding" Value="8,1" />
+        <Setter Property="MinWidth" Value="24" />
+        <Setter Property="Margin" Value="8,0,0,0" />
+        <Setter Property="VerticalAlignment" Value="Center" />
+        <Setter Property="Background" Value="{DynamicResource SubtleFillColorSecondaryBrush}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource CardStrokeColorDefaultBrush}" />
+        <Setter Property="BorderThickness" Value="1" />
+    </Style>
+
     <!-- Text tab with an accent underline when selected (used instead of TabControl where content must be height-bounded). -->
     <Style x:Key="TabStripButton" TargetType="RadioButton">
         <Setter Property="Foreground" Value="{DynamicResource TextFillColorSecondaryBrush}" />

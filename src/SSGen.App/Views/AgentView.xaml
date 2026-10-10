@@ -34,17 +34,54 @@
 
             <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
                 <StackPanel>
-                    <Border Style="{StaticResource Card}" Visibility="{Binding HasBlocker, Converter={StaticResource BoolToVisibility}}">
-                        <DockPanel>
-                            <TextBlock DockPanel.Dock="Left" Style="{StaticResource Icon}" Text="&#xE946;" Margin="0,0,10,0" VerticalAlignment="Top" />
-                            <TextBlock Text="{Binding Blocker}" TextWrapping="Wrap" Foreground="{DynamicResource TextFillColorPrimaryBrush}" />
-                        </DockPanel>
+                    <!-- Get ready: checklist of prerequisites, shown until all are done. -->
+                    <Border Visibility="{Binding HasBlocker, Converter={StaticResource BoolToVisibility}}" Margin="0,0,0,8"
+                            CornerRadius="8" BorderThickness="1" Padding="16,14"
+                            Background="{DynamicResource SystemFillColorAttentionBackgroundBrush}"
+                            BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}">
+                        <StackPanel>
+                            <DockPanel Margin="0,0,0,10">
+                                <TextBlock DockPanel.Dock="Left" Style="{StaticResource Icon}" Text="&#xE946;" FontSize="18" Margin="0,0,10,0"
+                                           Foreground="{DynamicResource AccentTextFillColorPrimaryBrush}" />
+                                <StackPanel>
+                                    <TextBlock Text="Get ready to explore" FontWeight="SemiBold" FontSize="14" Foreground="{DynamicResource TextFillColorPrimaryBrush}" />
+                                    <TextBlock Text="{Binding Blocker}" TextWrapping="Wrap" Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+                                </StackPanel>
+                            </DockPanel>
+                            <ItemsControl ItemsSource="{Binding ReadySteps}" Focusable="False">
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate DataType="{x:Type vm:ReadyStep}">
+                                        <DockPanel Margin="0,3" ToolTip="{Binding Hint}">
+                                            <TextBlock x:Name="Mark" DockPanel.Dock="Left" Style="{StaticResource Icon}" FontSize="16" Margin="0,0,10,0"
+                                                       Text="&#xEA3A;" Foreground="{DynamicResource TextFillColorTertiaryBrush}" />
+                                            <TextBlock x:Name="Label" Text="{Binding Title}" VerticalAlignment="Center" TextWrapping="Wrap"
+                                                       Foreground="{DynamicResource TextFillColorPrimaryBrush}" />
+                                        </DockPanel>
+                                        <DataTemplate.Triggers>
+                                            <DataTrigger Binding="{Binding Done}" Value="True">
+                                                <Setter TargetName="Mark" Property="Text" Value="&#xE930;" />
+                                                <Setter TargetName="Mark" Property="Foreground" Value="{DynamicResource SystemFillColorSuccessBrush}" />
+                                                <Setter TargetName="Label" Property="Foreground" Value="{DynamicResource TextFillColorSecondaryBrush}" />
+                                            </DataTrigger>
+                                        </DataTemplate.Triggers>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                            <Button Content="{Binding FixActionText}" Command="{Binding GoToFixCommand}" Style="{DynamicResource AccentButtonStyle}"
+                                    HorizontalAlignment="Left" Margin="0,12,0,0" MinWidth="120" />
+                        </StackPanel>
                     </Border>
 
-                    <Border Style="{StaticResource Card}">
-                        <StackPanel IsEnabled="{Binding IsIdle}">
-                            <TextBlock Text="Explorer" Foreground="{DynamicResource TextFillColorPrimaryBrush}" FontWeight="SemiBold" />
-                            <CheckBox Content="Use AI" IsChecked="{Binding UseAi}" IsEnabled="{Binding AiAvailable}" Margin="0,6,0,0"
+                    <Border Style="{StaticResource Card}" Padding="0">
+                        <DockPanel>
+                            <Border Style="{StaticResource PanelHeader}">
+                                <StackPanel Orientation="Horizontal">
+                                    <TextBlock Style="{StaticResource PanelHeaderIcon}" Text="&#xE713;" />
+                                    <TextBlock Style="{StaticResource PanelHeaderTitle}" Text="Explorer settings" />
+                                </StackPanel>
+                            </Border>
+                        <StackPanel IsEnabled="{Binding IsIdle}" Margin="16,12,16,16">
+                            <CheckBox Content="Use AI" IsChecked="{Binding UseAi}" IsEnabled="{Binding AiAvailable}"
                                       AutomationProperties.Name="Use AI" />
                             <TextBlock Style="{StaticResource Caption}" Text="{Binding AiDescription}" TextWrapping="Wrap" />
                             <TextBlock Style="{StaticResource Caption}" TextWrapping="Wrap" Margin="0,4,0,0"
@@ -70,10 +107,18 @@
                                 </StackPanel>
                             </Grid>
                         </StackPanel>
+                        </DockPanel>
                     </Border>
 
-                    <Border Style="{StaticResource Card}">
-                        <StackPanel>
+                    <Border Style="{StaticResource Card}" Padding="0">
+                        <DockPanel>
+                            <Border Style="{StaticResource PanelHeader}">
+                                <StackPanel Orientation="Horizontal">
+                                    <TextBlock Style="{StaticResource PanelHeaderIcon}" Text="&#xE768;" />
+                                    <TextBlock Style="{StaticResource PanelHeaderTitle}" Text="Run" />
+                                </StackPanel>
+                            </Border>
+                        <StackPanel Margin="16,12,16,16">
                             <WrapPanel>
                                 <Button Content="Start" Command="{Binding StartCommand}" Style="{DynamicResource AccentButtonStyle}" MinWidth="80" Margin="0,0,8,4" />
                                 <Button Command="{Binding PauseCommand}" MinWidth="80" Margin="0,0,8,4">
@@ -96,6 +141,7 @@
                             <TextBlock Style="{StaticResource Caption}" Text="{Binding Progress}" Margin="0,4,0,0" />
                             <TextBlock Style="{StaticResource Caption}" Text="{Binding Meter}" TextWrapping="Wrap" />
                         </StackPanel>
+                        </DockPanel>
                     </Border>
                 </StackPanel>
             </ScrollViewer>
@@ -119,11 +165,17 @@
                     </Grid.ColumnDefinitions>
 
                     <!-- Current screen -->
-                    <Border Style="{StaticResource Card}" Margin="0">
+                    <Border Style="{StaticResource Card}" Margin="0" Padding="0">
                         <DockPanel>
-                            <TextBlock DockPanel.Dock="Top" Text="{Binding CurrentScreenName}" Foreground="{DynamicResource TextFillColorPrimaryBrush}"
-                                       TextTrimming="CharacterEllipsis" Margin="0,0,0,8" />
-                            <Grid>
+                            <Border Style="{StaticResource PanelHeader}">
+                                <DockPanel>
+                                    <TextBlock Style="{StaticResource PanelHeaderIcon}" Text="&#xE8EA;" />
+                                    <TextBlock Style="{StaticResource PanelHeaderTitle}" Text="Current screen" />
+                                </DockPanel>
+                            </Border>
+                            <TextBlock DockPanel.Dock="Top" Text="{Binding CurrentScreenName}" Style="{StaticResource Caption}"
+                                       TextTrimming="CharacterEllipsis" Margin="16,8,16,0" ToolTip="{Binding CurrentScreenName}" />
+                            <Grid Margin="12">
                                 <TextBlock Style="{StaticResource Caption}" Text="The current screen appears here while exploring." TextWrapping="Wrap"
                                            HorizontalAlignment="Center" VerticalAlignment="Center" TextAlignment="Center"
                                            Visibility="{Binding CurrentScreen, Converter={StaticResource NullToVisibility}, ConverterParameter=invert}" />
@@ -145,7 +197,12 @@
                             </Grid.RowDefinitions>
 
                             <DockPanel>
-                                <TextBlock DockPanel.Dock="Top" Text="Activity" Margin="16,12,16,6" FontWeight="SemiBold" Foreground="{DynamicResource TextFillColorPrimaryBrush}" />
+                                <Border Style="{StaticResource PanelHeader}">
+                                    <StackPanel Orientation="Horizontal">
+                                        <TextBlock Style="{StaticResource PanelHeaderIcon}" Text="&#xE81C;" />
+                                        <TextBlock Style="{StaticResource PanelHeaderTitle}" Text="Activity" />
+                                    </StackPanel>
+                                </Border>
                                 <ListBox x:Name="LogList" ItemsSource="{Binding Log}" BorderThickness="0" Background="Transparent"
                                          ScrollViewer.HorizontalScrollBarVisibility="Disabled" VirtualizingPanel.ScrollUnit="Pixel"
                                          AutomationProperties.Name="Agent activity">
@@ -171,7 +228,15 @@
                                           DragStarted="OnSplitterDragStarted" DragCompleted="OnSplitterDragCompleted" />
 
                             <DockPanel Grid.Row="2">
-                                <TextBlock DockPanel.Dock="Top" Text="Screen map" Margin="16,0,16,6" FontWeight="SemiBold" Foreground="{DynamicResource TextFillColorPrimaryBrush}" />
+                                <Border Style="{StaticResource PanelHeader}" BorderThickness="0,1,0,1" CornerRadius="0">
+                                    <StackPanel Orientation="Horizontal">
+                                        <TextBlock Style="{StaticResource PanelHeaderIcon}" Text="&#xE81E;" />
+                                        <TextBlock Style="{StaticResource PanelHeaderTitle}" Text="Screen map" />
+                                        <Border Style="{StaticResource CountBadge}" ToolTip="Links between screens">
+                                            <TextBlock Text="{Binding Map.Count}" Style="{StaticResource Caption}" HorizontalAlignment="Center" />
+                                        </Border>
+                                    </StackPanel>
+                                </Border>
                                 <ListBox ItemsSource="{Binding Map}" BorderThickness="0" Background="Transparent"
                                          ScrollViewer.HorizontalScrollBarVisibility="Disabled" AutomationProperties.Name="Screen map">
                                     <ListBox.ItemTemplate>
@@ -189,12 +254,18 @@
                               DragStarted="OnSplitterDragStarted" DragCompleted="OnSplitterDragCompleted" />
 
                 <!-- Discovered screens -->
-                <Border Grid.Row="2" Style="{StaticResource Card}" Margin="0">
+                <Border Grid.Row="2" Style="{StaticResource Card}" Margin="0" Padding="0">
                     <DockPanel>
-                        <TextBlock DockPanel.Dock="Top" Margin="0,0,0,8" Foreground="{DynamicResource TextFillColorPrimaryBrush}" FontWeight="SemiBold">
-                            <Run Text="Discovered screens" /> <Run Text="{Binding Screens.Count, Mode=OneWay}" />
-                        </TextBlock>
-                        <ScrollViewer x:Name="ThumbScroller" HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Disabled"
+                        <Border Style="{StaticResource PanelHeader}">
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Style="{StaticResource PanelHeaderIcon}" Text="&#xE91B;" />
+                                <TextBlock Style="{StaticResource PanelHeaderTitle}" Text="Discovered screens" />
+                                <Border Style="{StaticResource CountBadge}" ToolTip="Unique screens found in this run">
+                                    <TextBlock Text="{Binding Screens.Count}" Style="{StaticResource Caption}" HorizontalAlignment="Center" />
+                                </Border>
+                            </StackPanel>
+                        </Border>
+                        <ScrollViewer x:Name="ThumbScroller" Margin="16,12,16,8" HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Disabled"
                                       AutomationProperties.Name="Discovered screens">
                             <ItemsControl ItemsSource="{Binding Screens}">
                                 <ItemsControl.ItemsPanel>
