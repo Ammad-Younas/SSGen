@@ -73,7 +73,6 @@ public partial class EmulatorView : UserControl
             DeviceRail.Visibility = Visibility.Collapsed;
             DevicePanel.Visibility = Visibility.Visible;
             DeviceSplitter.Visibility = Visibility.Visible;
-            CollapseHandle.Visibility = Visibility.Visible;
             LeftColumn.MinWidth = 220;
             LeftColumn.Width = new GridLength(_hiddenLeftWeight, GridUnitType.Star);
         }
@@ -84,8 +83,7 @@ public partial class EmulatorView : UserControl
             LeftColumn.MinWidth = 0;
             LeftColumn.Width = GridLength.Auto; // sized to the rail
             DevicePanel.Visibility = Visibility.Collapsed;
-            DeviceSplitter.Visibility = Visibility.Collapsed;
-            CollapseHandle.Visibility = Visibility.Collapsed;
+            DeviceSplitter.Visibility = Visibility.Collapsed; // the handle (same column) stays, flipped to ›
             DeviceRail.Visibility = Visibility.Visible;
         }
     }
