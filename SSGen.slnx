@@ -1,10 +1,13 @@
 <Solution>
   <Folder Name="/src/">
+    <Project Path="src/SSGen.Agent/SSGen.Agent.csproj" />
+    <Project Path="src/SSGen.Ai/SSGen.Ai.csproj" />
     <Project Path="src/SSGen.App/SSGen.App.csproj" />
     <Project Path="src/SSGen.Core/SSGen.Core.csproj" />
     <Project Path="src/SSGen.Emulator/SSGen.Emulator.csproj" />
   </Folder>
   <Folder Name="/tests/">
+    <Project Path="tests/SSGen.Agent.Tests/SSGen.Agent.Tests.csproj" />
     <Project Path="tests/SSGen.Core.Tests/SSGen.Core.Tests.csproj" />
     <Project Path="tests/SSGen.Emulator.Tests/SSGen.Emulator.Tests.csproj" />
   </Folder>

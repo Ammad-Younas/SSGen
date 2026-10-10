@@ -17,6 +17,8 @@ SSGen uses the following third-party components. Only permissive licences are al
 | [FFmpeg.AutoGen](https://github.com/Ruslan-B/FFmpeg.AutoGen) | MIT | C# bindings to FFmpeg (loaded dynamically) |
 | [Grpc.Net.Client](https://github.com/grpc/grpc-dotnet) | Apache-2.0 | Emulator gRPC client (live preview) |
 | [Google.Protobuf](https://github.com/protocolbuffers/protobuf) | BSD-3-Clause | Protobuf runtime |
+| [Anthropic](https://github.com/anthropics/anthropic-sdk-csharp) (official C# SDK) | MIT | Claude provider adapter (used only when the user adds an Anthropic profile) |
+| [Microsoft.Extensions.AI.Abstractions](https://github.com/dotnet/extensions), System.Net.ServerSentEvents (transitive, via Anthropic) | MIT | SDK dependencies |
 
 ## Shipped with the app: bundled binaries and sources (fetched by `tools/fetch-deps.ps1`)
 

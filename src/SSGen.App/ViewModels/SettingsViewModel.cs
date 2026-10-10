@@ -22,14 +22,17 @@ public sealed partial class SettingsViewModel : ObservableObject, IPageActivated
     private readonly ILogger<SettingsViewModel> _log;
     private bool _loading;
 
-    public SettingsViewModel(ISettingsService settings, IDialogService dialogs, AppPaths paths, ILogger<SettingsViewModel> log)
+    public SettingsViewModel(ISettingsService settings, IDialogService dialogs, AppPaths paths, AiProvidersViewModel ai, ILogger<SettingsViewModel> log)
     {
+        Ai = ai;
         _settings = settings;
         _dialogs = dialogs;
         _paths = paths;
         _log = log;
         Load();
     }
+
+    public AiProvidersViewModel Ai { get; }
 
     public IReadOnlyList<AppTheme> Themes { get; } = Enum.GetValues<AppTheme>();
 
@@ -60,6 +63,7 @@ public sealed partial class SettingsViewModel : ObservableObject, IPageActivated
     public void OnActivated()
     {
         Load();
+        Ai.Reload();
         UpdateCacheSize();
     }
 

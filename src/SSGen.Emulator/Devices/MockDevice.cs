@@ -39,6 +39,9 @@ public sealed class MockDevice : IDevice
 
     public HashSet<string> InstalledPackages { get; } = new(StringComparer.Ordinal);
 
+    /// <summary>Buttons actually hit by taps, as "screenId:label".</summary>
+    public ConcurrentQueue<string> TappedButtons { get; } = new();
+
     public Task<string> GetAbiAsync(CancellationToken ct = default) => Task.FromResult("x86_64");
 
     public Task<int> GetApiLevelAsync(CancellationToken ct = default) => Task.FromResult(36);
@@ -63,6 +66,11 @@ public sealed class MockDevice : IDevice
     {
         Actions.Enqueue(string.Create(CultureInfo.InvariantCulture, $"tap {x} {y}"));
         var hit = CurrentScreen.Buttons.FirstOrDefault(b => b.Bounds.Contains(x, y));
+        if (hit is not null)
+        {
+            TappedButtons.Enqueue($"{_current}:{hit.Label}");
+        }
+
         if (hit?.TargetScreenId is { } target && _screens.ContainsKey(target))
         {
             _history.Push(_current);

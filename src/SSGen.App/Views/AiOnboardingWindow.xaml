@@ -1,0 +1,27 @@
+<Window x:Class="SSGen.App.Views.AiOnboardingWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="AI assistance"
+        Width="560" SizeToContent="Height" ResizeMode="NoResize"
+        WindowStartupLocation="CenterOwner" ShowInTaskbar="False">
+    <StackPanel Margin="24">
+        <TextBlock Text="Use AI to explore your app?" FontSize="20" FontWeight="SemiBold" Margin="0,0,0,8"
+                   Foreground="{DynamicResource TextFillColorPrimaryBrush}" />
+        <TextBlock TextWrapping="Wrap" Foreground="{DynamicResource TextFillColorSecondaryBrush}" Margin="0,0,0,16"
+                   Text="SSGen doesn't include or default to any AI service. You can connect your own: a cloud API key (Anthropic, OpenAI, Gemini), any OpenAI-compatible endpoint, or a free local model with Ollama or LM Studio. You can change this any time in Settings." />
+
+        <Button x:Name="AddButton" HorizontalAlignment="Stretch" HorizontalContentAlignment="Left" Padding="16,12" Margin="0,0,0,8"
+                Style="{DynamicResource AccentButtonStyle}" Click="OnAdd">
+            <StackPanel>
+                <TextBlock Text="Add an AI provider" FontWeight="SemiBold" />
+                <TextBlock Text="The agent decides where to go, labels screens, and later ranks screens and writes captions." Opacity="0.85" TextWrapping="Wrap" />
+            </StackPanel>
+        </Button>
+        <Button HorizontalAlignment="Stretch" HorizontalContentAlignment="Left" Padding="16,12" Click="OnSkip">
+            <StackPanel>
+                <TextBlock Text="Skip — manual mode" FontWeight="SemiBold" />
+                <TextBlock Text="Exploration uses the systematic explorer (no AI); you pick and caption screens yourself." Opacity="0.85" TextWrapping="Wrap" />
+            </StackPanel>
+        </Button>
+    </StackPanel>
+</Window>

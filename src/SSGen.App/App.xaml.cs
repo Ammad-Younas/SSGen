@@ -18,7 +18,8 @@ public partial class App : Application
     {
         base.OnStartup(e);
 
-        var paths = new AppPaths();
+        // SSGEN_DATA_DIR: run against a separate data folder (UI testing, clean-slate checks).
+        var paths = new AppPaths(Environment.GetEnvironmentVariable("SSGEN_DATA_DIR") is { Length: > 0 } dataDir ? dataDir : null);
         Log.Logger = new LoggerConfiguration()
             .MinimumLevel.Information()
             .Enrich.FromLogContext()
@@ -95,6 +96,13 @@ public partial class App : Application
         services.AddLogging(logging => logging.AddSerilog(dispose: false));
         services.AddSSGenCore(paths);
 
+        services.AddSingleton(_ => new System.Net.Http.HttpClient { Timeout = Timeout.InfiniteTimeSpan }); // providers apply their own timeouts
+        services.AddSingleton(sp => new SSGen.Ai.Profiles.ProviderProfileStore(
+            sp.GetRequiredService<SSGen.Core.Data.SqliteDatabase>(),
+            sp.GetRequiredService<SSGen.Core.Security.ISecretStore>()));
+        services.AddSingleton<SSGen.Ai.AiService>();
+        services.AddSingleton<AiProvidersViewModel>();
+
         services.AddSingleton<ThemeService>();
         services.AddSingleton<IDialogService, DialogService>();
         services.AddSingleton<INavigationService, NavigationService>();
@@ -104,6 +112,7 @@ public partial class App : Application
             sp.GetRequiredService<SSGen.Core.Processes.IProcessRunner>(),
             sp.GetRequiredService<Microsoft.Extensions.Logging.ILoggerFactory>()));
         services.AddSingleton<EmulatorViewModel>();
+        services.AddSingleton<AgentViewModel>();
 
         services.AddSingleton<MainViewModel>();
         services.AddSingleton<HomeViewModel>();

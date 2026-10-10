@@ -44,12 +44,36 @@ src/SSGen.Emulator/      # devices: no UI
   Mirror/                    # IScreenMirror: EmulatorGrpcMirror (emulators), ScrcpyMirror+H264Decoder (phones), ScreencapMirror (fallback)
   Logcat/                    # threadtime parser + batched streaming session
   Protos/                    # emulator_controller.proto (Apache-2.0) -> generated gRPC client
+src/SSGen.Ai/            # provider-agnostic LLM layer: no UI
+  LlmContracts.cs            # ILlmProvider (text, images, JSON schema, streaming), LlmException(kind, fix), usage
+  Providers/                 # Anthropic (official SDK), OpenAI + OpenAI-compatible, Gemini, Ollama (raw HTTP via HttpProviderBase)
+  StructuredOutput.cs        # AskAsync<T>: schema prompt + example, tolerant JSON extraction, validate-and-retry with feedback
+  Profiles/                  # ProviderProfile + store (app.db; keys in DPAPI as "provider:{id}"), per-task models, price table
+  AiService.cs               # create/resolve providers per AiTask, vision detection (cached), connection test, CostMeter
+src/SSGen.Agent/         # exploration agent: no UI
+  Observation/               # uiautomator XML -> UiSnapshot (numbered elements); ScreenFingerprint (dHash + structure + selection)
+  Graph/ScreenGraph.cs       # unique screens + edges (with element keys, so routes can be replayed); FirstHopToUnfinished
+  Safety/Guardrails.cs       # deterministic blocklist (multilingual, ids, confirm-dialog context, card numbers, AI risk flag)
+  Strategies/                # IAgentStrategy: SystematicStrategy (no AI) and AiStrategy (falls back to systematic per step)
+  Runs/                      # ExplorationAgent loop (observe/decide/guard/act/settle), AgentRunStore (project.db 0003)
 tests/SSGen.Core.Tests/      # xUnit
 tests/SSGen.Emulator.Tests/  # xUnit; EmulatorIntegrationTests is opt-in (see Commands)
+tests/SSGen.Agent.Tests/     # providers via fake HttpMessageHandler, structured output, guardrails, full runs on MockDevice; real-emulator run opt-in
 tools/fetch-deps.ps1         # downloads scrcpy-server, FFmpeg LGPL DLLs, sample APK into third_party/ (git-ignored)
 ```
 
-Planned projects, each added in the milestone that needs it: `SSGen.Ai` and `SSGen.Agent` (M3), `SSGen.Scene` (SkiaSharp scene doc + renderer) and `SSGen.Templates` (M5).
+Planned projects, each added in the milestone that needs it: `SSGen.Scene` (SkiaSharp scene doc + renderer) and `SSGen.Templates` (M5).
+
+## AI and agent (M3): rules and lessons
+
+- **No default provider, ever.** No profile exists until the user adds one; with none, exploration uses `SystematicStrategy` and everything works manually. Never hard-code prices: `model_prices` is user-edited, and an unknown price shows "cost unknown" (and the cap can't be enforced; the user is warned).
+- **Safety is deterministic and model-independent.** Every action passes `Guardrails.Check` before it runs; the model's `risk` flag can only add blocks. Safe mode on = blocked, off = `IAgentObserver.ConfirmAsync`. Tests prove MockDevice's "Delete account" and "Buy premium" are never tapped (systematic and a reckless scripted AI).
+- **Consent** is asked before the first screenshot goes to a paid (non-loopback) provider; declining switches to UI-text-only for that run. Local providers (loopback URL or Ollama) never ask and show "Free (local)".
+- **Weak models**: `StructuredOutput` sends the schema + one example, extracts JSON from prose/fences/trailing commas, validates (e.g. element ids must exist) and retries with the error. If still unusable, `AiStrategy` falls back to the systematic choice for that step instead of failing the run.
+- **Back on the launch screen closes the app.** The agent marks the screen after a (re)launch, and any screen whose Back left the app, as `IsRoot`; the systematic strategy stops there instead of pressing Back, and the AI prompt says so. Before this, a real run wasted 30 of 45 steps in a back/relaunch loop.
+- **Revisiting**: edges store the tapped element's key, so the systematic strategy can travel to a screen that still has untried elements (`FirstHopToUnfinished`, capped at 3 re-taps per element).
+- **Speed**: `SettleAsync` returns the last stable screenshot, which becomes the observation (about 3.5 s per step on the emulator; `uiautomator dump` is most of it).
+- Real sample-app run (systematic): 6 unique screens in 25 steps, 1 min 41 s, completed (tutorial, notes list, drawer, text note, manage categories, recycle bin).
 
 ## Device pipeline (M2): what is verified and why it's built this way
 
@@ -72,9 +96,10 @@ dotnet test SSGen.slnx
 dotnet run --project src/SSGen.App
 powershell -File tools/fetch-deps.ps1            # once after cloning: scrcpy-server, FFmpeg DLLs, sample APK
 $env:SSGEN_INTEGRATION='1'; dotnet test tests/SSGen.Emulator.Tests   # + real emulator end-to-end (~1-2 min)
+$env:SSGEN_INTEGRATION='1'; dotnet test tests/SSGen.Agent.Tests      # + real systematic exploration of the sample app (~2 min)
 ```
 
-Diagnostics env vars: `SSGEN_MOCK_DEVICE=1` shows a mock device in the app; `SSGEN_SCRCPY_LOG=verbose` logs scrcpy server output (`ScrcpyMirror.ServerOutput`).
+Diagnostics env vars: `SSGEN_DATA_DIR=<folder>` runs the app on a separate data folder (clean first run, UI tests) instead of `%LOCALAPPDATA%\SSGen`; `SSGEN_MOCK_DEVICE=1` shows a mock device in the app; `SSGEN_SCRCPY_LOG=verbose` logs scrcpy server output (`ScrcpyMirror.ServerOutput`).
 
 To reset first-run state, delete `%LOCALAPPDATA%\SSGen` (it holds app.db, logs and cache).
 
@@ -105,8 +130,8 @@ To reset first-run state, delete `%LOCALAPPDATA%\SSGen` (it holds app.db, logs a
 | | Status |
 |---|---|
 | M1 Foundation (shell, themes, SQLite, settings, DPAPI secrets, setup assistant) | **done** |
-| M2 Emulator (AVD mgmt, APK parse/install, live preview, manual control, logcat) | **done**, awaiting owner review |
-| M3 Provider layer + Agent v1 | next (after review) |
+| M2 Emulator (AVD mgmt, APK parse/install, live preview, manual control, logcat) | **done** (reviewed) |
+| M3 Provider layer + Agent v1 (providers, settings UI, first-run AI choice, guardrails, systematic + AI explorer, Explore page) | **done** |
 | M4 Agent v2 | |
 | M5 Selection, templates, render, verified export presets | then **stop for review** |
 | M6 Gallery + editor · M7 Export, i18n, installer · M8 Hardening | |

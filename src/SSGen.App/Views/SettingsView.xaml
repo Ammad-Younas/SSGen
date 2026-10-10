@@ -72,24 +72,158 @@
             <!-- Agent safety -->
             <TextBlock Style="{StaticResource SectionHeader}" Text="Exploration safety" />
             <Border Style="{StaticResource Card}">
-                <DockPanel>
-                    <CheckBox DockPanel.Dock="Right" IsChecked="{Binding SafeMode}" VerticalAlignment="Center"
-                              AutomationProperties.Name="Safe mode" />
-                    <StackPanel>
-                        <TextBlock Text="Safe mode (recommended)" Foreground="{DynamicResource TextFillColorPrimaryBrush}" />
-                        <TextBlock Style="{StaticResource Caption}"
-                                   Text="The exploration agent never taps purchase, payment, delete, send or post actions without asking you. The blocklist editor arrives with the agent in M3." />
-                    </StackPanel>
-                </DockPanel>
+                <StackPanel>
+                    <DockPanel>
+                        <CheckBox DockPanel.Dock="Right" IsChecked="{Binding SafeMode}" VerticalAlignment="Center"
+                                  AutomationProperties.Name="Safe mode" />
+                        <StackPanel>
+                            <TextBlock Text="Safe mode (recommended)" Foreground="{DynamicResource TextFillColorPrimaryBrush}" />
+                            <TextBlock Style="{StaticResource Caption}"
+                                       Text="On: the agent never performs purchase, payment, delete, send, post, share or sign-out actions. Off: it asks you before each one." />
+                        </StackPanel>
+                    </DockPanel>
+                    <Separator Margin="0,12" />
+                    <TextBlock Text="Extra blocked words" Foreground="{DynamicResource TextFillColorPrimaryBrush}" />
+                    <TextBlock Style="{StaticResource Caption}" Margin="0,0,0,6"
+                               Text="Added to the built-in list (buy, pay, subscribe, delete, send, post, share, sign out… in several languages). One per line or comma-separated." />
+                    <TextBox Text="{Binding Ai.BlocklistExtra, UpdateSourceTrigger=LostFocus}" AcceptsReturn="True" MinHeight="60"
+                             TextWrapping="Wrap" VerticalScrollBarVisibility="Auto" AutomationProperties.Name="Extra blocked words" />
+                </StackPanel>
             </Border>
 
             <!-- AI -->
             <TextBlock Style="{StaticResource SectionHeader}" Text="AI providers" />
             <Border Style="{StaticResource Card}">
                 <StackPanel>
-                    <TextBlock Text="No AI provider configured" Foreground="{DynamicResource TextFillColorPrimaryBrush}" />
-                    <TextBlock Style="{StaticResource Caption}"
-                               Text="SSGen doesn't ship with or default to any AI provider. Provider profiles (Anthropic, OpenAI, Gemini, OpenAI-compatible endpoints, Ollama) arrive in M3. Until then everything works in manual mode." />
+                    <DockPanel Margin="0,0,0,8">
+                        <Button DockPanel.Dock="Right" Content="Add provider…" Command="{Binding Ai.AddProviderCommand}"
+                                Style="{DynamicResource AccentButtonStyle}" VerticalAlignment="Center" />
+                        <StackPanel>
+                            <TextBlock Text="{Binding Ai.ActiveSummary}" Foreground="{DynamicResource TextFillColorPrimaryBrush}" />
+                            <TextBlock Style="{StaticResource Caption}"
+                                       Text="SSGen doesn't ship with or default to any provider. Without one, exploration uses the systematic (no-AI) explorer and everything else works manually." />
+                        </StackPanel>
+                    </DockPanel>
+                    <ItemsControl ItemsSource="{Binding Ai.Profiles}">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <Border BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}" BorderThickness="0,1,0,0" Padding="0,8">
+                                    <DockPanel>
+                                        <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center">
+                                            <Button Content="Edit…" Margin="0,0,8,0"
+                                                    Command="{Binding DataContext.Ai.EditProviderCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                    CommandParameter="{Binding}" />
+                                            <Button Content="Remove"
+                                                    Command="{Binding DataContext.Ai.DeleteProviderCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                    CommandParameter="{Binding}" />
+                                        </StackPanel>
+                                        <StackPanel VerticalAlignment="Center">
+                                            <TextBlock Text="{Binding Name}" Foreground="{DynamicResource TextFillColorPrimaryBrush}" />
+                                            <TextBlock Style="{StaticResource Caption}">
+                                                <Run Text="{Binding TypeName, Mode=OneWay}" /><Run Text=" · " /><Run Text="{Binding Model, Mode=OneWay}" /><Run Text=" · " /><Run Text="{Binding EffectiveBaseUrl, Mode=OneWay}" />
+                                            </TextBlock>
+                                        </StackPanel>
+                                    </DockPanel>
+                                </Border>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+
+                    <StackPanel Visibility="{Binding Ai.HasProfiles, Converter={StaticResource BoolToVisibility}}">
+                        <Separator Margin="0,8,0,12" />
+                        <DockPanel>
+                            <ComboBox DockPanel.Dock="Right" Width="260" ItemsSource="{Binding Ai.Profiles}" DisplayMemberPath="Name"
+                                      SelectedItem="{Binding Ai.ActiveProfile}" AutomationProperties.Name="Active provider" />
+                            <StackPanel>
+                                <TextBlock Text="Active provider" Foreground="{DynamicResource TextFillColorPrimaryBrush}" />
+                                <TextBlock Style="{StaticResource Caption}" Text="Used for every task that doesn't have its own model below." />
+                            </StackPanel>
+                        </DockPanel>
+
+                        <TextBlock Text="Model per task" Foreground="{DynamicResource TextFillColorPrimaryBrush}" Margin="0,16,0,2" />
+                        <TextBlock Style="{StaticResource Caption}" Margin="0,0,0,6" Text="Optional. Leave the provider on 'Active provider' and the model empty to use the defaults." />
+                        <ItemsControl ItemsSource="{Binding Ai.Tasks}">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <Grid Margin="0,4">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="200" />
+                                            <ColumnDefinition Width="200" />
+                                        </Grid.ColumnDefinitions>
+                                        <StackPanel VerticalAlignment="Center" Margin="0,0,12,0">
+                                            <TextBlock Text="{Binding Title}" Foreground="{DynamicResource TextFillColorPrimaryBrush}" />
+                                            <TextBlock Style="{StaticResource Caption}" Text="{Binding Purpose}" TextWrapping="Wrap" />
+                                        </StackPanel>
+                                        <ComboBox Grid.Column="1" Margin="0,0,8,0" VerticalAlignment="Center"
+                                                  ItemsSource="{Binding DataContext.Ai.TaskProfileChoices, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                  DisplayMemberPath="Name" SelectedValuePath="Id" SelectedValue="{Binding ProfileId}"
+                                                  AutomationProperties.Name="{Binding Title}" />
+                                        <TextBox Grid.Column="2" VerticalAlignment="Center" Text="{Binding Model, UpdateSourceTrigger=LostFocus, TargetNullValue=''}"
+                                                 ToolTip="Model override (empty = the profile's model)" AutomationProperties.Name="Model override" />
+                                    </Grid>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </StackPanel>
+                </StackPanel>
+            </Border>
+
+            <!-- Cost -->
+            <TextBlock Style="{StaticResource SectionHeader}" Text="AI cost control" />
+            <Border Style="{StaticResource Card}">
+                <StackPanel>
+                    <DockPanel>
+                        <TextBox DockPanel.Dock="Right" Width="120" Text="{Binding Ai.CostCap, UpdateSourceTrigger=LostFocus}" VerticalAlignment="Center"
+                                 AutomationProperties.Name="Cost cap in US dollars" />
+                        <StackPanel>
+                            <TextBlock Text="Spending cap per run (USD)" Foreground="{DynamicResource TextFillColorPrimaryBrush}" />
+                            <TextBlock Style="{StaticResource Caption}"
+                                       Text="Applies to paid cloud providers only; local providers are free. Empty = you'll be asked before the first paid run. The run stops when the estimate reaches the cap." />
+                        </StackPanel>
+                    </DockPanel>
+                    <Separator Margin="0,12" />
+                    <DockPanel>
+                        <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Top">
+                            <Button Content="Add model" Command="{Binding Ai.AddPriceCommand}" Margin="0,0,8,0" />
+                            <Button Content="Save prices" Command="{Binding Ai.SavePricesCommand}" />
+                        </StackPanel>
+                        <StackPanel>
+                            <TextBlock Text="Model prices (USD per million tokens)" Foreground="{DynamicResource TextFillColorPrimaryBrush}" />
+                            <TextBlock Style="{StaticResource Caption}"
+                                       Text="SSGen doesn't assume prices. Copy them from your provider's pricing page; without a price the cost shows as unknown and only token counts are tracked." />
+                        </StackPanel>
+                    </DockPanel>
+                    <ItemsControl ItemsSource="{Binding Ai.Prices}" Margin="0,8,0,0">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <Grid Margin="0,3">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="110" />
+                                        <ColumnDefinition Width="110" />
+                                        <ColumnDefinition Width="Auto" />
+                                    </Grid.ColumnDefinitions>
+                                    <TextBox Text="{Binding Model}" Margin="0,0,8,0" AutomationProperties.Name="Model name" ToolTip="Model name, exactly as configured" />
+                                    <TextBox Grid.Column="1" Text="{Binding Input}" Margin="0,0,8,0" AutomationProperties.Name="Input price" ToolTip="Input (prompt) price per million tokens" />
+                                    <TextBox Grid.Column="2" Text="{Binding Output}" Margin="0,0,8,0" AutomationProperties.Name="Output price" ToolTip="Output price per million tokens" />
+                                    <Button Grid.Column="3" Style="{StaticResource IconButton}" Content="&#xE711;" ToolTip="Remove"
+                                            Command="{Binding DataContext.Ai.RemovePriceCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                            CommandParameter="{Binding}" AutomationProperties.Name="Remove price" />
+                                </Grid>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                    <Separator Margin="0,12" />
+                    <DockPanel>
+                        <CheckBox DockPanel.Dock="Right" IsChecked="{Binding Ai.CloudConsent}" VerticalAlignment="Center"
+                                  AutomationProperties.Name="Allow sending screenshots to cloud providers" />
+                        <StackPanel>
+                            <TextBlock Text="Allow sending screenshots to cloud providers" Foreground="{DynamicResource TextFillColorPrimaryBrush}" />
+                            <TextBlock Style="{StaticResource Caption}"
+                                       Text="Asked the first time a cloud model would see your app. Untick to be asked again. Local providers never need this." />
+                        </StackPanel>
+                    </DockPanel>
                 </StackPanel>
             </Border>
 

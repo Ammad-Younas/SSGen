@@ -10,5 +10,6 @@ public partial class MainWindow : Window
         InitializeComponent();
         DataContext = viewModel;
         Services.HorizontalScrollSupport.Attach(this);
+        ContentRendered += (_, _) => viewModel.OnShown();
     }
 }

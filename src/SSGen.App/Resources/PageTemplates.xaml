@@ -10,6 +10,9 @@
     <DataTemplate DataType="{x:Type vm:EmulatorViewModel}">
         <views:EmulatorView />
     </DataTemplate>
+    <DataTemplate DataType="{x:Type vm:AgentViewModel}">
+        <views:AgentView />
+    </DataTemplate>
     <DataTemplate DataType="{x:Type vm:SetupViewModel}">
         <views:SetupView />
     </DataTemplate>

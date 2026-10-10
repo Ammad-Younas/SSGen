@@ -222,6 +222,16 @@ public sealed partial class SetupViewModel : ObservableObject, IPageActivated
             OnPropertyChanged(nameof(IsFirstRun));
         }
 
+        if (!_settings.Current.AiOnboardingDone)
+        {
+            var add = _dialogs.ShowAiOnboarding();
+            _settings.Save(_settings.Current with { AiOnboardingDone = true });
+            if (add && _dialogs.EditProvider(null) is { } profile && _settings.Current.ActiveProviderId is null)
+            {
+                _settings.Save(_settings.Current with { ActiveProviderId = profile.Id });
+            }
+        }
+
         _navigation.NavigateTo(PageKey.Home);
     }
 

@@ -63,13 +63,28 @@ SSGen only resets or deletes virtual devices it created itself. Closing SSGen sh
 
 API keys are encrypted with Windows DPAPI and can only be read by your Windows account. SSGen sends no telemetry.
 
+## Exploring your app
+
+**Explore** walks through the app on the running device and saves every distinct screen to the project. Start a device and import the APK first.
+
+- **With AI**, the model chooses each step from the screen's elements, and from a downscaled screenshot if the model supports images. It also names the screens.
+- **Without AI**, the systematic explorer tries every button, tab and menu item once, scrolls each list once, and returns to screens that still have untried items. It stops when nothing is left.
+- **Limits**: maximum steps and minutes, plus the cost cap for paid providers. You can pause, resume or stop a run at any time.
+- **Safe mode** (on by default) never performs purchase, payment, subscribe, delete, send, post, share, call or sign-out actions. It covers several languages and also blocks the "OK" on a dialog about one of those. You can add your own words in **Settings**. With safe mode off, SSGen asks you before each such action.
+
 ## AI
 
-SSGen doesn't ship with, or default to, any AI provider. From M3 you can add your own:
+SSGen doesn't ship with, or default to, any AI provider. Add your own in **Settings > AI providers**:
 
 - an Anthropic, OpenAI or Gemini API key;
-- any OpenAI-compatible endpoint (OpenRouter, Groq, LM Studio and others);
+- any OpenAI-compatible endpoint (OpenRouter, Groq, Together, LM Studio, llama.cpp and others);
 - a local Ollama model.
+
+**Test connection** checks the key and the model, and whether the model accepts screenshots. You can pick a different model for each task: exploration, ranking, headlines and translation.
+
+**Cost**: local providers are free. For paid providers, enter each model's price per million tokens yourself; SSGen doesn't assume prices. The Explore page shows live token use and the estimated cost, and stops a run at your spending cap. You are asked for a cap before the first paid run.
+
+**Privacy**: before a cloud model first sees screenshots of your app, SSGen asks for consent. If you decline, the model works from the screen's text only. Local models never need consent.
 
 Without AI, everything works in manual mode.
 

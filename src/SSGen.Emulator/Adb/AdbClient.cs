@@ -224,6 +224,14 @@ public sealed class AdbClient
             ? ["install", "-r", "-g", "-t", apkPaths[0]]
             : ["install-multiple", "-r", "-g", "-t", .. apkPaths];
         var r = await RunAsync(serial, args, TimeSpan.FromMinutes(5), ct);
+        if (!r.Succeeded && !r.TimedOut && !r.Combined.Contains("INSTALL_", StringComparison.Ordinal))
+        {
+            // Right after a quick boot the package manager can still be starting ("Can't find service: package",
+            // broken pipe). Those failures aren't about the APK: wait and try once more.
+            await Task.Delay(TimeSpan.FromSeconds(5), ct);
+            r = await RunAsync(serial, args, TimeSpan.FromMinutes(5), ct);
+        }
+
         if (!r.Succeeded || !r.Combined.Contains("Success", StringComparison.Ordinal))
         {
             throw r.TimedOut

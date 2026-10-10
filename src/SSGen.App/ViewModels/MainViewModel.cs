@@ -15,18 +15,20 @@ public sealed partial class MainViewModel : ObservableObject
     public MainViewModel(
         HomeViewModel home,
         EmulatorViewModel emulator,
+        AgentViewModel agent,
         SetupViewModel setup,
         SettingsViewModel settings,
         INavigationService navigation,
         IProjectService projects,
-        ISettingsService settingsService)
+        ISettingsService settingsService,
+        IDialogService dialogs)
     {
+        _dialogs = dialogs;
         NavItems =
         [
             new(PageKey.Home, "Home", "", home),
             new(PageKey.Emulator, "Emulator", "\uE8EA", emulator),
-            new(PageKey.Agent, "Explore", "", new PlaceholderViewModel("Explore", "", "M3",
-                "An AI agent (using the provider you choose, or none) walks through the app and captures every screen. Without AI you can capture screens manually.")),
+            new(PageKey.Agent, "Explore", "", agent),
             new(PageKey.Gallery, "Gallery", "", new PlaceholderViewModel("Gallery", "", "M6",
                 "Your generated store images, grouped by store and device size, with a store-listing preview.")),
             new(PageKey.Editor, "Editor", "", new PlaceholderViewModel("Editor", "", "M6",
@@ -49,6 +51,23 @@ public sealed partial class MainViewModel : ObservableObject
     }
 
     private readonly ISettingsService _settings;
+    private readonly IDialogService _dialogs;
+
+    /// <summary>Once, after the window is shown: users who finished setup before AI support existed get the AI choice.</summary>
+    public void OnShown()
+    {
+        if (!_settings.Current.SetupCompleted || _settings.Current.AiOnboardingDone)
+        {
+            return;
+        }
+
+        var add = _dialogs.ShowAiOnboarding();
+        _settings.Save(_settings.Current with { AiOnboardingDone = true });
+        if (add && _dialogs.EditProvider(null) is { } profile && _settings.Current.ActiveProviderId is null)
+        {
+            _settings.Save(_settings.Current with { ActiveProviderId = profile.Id });
+        }
+    }
 
     public ObservableCollection<NavItem> NavItems { get; }
 

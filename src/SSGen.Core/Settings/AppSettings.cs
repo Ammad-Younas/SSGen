@@ -41,4 +41,19 @@ public sealed record AppSettings
 
     /// <summary>Agent safe mode: block destructive or costly actions. Always on by default.</summary>
     public bool SafeMode { get; init; } = true;
+
+    /// <summary>Extra words/phrases the agent must never tap, one per line (added to the built-in blocklist).</summary>
+    public string AgentBlocklistExtra { get; init; } = "";
+
+    /// <summary>The provider profile used when a task has no explicit assignment. Null = no AI (manual mode).</summary>
+    public string? ActiveProviderId { get; init; }
+
+    /// <summary>Spending cap per exploration run for paid cloud providers (USD). Null = not set yet (asked on first paid use).</summary>
+    public decimal? CostCapUsd { get; init; }
+
+    /// <summary>The user agreed that screenshots may be sent to cloud AI providers.</summary>
+    public bool CloudScreenshotConsent { get; init; }
+
+    /// <summary>The first-run "choose an AI provider or skip" step has been shown.</summary>
+    public bool AiOnboardingDone { get; init; }
 }

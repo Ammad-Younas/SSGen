@@ -1,6 +1,8 @@
 using System.Diagnostics;
 using System.Windows;
 using Microsoft.Win32;
+using SSGen.Ai;
+using SSGen.Ai.Profiles;
 using SSGen.App.Views;
 using SSGen.Core;
 
@@ -25,10 +27,23 @@ public interface IDialogService
     void OpenInExplorer(string path);
 
     void OpenUrl(string url);
+
+    /// <summary>Add (null) or edit an AI provider profile; returns the saved profile or null if cancelled.</summary>
+    ProviderProfile? EditProvider(ProviderProfile? existing);
+
+    /// <summary>First-run AI choice. True = the user wants to add a provider now.</summary>
+    bool ShowAiOnboarding();
+
+    /// <summary>Asks for one value; null if cancelled.</summary>
+    string? Prompt(string title, string message, string initial = "", Func<string, string?>? validate = null);
 }
 
 public sealed class DialogService : IDialogService
 {
+    private readonly AiService _ai;
+
+    public DialogService(AiService ai) => _ai = ai;
+
     private static Window? Owner => Application.Current.MainWindow is { IsVisible: true } w ? w : null;
 
     public static string Describe(Exception exception) => exception switch
@@ -68,6 +83,24 @@ public sealed class DialogService : IDialogService
     {
         var window = new NewProjectWindow(this, defaultParentFolder) { Owner = Owner };
         return window.ShowDialog() == true ? (window.ProjectName, window.ParentFolder) : null;
+    }
+
+    public ProviderProfile? EditProvider(ProviderProfile? existing)
+    {
+        var window = new ProviderEditorWindow(_ai, existing) { Owner = Owner };
+        return window.ShowDialog() == true ? window.Result : null;
+    }
+
+    public bool ShowAiOnboarding()
+    {
+        var window = new AiOnboardingWindow { Owner = Owner };
+        return window.ShowDialog() == true && window.AddProvider;
+    }
+
+    public string? Prompt(string title, string message, string initial = "", Func<string, string?>? validate = null)
+    {
+        var window = new InputWindow(title, message, initial, validate) { Owner = Owner };
+        return window.ShowDialog() == true ? window.Value : null;
     }
 
     public void OpenInExplorer(string path) =>
