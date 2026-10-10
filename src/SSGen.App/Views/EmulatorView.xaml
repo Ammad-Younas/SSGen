@@ -22,33 +22,19 @@
         <GridSplitter x:Name="DeviceSplitter" Grid.Column="1" Style="{StaticResource PaneSplitter}" DragStarted="OnSplitterDragStarted" DragCompleted="OnSplitterDragCompleted"
                       AutomationProperties.Name="Resize device panel" />
 
-        <!-- One round arrow handle for both directions, fixed at the top-left of the device column: centred on the
-             collapsed rail (44px wide -> 10 + 24/2 = 22) and in the same spot before the title when expanded. It flips
-             between › (expand) and ‹ (collapse). -->
+        <!-- Collapse/expand at one fixed spot, top-left of the device column (centred on the 44px rail: 10 + 24/2 = 22).
+             Open: a round ‹ in front of the title. Collapsed: a plain › above the green dot. -->
         <Button x:Name="CollapseHandle" Grid.Column="0" Panel.ZIndex="2" VerticalAlignment="Top" HorizontalAlignment="Left" Margin="10,10,0,0"
-                Command="{Binding ToggleDevicePanelCommand}">
-            <Button.Style>
-                <Style TargetType="Button" BasedOn="{StaticResource RoundHandleButton}">
-                    <Setter Property="ToolTip" Value="Collapse device panel" />
-                    <Setter Property="AutomationProperties.Name" Value="Collapse device panel" />
-                    <Setter Property="Content">
-                        <Setter.Value>
-                            <TextBlock Style="{StaticResource Icon}" Text="&#xE76B;" FontSize="10" />
-                        </Setter.Value>
-                    </Setter>
-                    <Style.Triggers>
-                        <DataTrigger Binding="{Binding IsDevicePanelOpen}" Value="False">
-                            <Setter Property="ToolTip" Value="Expand device panel" />
-                            <Setter Property="AutomationProperties.Name" Value="Expand device panel" />
-                            <Setter Property="Content">
-                                <Setter.Value>
-                                    <TextBlock Style="{StaticResource Icon}" Text="&#xE76C;" FontSize="10" />
-                                </Setter.Value>
-                            </Setter>
-                        </DataTrigger>
-                    </Style.Triggers>
-                </Style>
-            </Button.Style>
+                Style="{StaticResource RoundHandleButton}" Command="{Binding ToggleDevicePanelCommand}"
+                ToolTip="Collapse device panel" AutomationProperties.Name="Collapse device panel"
+                Visibility="{Binding IsDevicePanelOpen, Converter={StaticResource BoolToVisibility}}">
+            <TextBlock Style="{StaticResource Icon}" Text="&#xE76B;" FontSize="10" />
+        </Button>
+        <Button x:Name="ExpandArrow" Grid.Column="0" Panel.ZIndex="2" VerticalAlignment="Top" HorizontalAlignment="Left" Margin="10,10,0,0"
+                Width="24" Height="24" Padding="0" Style="{StaticResource IconButton}" Command="{Binding ToggleDevicePanelCommand}"
+                ToolTip="Expand device panel" AutomationProperties.Name="Expand device panel"
+                Visibility="{Binding IsDevicePanelOpen, Converter={StaticResource BoolToVisibility}, ConverterParameter=invert}">
+            <TextBlock Style="{StaticResource Icon}" Text="&#xE76C;" FontSize="12" />
         </Button>
 
         <!-- Collapsed device panel: a slim rail. Click it (or ») to expand; Stop stays reachable while running. -->
