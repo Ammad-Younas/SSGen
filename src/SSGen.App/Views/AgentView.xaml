@@ -3,175 +3,218 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:sys="clr-namespace:System;assembly=System.Runtime"
              xmlns:vm="clr-namespace:SSGen.App.ViewModels"
              mc:Ignorable="d"
              d:DataContext="{d:DesignInstance Type=vm:AgentViewModel}">
+    <UserControl.Resources>
+        <!-- Updated from code as the screens panel is resized, so thumbnails fill its height. -->
+        <sys:Double x:Key="ThumbImageHeight">190</sys:Double>
+    </UserControl.Resources>
+
     <Grid Margin="24,20">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
             <RowDefinition Height="*" />
-            <RowDefinition Height="Auto" />
         </Grid.RowDefinitions>
-        <Grid.ColumnDefinitions>
-            <ColumnDefinition Width="300" />
-            <ColumnDefinition Width="*" MinWidth="220" />
-            <ColumnDefinition Width="1.4*" MinWidth="280" />
-        </Grid.ColumnDefinitions>
 
-        <StackPanel Grid.ColumnSpan="3" Margin="0,0,0,12">
+        <StackPanel Margin="0,0,0,12">
             <TextBlock Style="{StaticResource PageTitle}" Text="Explore" />
             <TextBlock Style="{StaticResource PageSubtitle}" Margin="0"
                        Text="The agent walks through your app on the running device and saves every distinct screen to the project." />
         </StackPanel>
 
-        <!-- Controls -->
-        <ScrollViewer Grid.Row="1" Grid.RowSpan="2" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" Margin="0,0,16,0">
-            <StackPanel>
-                <Border Style="{StaticResource Card}" Visibility="{Binding HasBlocker, Converter={StaticResource BoolToVisibility}}">
+        <!-- Controls | rest -->
+        <Grid Grid.Row="1">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition x:Name="ControlsColumn" Width="300*" MinWidth="240" />
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition x:Name="RestColumn" Width="900*" MinWidth="460" />
+            </Grid.ColumnDefinitions>
+
+            <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+                <StackPanel>
+                    <Border Style="{StaticResource Card}" Visibility="{Binding HasBlocker, Converter={StaticResource BoolToVisibility}}">
+                        <DockPanel>
+                            <TextBlock DockPanel.Dock="Left" Style="{StaticResource Icon}" Text="&#xE946;" Margin="0,0,10,0" VerticalAlignment="Top" />
+                            <TextBlock Text="{Binding Blocker}" TextWrapping="Wrap" Foreground="{DynamicResource TextFillColorPrimaryBrush}" />
+                        </DockPanel>
+                    </Border>
+
+                    <Border Style="{StaticResource Card}">
+                        <StackPanel IsEnabled="{Binding IsIdle}">
+                            <TextBlock Text="Explorer" Foreground="{DynamicResource TextFillColorPrimaryBrush}" FontWeight="SemiBold" />
+                            <CheckBox Content="Use AI" IsChecked="{Binding UseAi}" IsEnabled="{Binding AiAvailable}" Margin="0,6,0,0"
+                                      AutomationProperties.Name="Use AI" />
+                            <TextBlock Style="{StaticResource Caption}" Text="{Binding AiDescription}" TextWrapping="Wrap" />
+                            <TextBlock Style="{StaticResource Caption}" TextWrapping="Wrap" Margin="0,4,0,0"
+                                       Text="Without AI, the systematic explorer tries every button, tab and list once, scrolls, and goes back." />
+
+                            <TextBlock Text="Hints for the AI (optional)" Margin="0,12,0,4" Foreground="{DynamicResource TextFillColorPrimaryBrush}" />
+                            <TextBox Text="{Binding Hints, UpdateSourceTrigger=PropertyChanged}" AcceptsReturn="True" TextWrapping="Wrap" MinHeight="56"
+                                     AutomationProperties.Name="Hints" ToolTip="e.g. 'Create a sample note first so the list isn't empty'" />
+
+                            <Grid Margin="0,12,0,0">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition />
+                                    <ColumnDefinition Width="12" />
+                                    <ColumnDefinition />
+                                </Grid.ColumnDefinitions>
+                                <StackPanel>
+                                    <TextBlock Text="Max steps" Margin="0,0,0,4" Foreground="{DynamicResource TextFillColorPrimaryBrush}" />
+                                    <TextBox Text="{Binding MaxSteps}" AutomationProperties.Name="Max steps" />
+                                </StackPanel>
+                                <StackPanel Grid.Column="2">
+                                    <TextBlock Text="Max minutes" Margin="0,0,0,4" Foreground="{DynamicResource TextFillColorPrimaryBrush}" />
+                                    <TextBox Text="{Binding MaxMinutes}" AutomationProperties.Name="Max minutes" />
+                                </StackPanel>
+                            </Grid>
+                        </StackPanel>
+                    </Border>
+
+                    <Border Style="{StaticResource Card}">
+                        <StackPanel>
+                            <WrapPanel>
+                                <Button Content="Start" Command="{Binding StartCommand}" Style="{DynamicResource AccentButtonStyle}" MinWidth="80" Margin="0,0,8,4" />
+                                <Button Command="{Binding PauseCommand}" MinWidth="80" Margin="0,0,8,4">
+                                    <Button.Style>
+                                        <Style TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
+                                            <Setter Property="Content" Value="Pause" />
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding IsPaused}" Value="True">
+                                                    <Setter Property="Content" Value="Resume" />
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </Button.Style>
+                                </Button>
+                                <Button Content="Stop" Command="{Binding StopCommand}" MinWidth="80" Margin="0,0,0,4" />
+                            </WrapPanel>
+                            <ProgressBar IsIndeterminate="{Binding IsRunning}" Height="3" Margin="0,8,0,0"
+                                         Visibility="{Binding IsRunning, Converter={StaticResource BoolToVisibility}}" />
+                            <TextBox Style="{StaticResource SelectableText}" Text="{Binding Status, Mode=OneWay}" Margin="0,8,0,0" />
+                            <TextBlock Style="{StaticResource Caption}" Text="{Binding Progress}" Margin="0,4,0,0" />
+                            <TextBlock Style="{StaticResource Caption}" Text="{Binding Meter}" TextWrapping="Wrap" />
+                        </StackPanel>
+                    </Border>
+                </StackPanel>
+            </ScrollViewer>
+
+            <GridSplitter Grid.Column="1" Style="{StaticResource PaneSplitter}" AutomationProperties.Name="Resize controls panel"
+                          DragStarted="OnSplitterDragStarted" DragCompleted="OnSplitterDragCompleted" />
+
+            <!-- Top (screen | activity) / discovered screens -->
+            <Grid Grid.Column="2">
+                <Grid.RowDefinitions>
+                    <RowDefinition x:Name="TopRow" Height="600*" MinHeight="200" />
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition x:Name="ScreensRow" Height="280*" MinHeight="120" />
+                </Grid.RowDefinitions>
+
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition x:Name="ScreenColumn" Width="380*" MinWidth="180" />
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition x:Name="ActivityColumn" Width="520*" MinWidth="240" />
+                    </Grid.ColumnDefinitions>
+
+                    <!-- Current screen -->
+                    <Border Style="{StaticResource Card}" Margin="0">
+                        <DockPanel>
+                            <TextBlock DockPanel.Dock="Top" Text="{Binding CurrentScreenName}" Foreground="{DynamicResource TextFillColorPrimaryBrush}"
+                                       TextTrimming="CharacterEllipsis" Margin="0,0,0,8" />
+                            <Grid>
+                                <TextBlock Style="{StaticResource Caption}" Text="The current screen appears here while exploring." TextWrapping="Wrap"
+                                           HorizontalAlignment="Center" VerticalAlignment="Center" TextAlignment="Center"
+                                           Visibility="{Binding CurrentScreen, Converter={StaticResource NullToVisibility}, ConverterParameter=invert}" />
+                                <Image Source="{Binding CurrentScreen}" Stretch="Uniform" RenderOptions.BitmapScalingMode="HighQuality" />
+                            </Grid>
+                        </DockPanel>
+                    </Border>
+
+                    <GridSplitter Grid.Column="1" Style="{StaticResource PaneSplitter}" AutomationProperties.Name="Resize current screen panel"
+                                  DragStarted="OnSplitterDragStarted" DragCompleted="OnSplitterDragCompleted" />
+
+                    <!-- Activity / screen map -->
+                    <Border Grid.Column="2" Style="{StaticResource Card}" Margin="0" Padding="0">
+                        <Grid>
+                            <Grid.RowDefinitions>
+                                <RowDefinition x:Name="LogRow" Height="400*" MinHeight="80" />
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition x:Name="MapRow" Height="200*" MinHeight="60" />
+                            </Grid.RowDefinitions>
+
+                            <DockPanel>
+                                <TextBlock DockPanel.Dock="Top" Text="Activity" Margin="16,12,16,6" FontWeight="SemiBold" Foreground="{DynamicResource TextFillColorPrimaryBrush}" />
+                                <ListBox x:Name="LogList" ItemsSource="{Binding Log}" BorderThickness="0" Background="Transparent"
+                                         ScrollViewer.HorizontalScrollBarVisibility="Disabled" VirtualizingPanel.ScrollUnit="Pixel"
+                                         AutomationProperties.Name="Agent activity">
+                                    <ListBox.ItemContainerStyle>
+                                        <Style TargetType="ListBoxItem" BasedOn="{StaticResource {x:Type ListBoxItem}}">
+                                            <Setter Property="Padding" Value="12,3" />
+                                            <Setter Property="Margin" Value="0" />
+                                        </Style>
+                                    </ListBox.ItemContainerStyle>
+                                    <ListBox.ItemTemplate>
+                                        <DataTemplate DataType="{x:Type vm:AgentLogLine}">
+                                            <DockPanel ToolTip="{Binding Kind}">
+                                                <TextBlock DockPanel.Dock="Left" Text="{Binding Time}" Style="{StaticResource Caption}" Width="58" />
+                                                <TextBlock DockPanel.Dock="Left" Text="{Binding Glyph}" Style="{StaticResource Icon}" FontSize="13" Margin="0,2,8,0" VerticalAlignment="Top" />
+                                                <TextBlock Text="{Binding Message}" TextWrapping="Wrap" Foreground="{DynamicResource TextFillColorPrimaryBrush}" />
+                                            </DockPanel>
+                                        </DataTemplate>
+                                    </ListBox.ItemTemplate>
+                                </ListBox>
+                            </DockPanel>
+
+                            <GridSplitter Grid.Row="1" Style="{StaticResource RowSplitter}" AutomationProperties.Name="Resize activity and screen map"
+                                          DragStarted="OnSplitterDragStarted" DragCompleted="OnSplitterDragCompleted" />
+
+                            <DockPanel Grid.Row="2">
+                                <TextBlock DockPanel.Dock="Top" Text="Screen map" Margin="16,0,16,6" FontWeight="SemiBold" Foreground="{DynamicResource TextFillColorPrimaryBrush}" />
+                                <ListBox ItemsSource="{Binding Map}" BorderThickness="0" Background="Transparent"
+                                         ScrollViewer.HorizontalScrollBarVisibility="Disabled" AutomationProperties.Name="Screen map">
+                                    <ListBox.ItemTemplate>
+                                        <DataTemplate>
+                                            <TextBlock Text="{Binding}" TextWrapping="Wrap" Style="{StaticResource Caption}" />
+                                        </DataTemplate>
+                                    </ListBox.ItemTemplate>
+                                </ListBox>
+                            </DockPanel>
+                        </Grid>
+                    </Border>
+                </Grid>
+
+                <GridSplitter Grid.Row="1" Style="{StaticResource RowSplitter}" AutomationProperties.Name="Resize discovered screens panel"
+                              DragStarted="OnSplitterDragStarted" DragCompleted="OnSplitterDragCompleted" />
+
+                <!-- Discovered screens -->
+                <Border Grid.Row="2" Style="{StaticResource Card}" Margin="0">
                     <DockPanel>
-                        <TextBlock DockPanel.Dock="Left" Style="{StaticResource Icon}" Text="&#xE946;" Margin="0,0,10,0" VerticalAlignment="Top" />
-                        <TextBlock Text="{Binding Blocker}" TextWrapping="Wrap" Foreground="{DynamicResource TextFillColorPrimaryBrush}" />
+                        <TextBlock DockPanel.Dock="Top" Margin="0,0,0,8" Foreground="{DynamicResource TextFillColorPrimaryBrush}" FontWeight="SemiBold">
+                            <Run Text="Discovered screens" /> <Run Text="{Binding Screens.Count, Mode=OneWay}" />
+                        </TextBlock>
+                        <ScrollViewer x:Name="ThumbScroller" HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Disabled">
+                            <ItemsControl ItemsSource="{Binding Screens}">
+                                <ItemsControl.ItemsPanel>
+                                    <ItemsPanelTemplate>
+                                        <StackPanel Orientation="Horizontal" />
+                                    </ItemsPanelTemplate>
+                                </ItemsControl.ItemsPanel>
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate DataType="{x:Type vm:ScreenThumbViewModel}">
+                                        <StackPanel Margin="0,0,12,0">
+                                            <Image Source="{Binding Image}" Height="{DynamicResource ThumbImageHeight}" Stretch="Uniform" />
+                                            <TextBlock Text="{Binding Title}" Style="{StaticResource Caption}" TextTrimming="CharacterEllipsis"
+                                                       HorizontalAlignment="Center" MaxWidth="160" ToolTip="{Binding Title}" />
+                                        </StackPanel>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                        </ScrollViewer>
                     </DockPanel>
                 </Border>
-
-                <Border Style="{StaticResource Card}">
-                    <StackPanel IsEnabled="{Binding IsIdle}">
-                        <TextBlock Text="Explorer" Foreground="{DynamicResource TextFillColorPrimaryBrush}" FontWeight="SemiBold" />
-                        <CheckBox Content="Use AI" IsChecked="{Binding UseAi}" IsEnabled="{Binding AiAvailable}" Margin="0,6,0,0"
-                                  AutomationProperties.Name="Use AI" />
-                        <TextBlock Style="{StaticResource Caption}" Text="{Binding AiDescription}" TextWrapping="Wrap" />
-                        <TextBlock Style="{StaticResource Caption}" TextWrapping="Wrap" Margin="0,4,0,0"
-                                   Text="Without AI, the systematic explorer tries every button, tab and list once, scrolls, and goes back." />
-
-                        <TextBlock Text="Hints for the AI (optional)" Margin="0,12,0,4" Foreground="{DynamicResource TextFillColorPrimaryBrush}" />
-                        <TextBox Text="{Binding Hints, UpdateSourceTrigger=PropertyChanged}" AcceptsReturn="True" TextWrapping="Wrap" MinHeight="56"
-                                 AutomationProperties.Name="Hints" ToolTip="e.g. 'Create a sample note first so the list isn't empty'" />
-
-                        <Grid Margin="0,12,0,0">
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition />
-                                <ColumnDefinition Width="12" />
-                                <ColumnDefinition />
-                            </Grid.ColumnDefinitions>
-                            <StackPanel>
-                                <TextBlock Text="Max steps" Margin="0,0,0,4" Foreground="{DynamicResource TextFillColorPrimaryBrush}" />
-                                <TextBox Text="{Binding MaxSteps}" AutomationProperties.Name="Max steps" />
-                            </StackPanel>
-                            <StackPanel Grid.Column="2">
-                                <TextBlock Text="Max minutes" Margin="0,0,0,4" Foreground="{DynamicResource TextFillColorPrimaryBrush}" />
-                                <TextBox Text="{Binding MaxMinutes}" AutomationProperties.Name="Max minutes" />
-                            </StackPanel>
-                        </Grid>
-                    </StackPanel>
-                </Border>
-
-                <Border Style="{StaticResource Card}">
-                    <StackPanel>
-                        <StackPanel Orientation="Horizontal">
-                            <Button Content="Start" Command="{Binding StartCommand}" Style="{DynamicResource AccentButtonStyle}" MinWidth="80" Margin="0,0,8,0" />
-                            <Button Command="{Binding PauseCommand}" MinWidth="80" Margin="0,0,8,0">
-                                <Button.Style>
-                                    <Style TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
-                                        <Setter Property="Content" Value="Pause" />
-                                        <Style.Triggers>
-                                            <DataTrigger Binding="{Binding IsPaused}" Value="True">
-                                                <Setter Property="Content" Value="Resume" />
-                                            </DataTrigger>
-                                        </Style.Triggers>
-                                    </Style>
-                                </Button.Style>
-                            </Button>
-                            <Button Content="Stop" Command="{Binding StopCommand}" MinWidth="80" />
-                        </StackPanel>
-                        <ProgressBar IsIndeterminate="{Binding IsRunning}" Height="3" Margin="0,12,0,0"
-                                     Visibility="{Binding IsRunning, Converter={StaticResource BoolToVisibility}}" />
-                        <TextBox Style="{StaticResource SelectableText}" Text="{Binding Status, Mode=OneWay}" Margin="0,8,0,0" />
-                        <TextBlock Style="{StaticResource Caption}" Text="{Binding Progress}" Margin="0,4,0,0" />
-                        <TextBlock Style="{StaticResource Caption}" Text="{Binding Meter}" TextWrapping="Wrap" />
-                    </StackPanel>
-                </Border>
-            </StackPanel>
-        </ScrollViewer>
-
-        <!-- Current screen -->
-        <Border Grid.Row="1" Grid.Column="1" Style="{StaticResource Card}" Margin="0,0,16,12">
-            <DockPanel>
-                <TextBlock DockPanel.Dock="Top" Text="{Binding CurrentScreenName}" Foreground="{DynamicResource TextFillColorPrimaryBrush}"
-                           TextTrimming="CharacterEllipsis" Margin="0,0,0,8" />
-                <Grid>
-                    <TextBlock Style="{StaticResource Caption}" Text="The current screen appears here while exploring." TextWrapping="Wrap"
-                               HorizontalAlignment="Center" VerticalAlignment="Center" TextAlignment="Center" />
-                    <Image Source="{Binding CurrentScreen}" Stretch="Uniform" RenderOptions.BitmapScalingMode="HighQuality" />
-                </Grid>
-            </DockPanel>
-        </Border>
-
-        <!-- Activity log + screen map -->
-        <Border Grid.Row="1" Grid.Column="2" Style="{StaticResource Card}" Margin="0,0,0,12" Padding="0">
-            <Grid>
-                <Grid.RowDefinitions>
-                    <RowDefinition Height="Auto" />
-                    <RowDefinition Height="2*" />
-                    <RowDefinition Height="Auto" />
-                    <RowDefinition Height="*" />
-                </Grid.RowDefinitions>
-                <TextBlock Text="Activity" Margin="16,12,16,6" FontWeight="SemiBold" Foreground="{DynamicResource TextFillColorPrimaryBrush}" />
-                <ListBox x:Name="LogList" Grid.Row="1" ItemsSource="{Binding Log}" BorderThickness="0" Background="Transparent"
-                         ScrollViewer.HorizontalScrollBarVisibility="Disabled" VirtualizingPanel.ScrollUnit="Pixel"
-                         AutomationProperties.Name="Agent activity">
-                    <ListBox.ItemContainerStyle>
-                        <Style TargetType="ListBoxItem" BasedOn="{StaticResource {x:Type ListBoxItem}}">
-                            <Setter Property="Padding" Value="12,3" />
-                            <Setter Property="Margin" Value="0" />
-                        </Style>
-                    </ListBox.ItemContainerStyle>
-                    <ListBox.ItemTemplate>
-                        <DataTemplate DataType="{x:Type vm:AgentLogLine}">
-                            <DockPanel ToolTip="{Binding Kind}">
-                                <TextBlock DockPanel.Dock="Left" Text="{Binding Time}" Style="{StaticResource Caption}" Width="58" />
-                                <TextBlock DockPanel.Dock="Left" Text="{Binding Glyph}" Style="{StaticResource Icon}" FontSize="13" Margin="0,2,8,0" VerticalAlignment="Top" />
-                                <TextBlock Text="{Binding Message}" TextWrapping="Wrap" Foreground="{DynamicResource TextFillColorPrimaryBrush}" />
-                            </DockPanel>
-                        </DataTemplate>
-                    </ListBox.ItemTemplate>
-                </ListBox>
-                <TextBlock Grid.Row="2" Text="Screen map" Margin="16,8,16,6" FontWeight="SemiBold" Foreground="{DynamicResource TextFillColorPrimaryBrush}" />
-                <ListBox Grid.Row="3" ItemsSource="{Binding Map}" BorderThickness="0" Background="Transparent"
-                         ScrollViewer.HorizontalScrollBarVisibility="Disabled" AutomationProperties.Name="Screen map">
-                    <ListBox.ItemTemplate>
-                        <DataTemplate>
-                            <TextBlock Text="{Binding}" TextWrapping="Wrap" Style="{StaticResource Caption}" />
-                        </DataTemplate>
-                    </ListBox.ItemTemplate>
-                </ListBox>
             </Grid>
-        </Border>
-
-        <!-- Discovered screens -->
-        <Border Grid.Row="2" Grid.Column="1" Grid.ColumnSpan="2" Style="{StaticResource Card}" Margin="0">
-            <DockPanel>
-                <TextBlock DockPanel.Dock="Top" Margin="0,0,0,8" Foreground="{DynamicResource TextFillColorPrimaryBrush}" FontWeight="SemiBold">
-                    <Run Text="Discovered screens" /> <Run Text="{Binding Screens.Count, Mode=OneWay}" />
-                </TextBlock>
-                <ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Disabled" Height="230">
-                    <ItemsControl ItemsSource="{Binding Screens}">
-                        <ItemsControl.ItemsPanel>
-                            <ItemsPanelTemplate>
-                                <StackPanel Orientation="Horizontal" />
-                            </ItemsPanelTemplate>
-                        </ItemsControl.ItemsPanel>
-                        <ItemsControl.ItemTemplate>
-                            <DataTemplate DataType="{x:Type vm:ScreenThumbViewModel}">
-                                <StackPanel Width="110" Margin="0,0,12,0">
-                                    <Image Source="{Binding Image}" Height="190" Stretch="Uniform" />
-                                    <TextBlock Text="{Binding Title}" Style="{StaticResource Caption}" TextTrimming="CharacterEllipsis"
-                                               HorizontalAlignment="Center" ToolTip="{Binding Title}" />
-                                </StackPanel>
-                            </DataTemplate>
-                        </ItemsControl.ItemTemplate>
-                    </ItemsControl>
-                </ScrollViewer>
-            </DockPanel>
-        </Border>
+        </Grid>
     </Grid>
 </UserControl>

@@ -19,7 +19,7 @@
         </Button>
         <Button HorizontalAlignment="Stretch" HorizontalContentAlignment="Left" Padding="16,12" Click="OnSkip">
             <StackPanel>
-                <TextBlock Text="Skip — manual mode" FontWeight="SemiBold" />
+                <TextBlock Text="Skip (manual mode)" FontWeight="SemiBold" />
                 <TextBlock Text="Exploration uses the systematic explorer (no AI); you pick and caption screens yourself." Opacity="0.85" TextWrapping="Wrap" />
             </StackPanel>
         </Button>

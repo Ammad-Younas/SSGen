@@ -140,7 +140,7 @@ public sealed partial class SetupViewModel : ObservableObject, IPageActivated
                 item.Summary = "Checking…";
                 var result = await Task.Run(() => _setup.RunCheckAsync(item.Check, context, ct), ct);
                 item.Apply(result);
-                _log.LogInformation("Setup check {Id}: {Status} – {Summary}", item.Check.Id, result.Status, result.Summary);
+                _log.LogInformation("Setup check {Id}: {Status}: {Summary}", item.Check.Id, result.Status, result.Summary);
                 Progress = (i + 1) * 100.0 / Items.Count;
             }
 

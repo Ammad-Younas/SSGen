@@ -74,7 +74,7 @@ public sealed class AiStrategy : IAgentStrategy
           action that could cost money, destroy data, or contact anyone; such actions are blocked anyway.
         - Stay inside the app under test. If something else is in front (browser, store, another app), press back.
         - For text fields, type short realistic demo text (e.g. a search term). Do not enter personal data.
-        - Keep "thought" to one short sentence. Give the current screen a 1–4 word "screen_label".
+        - Keep "thought" to one short sentence. Give the current screen a 1 to 4 word "screen_label".
         """;
 
     internal static readonly JsonObject Schema = new()
@@ -152,7 +152,7 @@ public sealed class AiStrategy : IAgentStrategy
             sb.AppendLine("Interactive elements:");
             foreach (var e in c.Ui.Elements.Take(80))
             {
-                sb.AppendLine(CultureInfo.InvariantCulture, $"{e}{(c.Node.Tried.Contains(e.Key) ? " – tried" : " – untried")}");
+                sb.AppendLine(CultureInfo.InvariantCulture, $"{e}{(c.Node.Tried.Contains(e.Key) ? " (tried)" : " (untried)")}");
             }
         }
 

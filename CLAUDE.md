@@ -1,4 +1,4 @@
-# SSGen — guide for Claude Code
+# SSGen: guide for Claude Code
 
 Windows desktop app: import an Android APK → run it in the emulator → (optionally AI-)explore it → pick the best screens → render store listing screenshots (Google Play / App Store) → edit → export.
 
@@ -20,7 +20,7 @@ Windows desktop app: import an Android APK → run it in the emulator → (optio
 ```
 SSGen.slnx
 Directory.Build.props        # net10, nullable, warnings-as-errors, analyzers (latest-recommended)
-Directory.Packages.props     # central package versions — add versions here, not in csproj
+Directory.Packages.props     # central package versions: add versions here, not in csproj
 src/SSGen.Core/          # no UI: data, settings, secrets, projects, process runner, setup checks
   AppPaths.cs                # %LOCALAPPDATA%\SSGen\{app.db,logs,cache}
   Data/                      # SqliteDatabase, MigrationRunner, Migrations/{App,Project}/NNNN_name.sql (embedded)
@@ -122,6 +122,7 @@ To reset first-run state, delete `%LOCALAPPDATA%\SSGen` (it holds app.db, logs a
 - WPF has no horizontal-wheel event. `HorizontalScrollSupport` (attached to MainWindow) handles `WM_MOUSEHWHEEL` (two-finger sideways swipe, tilt wheel) and Shift+wheel for any ScrollViewer under the pointer.
 - A `ScrollViewer` around wrapping content needs `HorizontalScrollBarVisibility="Disabled"`. Otherwise text never wraps and gets clipped.
 - Store specs (dimensions, limits) are never invented. They go in config with the source URL and the verified date (M5).
+- No em or en dashes in any text (UI strings, prompts, docs, comments): the owner asked for none. Use a colon, comma, parentheses or "to" instead.
 - When writing files from PowerShell, use UTF-8 explicitly. `Get-Content -Raw` without an encoding has corrupted `…` before.
 - Every new third-party dependency or bundled asset gets a line in `THIRD_PARTY_NOTICES.md`. Permissive licences only (LGPL only if dynamically linked).
 

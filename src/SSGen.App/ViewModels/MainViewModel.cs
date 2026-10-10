@@ -110,7 +110,7 @@ public sealed partial class MainViewModel : ObservableObject
     private void UpdateTitle(Project? project)
     {
         ProjectName = project?.Name;
-        WindowTitle = project is null ? "SSGen" : $"{project.Name} – SSGen";
+        WindowTitle = project is null ? "SSGen" : $"{project.Name} - SSGen";
     }
 }
 

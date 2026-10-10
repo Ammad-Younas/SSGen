@@ -123,6 +123,13 @@ public sealed partial class AgentViewModel : ObservableObject, IPageActivated, I
 
     public void OnActivated() => Refresh();
 
+    /// <summary>Saved Explore split weights (8 values, see <see cref="AppSettings.ExplorePaneWeights"/>), or null.</summary>
+    public IReadOnlyList<double>? PaneWeights =>
+        _settings.Current.ExplorePaneWeights is { Length: 8 } w && w.All(v => v > 0) ? w : null;
+
+    public void SavePaneWeights(IEnumerable<double> weights) =>
+        _settings.Save(_settings.Current with { ExplorePaneWeights = weights.Select(w => Math.Round(w)).ToArray() });
+
     private void Refresh()
     {
         if (IsRunning)

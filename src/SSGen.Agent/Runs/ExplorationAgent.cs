@@ -271,7 +271,7 @@ public sealed class ExplorationAgent
 
                 if (guard.Verdict == GuardVerdict.Blocked)
                 {
-                    Log(step, AgentLogKind.Blocked, $"Blocked: {decision.Action.Describe()} – {guard.Reason}.");
+                    Log(step, AgentLogKind.Blocked, $"Blocked: {decision.Action.Describe()} ({guard.Reason}).");
                     previous = node;
                     previousAction = null;
                     continue;

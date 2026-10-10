@@ -84,17 +84,17 @@ public class AgentRunTests
         var llm = new ScriptedLlm(req =>
         {
             var text = req.Messages[0].Text;
-            if (text.Contains("'Delete account' – untried", StringComparison.Ordinal))
+            if (text.Contains("'Delete account' (untried)", StringComparison.Ordinal))
             {
                 return """{"thought":"Delete it","screen_label":"Settings","action":"tap","element_id":1,"text":null,"direction":null,"risk":"none"}""";
             }
 
-            if (text.Contains("'Buy premium' – untried", StringComparison.Ordinal))
+            if (text.Contains("'Buy premium' (untried)", StringComparison.Ordinal))
             {
                 return """{"thought":"Upgrade","screen_label":"Settings","action":"tap","element_id":2,"text":null,"direction":null,"risk":"high"}""";
             }
 
-            var line = text.Split('\n').Select(l => l.TrimEnd('\r')).FirstOrDefault(l => l.StartsWith('[') && l.EndsWith("untried", StringComparison.Ordinal));
+            var line = text.Split('\n').Select(l => l.TrimEnd('\r')).FirstOrDefault(l => l.StartsWith('[') && l.EndsWith("(untried)", StringComparison.Ordinal));
             if (line is null)
             {
                 var onHome = text.Contains("activity MainActivity", StringComparison.Ordinal);

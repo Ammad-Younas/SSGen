@@ -33,6 +33,12 @@ public sealed record AppSettings
     /// </summary>
     public double[]? EmulatorPaneWeights { get; init; }
 
+    /// <summary>
+    /// Explore page split proportions as pixel-derived star weights, in pairs: controls/rest, top/screens,
+    /// current screen/activity, log/map. Null = defaults.
+    /// </summary>
+    public double[]? ExplorePaneWeights { get; init; }
+
     /// <summary>Left navigation collapsed to icons only.</summary>
     public bool NavCollapsed { get; init; }
 

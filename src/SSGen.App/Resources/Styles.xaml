@@ -54,6 +54,40 @@
     </Style>
 
     <!-- Vertical pane splitter: 14px hit area with a thin divider that turns accent on hover/drag. -->
+    <!-- Horizontal counterpart of PaneSplitter: resizes the rows above and below. -->
+    <Style x:Key="RowSplitter" TargetType="GridSplitter">
+        <Setter Property="Height" Value="14" />
+        <Setter Property="HorizontalAlignment" Value="Stretch" />
+        <Setter Property="VerticalAlignment" Value="Stretch" />
+        <Setter Property="ResizeBehavior" Value="PreviousAndNext" />
+        <Setter Property="ResizeDirection" Value="Rows" />
+        <Setter Property="Cursor" Value="SizeNS" />
+        <Setter Property="Focusable" Value="True" />
+        <Setter Property="ToolTip" Value="Drag to resize" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="GridSplitter">
+                    <Grid Background="Transparent">
+                        <Border x:Name="Line" Height="1" VerticalAlignment="Center" Margin="8,0"
+                                Background="{DynamicResource DividerStrokeColorDefaultBrush}" />
+                        <Border x:Name="Grip" Height="4" Width="36" CornerRadius="2" HorizontalAlignment="Center" VerticalAlignment="Center"
+                                Background="{DynamicResource ControlStrokeColorDefaultBrush}" />
+                    </Grid>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="Line" Property="Background" Value="{DynamicResource NavSelectedBrush}" />
+                            <Setter TargetName="Grip" Property="Background" Value="{DynamicResource NavSelectedBrush}" />
+                        </Trigger>
+                        <Trigger Property="IsDragging" Value="True">
+                            <Setter TargetName="Line" Property="Background" Value="{DynamicResource NavSelectedBrush}" />
+                            <Setter TargetName="Grip" Property="Background" Value="{DynamicResource NavSelectedBrush}" />
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
     <Style x:Key="PaneSplitter" TargetType="GridSplitter">
         <Setter Property="Width" Value="14" />
         <Setter Property="HorizontalAlignment" Value="Stretch" />

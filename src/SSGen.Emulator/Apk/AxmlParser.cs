@@ -153,7 +153,7 @@ public static class AxmlParser
 
     private static string ReadUtf8(ReadOnlySpan<byte> s)
     {
-        // UTF-16 length (1–2 bytes, ignored) followed by UTF-8 byte length (1–2 bytes).
+        // UTF-16 length (1 or 2 bytes, ignored) followed by UTF-8 byte length (1 or 2 bytes).
         var p = (s[0] & 0x80) != 0 ? 2 : 1;
         int len = s[p];
         p++;

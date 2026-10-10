@@ -12,9 +12,9 @@
 
         <Label Content="_Type" Target="{Binding ElementName=TypeBox}" Padding="0,0,0,4" />
         <ComboBox x:Name="TypeBox" Margin="0,0,0,12" SelectionChanged="OnTypeChanged" AutomationProperties.Name="Provider type">
-            <ComboBoxItem Tag="Anthropic" Content="Anthropic (Claude) — API key" />
-            <ComboBoxItem Tag="OpenAI" Content="OpenAI — API key" />
-            <ComboBoxItem Tag="Gemini" Content="Google Gemini — API key" />
+            <ComboBoxItem Tag="Anthropic" Content="Anthropic (Claude), API key" />
+            <ComboBoxItem Tag="OpenAI" Content="OpenAI, API key" />
+            <ComboBoxItem Tag="Gemini" Content="Google Gemini, API key" />
             <ComboBoxItem Tag="OpenAICompatible" Content="OpenAI-compatible endpoint (OpenRouter, Groq, Together, LM Studio, llama.cpp…)" />
             <ComboBoxItem Tag="Ollama" Content="Ollama (local)" />
         </ComboBox>

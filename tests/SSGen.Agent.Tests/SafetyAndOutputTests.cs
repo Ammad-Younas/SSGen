@@ -80,7 +80,7 @@ public class StructuredOutputTests
     [Theory]
     [InlineData("{\"name\":\"a\",\"count\":1}")]
     [InlineData("Sure! Here you go:\n```json\n{\"name\":\"a\",\"count\":1,}\n```\nAnything else?")]
-    [InlineData("The answer is {\"name\": \"a\", \"count\": 1} — done. {\"other\": 2}")]
+    [InlineData("The answer is {\"name\": \"a\", \"count\": 1}, done. {\"other\": 2}")]
     [InlineData("{\"Name\":\"a\",\"Count\":1} // comment")]
     public async Task Tolerant_parsing(string text)
     {

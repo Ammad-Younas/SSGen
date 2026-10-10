@@ -224,7 +224,7 @@ public sealed class SystemImageCheck : ISetupCheck
             CheckStatus.Fail,
             $"No phone system image for {abi} (API 30+) installed.",
             listing,
-            "Install a \"Google Play Intel x86_64 Atom System Image\" from Android Studio's SDK Manager (SDK Platforms tab, Show Package Details). It's a large download (1–2 GB).",
+            "Install a \"Google Play Intel x86_64 Atom System Image\" from Android Studio's SDK Manager (SDK Platforms tab, Show Package Details). It's a large download (1 to 2 GB).",
             Fixes.Install(context, "Install recommended image", async c =>
                 SdkPackageListParser.RecommendedSystemImage((await context.GetPackageListAsync(c)).Available, abi))));
     }
