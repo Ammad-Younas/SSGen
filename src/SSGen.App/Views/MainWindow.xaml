@@ -32,7 +32,7 @@
             </Border.Style>
             <DockPanel Margin="8,10,8,12">
                 <DockPanel DockPanel.Dock="Top" Margin="0,0,0,16">
-                    <Button DockPanel.Dock="Left" Command="{Binding ToggleNavCommand}" Padding="10,8" Background="Transparent" BorderThickness="0"
+                    <Button DockPanel.Dock="Left" Command="{Binding ToggleNavCommand}" Style="{StaticResource IconButton}"
                             ToolTip="Collapse or expand the menu" AutomationProperties.Name="Toggle navigation">
                         <TextBlock Style="{StaticResource Icon}" Text="&#xE700;" />
                     </Button>

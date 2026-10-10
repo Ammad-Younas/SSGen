@@ -87,6 +87,13 @@
         </Setter>
     </Style>
 
+    <!-- Borderless icon-only button (hamburger toggles). Give it AutomationProperties.Name and a ToolTip. -->
+    <Style x:Key="IconButton" TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="BorderThickness" Value="0" />
+        <Setter Property="Padding" Value="10,8" />
+    </Style>
+
     <Style x:Key="PageTitle" TargetType="TextBlock">
         <Setter Property="FontSize" Value="28" />
         <Setter Property="FontWeight" Value="SemiBold" />
