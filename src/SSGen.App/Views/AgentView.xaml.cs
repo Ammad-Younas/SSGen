@@ -1,6 +1,7 @@
 using System.Collections.Specialized;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Input;
 using SSGen.App.ViewModels;
 
 namespace SSGen.App.Views;
@@ -28,6 +29,17 @@ public partial class AgentView : UserControl
 
         ThumbScroller.SizeChanged += (_, _) =>
             Resources["ThumbImageHeight"] = Math.Max(60, ThumbScroller.ActualHeight - ScrollbarAndCaption);
+
+        // The strip only scrolls sideways: let an ordinary mouse wheel (or vertical two-finger swipe) move it.
+        // Sideways swipes and Shift+wheel are handled app-wide by HorizontalScrollSupport.
+        ThumbScroller.PreviewMouseWheel += (_, e) =>
+        {
+            if (ThumbScroller.ScrollableWidth > 0 && Keyboard.Modifiers == ModifierKeys.None)
+            {
+                ThumbScroller.ScrollToHorizontalOffset(ThumbScroller.HorizontalOffset - e.Delta);
+                e.Handled = true;
+            }
+        };
 
         Loaded += (_, _) =>
         {

@@ -141,6 +141,7 @@ public sealed class ExplorationAgent
             ScreenNode? previous = null;
             AgentAction? previousAction = null;
             var justLaunched = true;
+            ulong? lastHash = null;
             var sameNodeStreak = 0;
             var outsideStreak = 0;
 
@@ -206,7 +207,16 @@ public sealed class ExplorationAgent
                 }
 
                 outsideStreak = 0;
-                var (node, isNew) = Graph.Observe(ScreenFingerprint.From(activity, png, ui));
+                var fingerprint = ScreenFingerprint.From(activity, png, ui);
+                if (previousAction?.Kind == ActionKind.Tap && lastHash == fingerprint.DHash)
+                {
+                    // Diagnostic: a tap that changes nothing on screen is normal for some controls, but many in a row
+                    // usually mean the device is busy or dropping input.
+                    Log(step, AgentLogKind.Warning, $"The last tap ({previousAction.Element?.Label}) had no visible effect.");
+                }
+
+                lastHash = fingerprint.DHash;
+                var (node, isNew) = Graph.Observe(fingerprint);
                 if (justLaunched)
                 {
                     node.IsRoot = true;

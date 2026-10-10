@@ -60,6 +60,7 @@ tests/SSGen.Core.Tests/      # xUnit
 tests/SSGen.Emulator.Tests/  # xUnit; EmulatorIntegrationTests is opt-in (see Commands)
 tests/SSGen.Agent.Tests/     # providers via fake HttpMessageHandler, structured output, guardrails, full runs on MockDevice; real-emulator run opt-in
 tools/fetch-deps.ps1         # downloads scrcpy-server, FFmpeg LGPL DLLs, sample APK into third_party/ (git-ignored)
+tools/make-icon.ps1          # regenerates src/SSGen.App/Assets/ssgen.ico (each size drawn natively); every Window sets Icon to it
 ```
 
 Planned projects, each added in the milestone that needs it: `SSGen.Scene` (SkiaSharp scene doc + renderer) and `SSGen.Templates` (M5).

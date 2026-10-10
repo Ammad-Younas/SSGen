@@ -24,12 +24,12 @@
                        Text="The agent walks through your app on the running device and saves every distinct screen to the project." />
         </StackPanel>
 
-        <!-- Controls | rest -->
+        <!-- Controls | rest. Minimum widths fit the smallest window (900 px with the nav expanded). -->
         <Grid Grid.Row="1">
             <Grid.ColumnDefinitions>
-                <ColumnDefinition x:Name="ControlsColumn" Width="300*" MinWidth="240" />
+                <ColumnDefinition x:Name="ControlsColumn" Width="300*" MinWidth="200" />
                 <ColumnDefinition Width="Auto" />
-                <ColumnDefinition x:Name="RestColumn" Width="900*" MinWidth="460" />
+                <ColumnDefinition x:Name="RestColumn" Width="900*" MinWidth="380" />
             </Grid.ColumnDefinitions>
 
             <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
@@ -113,9 +113,9 @@
 
                 <Grid>
                     <Grid.ColumnDefinitions>
-                        <ColumnDefinition x:Name="ScreenColumn" Width="380*" MinWidth="180" />
+                        <ColumnDefinition x:Name="ScreenColumn" Width="380*" MinWidth="160" />
                         <ColumnDefinition Width="Auto" />
-                        <ColumnDefinition x:Name="ActivityColumn" Width="520*" MinWidth="240" />
+                        <ColumnDefinition x:Name="ActivityColumn" Width="520*" MinWidth="200" />
                     </Grid.ColumnDefinitions>
 
                     <!-- Current screen -->
@@ -194,7 +194,8 @@
                         <TextBlock DockPanel.Dock="Top" Margin="0,0,0,8" Foreground="{DynamicResource TextFillColorPrimaryBrush}" FontWeight="SemiBold">
                             <Run Text="Discovered screens" /> <Run Text="{Binding Screens.Count, Mode=OneWay}" />
                         </TextBlock>
-                        <ScrollViewer x:Name="ThumbScroller" HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Disabled">
+                        <ScrollViewer x:Name="ThumbScroller" HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Disabled"
+                                      AutomationProperties.Name="Discovered screens">
                             <ItemsControl ItemsSource="{Binding Screens}">
                                 <ItemsControl.ItemsPanel>
                                     <ItemsPanelTemplate>
@@ -203,10 +204,15 @@
                                 </ItemsControl.ItemsPanel>
                                 <ItemsControl.ItemTemplate>
                                     <DataTemplate DataType="{x:Type vm:ScreenThumbViewModel}">
+                                        <!-- Only the image sets the width: the caption sits in a Canvas (which asks for no width)
+                                             and trims to the thumbnail, so long screen names never push items apart. -->
                                         <StackPanel Margin="0,0,12,0">
                                             <Image Source="{Binding Image}" Height="{DynamicResource ThumbImageHeight}" Stretch="Uniform" />
-                                            <TextBlock Text="{Binding Title}" Style="{StaticResource Caption}" TextTrimming="CharacterEllipsis"
-                                                       HorizontalAlignment="Center" MaxWidth="160" ToolTip="{Binding Title}" />
+                                            <Canvas Height="18" ClipToBounds="True">
+                                                <TextBlock Text="{Binding Title}" Style="{StaticResource Caption}" TextWrapping="NoWrap"
+                                                           TextTrimming="CharacterEllipsis" TextAlignment="Center" ToolTip="{Binding Title}"
+                                                           Width="{Binding ActualWidth, RelativeSource={RelativeSource AncestorType=Canvas}}" />
+                                            </Canvas>
                                         </StackPanel>
                                     </DataTemplate>
                                 </ItemsControl.ItemTemplate>
