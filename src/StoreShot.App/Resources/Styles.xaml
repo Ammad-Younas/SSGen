@@ -18,6 +18,41 @@
         <Setter Property="FontSize" Value="16" />
     </Style>
 
+    <!-- Text tab with an accent underline when selected (used instead of TabControl where content must be height-bounded). -->
+    <Style x:Key="TabStripButton" TargetType="RadioButton">
+        <Setter Property="Foreground" Value="{DynamicResource TextFillColorSecondaryBrush}" />
+        <Setter Property="FontSize" Value="14" />
+        <Setter Property="Cursor" Value="Hand" />
+        <Setter Property="Margin" Value="0,0,4,0" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="RadioButton">
+                    <Border x:Name="Bd" Background="Transparent" CornerRadius="4" Padding="12,6,12,4">
+                        <StackPanel>
+                            <ContentPresenter HorizontalAlignment="Center" />
+                            <Border x:Name="Underline" Height="3" CornerRadius="1.5" Margin="0,5,0,0" Width="18"
+                                    Background="{DynamicResource {x:Static SystemColors.AccentColorDark2BrushKey}}" Visibility="Hidden" />
+                        </StackPanel>
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="Bd" Property="Background" Value="{DynamicResource SubtleFillColorSecondaryBrush}" />
+                        </Trigger>
+                        <Trigger Property="IsChecked" Value="True">
+                            <Setter TargetName="Underline" Property="Visibility" Value="Visible" />
+                            <Setter Property="Foreground" Value="{DynamicResource TextFillColorPrimaryBrush}" />
+                            <Setter Property="FontWeight" Value="SemiBold" />
+                        </Trigger>
+                        <Trigger Property="IsKeyboardFocused" Value="True">
+                            <Setter TargetName="Bd" Property="BorderBrush" Value="{DynamicResource TextFillColorPrimaryBrush}" />
+                            <Setter TargetName="Bd" Property="BorderThickness" Value="1" />
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
     <Style x:Key="PageTitle" TargetType="TextBlock">
         <Setter Property="FontSize" Value="28" />
         <Setter Property="FontWeight" Value="SemiBold" />

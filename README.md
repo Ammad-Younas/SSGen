@@ -1,4 +1,4 @@
-# StoreShot Studio
+# SSGen
 
 Turn an Android APK into upload-ready store listing screenshots for Google Play and the App Store. The app runs your APK in the Android Emulator, captures its screens (by hand or with an AI agent of your choice), renders them into designed listing images, and exports them at the correct store sizes.
 
@@ -36,7 +36,7 @@ The **Environment setup** assistant checks:
 - Java
 - free disk space
 
-Each check explains why StoreShot needs it and how to fix it. When the SDK command-line tools are installed, missing SDK packages can be installed in one click. You're asked to accept Google's SDK licence first.
+Each check explains why SSGen needs it and how to fix it. When the SDK command-line tools are installed, missing SDK packages can be installed in one click. You're asked to accept Google's SDK licence first.
 
 The SDK is found automatically through `ANDROID_HOME`, `ANDROID_SDK_ROOT` or `%LOCALAPPDATA%\Android\Sdk`. If yours is elsewhere, set the folder in **Settings**.
 
@@ -51,21 +51,21 @@ The SDK is found automatically through `ANDROID_HOME`, `ANDROID_SDK_ROOT` or `%L
 
 USB phones with USB debugging enabled appear in the same device list.
 
-StoreShot only resets or deletes virtual devices it created itself. Closing StoreShot shuts down the emulators it started.
+SSGen only resets or deletes virtual devices it created itself. Closing SSGen shuts down the emulators it started.
 
 ## Where things are stored
 
 | What | Where |
 |---|---|
-| Settings, recent projects, encrypted API keys | `%LOCALAPPDATA%\StoreShotStudio\app.db` |
-| Logs (14 days) | `%LOCALAPPDATA%\StoreShotStudio\logs` |
-| Projects (default) | `Documents\StoreShot Studio\Projects\<name>` |
+| Settings, recent projects, encrypted API keys | `%LOCALAPPDATA%\SSGen\app.db` |
+| Logs (14 days) | `%LOCALAPPDATA%\SSGen\logs` |
+| Projects (default) | `Documents\SSGen\Projects\<name>` |
 
-API keys are encrypted with Windows DPAPI and can only be read by your Windows account. StoreShot sends no telemetry.
+API keys are encrypted with Windows DPAPI and can only be read by your Windows account. SSGen sends no telemetry.
 
 ## AI
 
-StoreShot doesn't ship with, or default to, any AI provider. From M3 you can add your own:
+SSGen doesn't ship with, or default to, any AI provider. From M3 you can add your own:
 
 - an Anthropic, OpenAI or Gemini API key;
 - any OpenAI-compatible endpoint (OpenRouter, Groq, LM Studio and others);

@@ -1,6 +1,6 @@
 # Third-party notices
 
-StoreShot Studio uses the following third-party components. Only permissive licences are allowed. LGPL is acceptable only for components that are dynamically linked and replaceable.
+SSGen uses the following third-party components. Only permissive licences are allowed. LGPL is acceptable only for components that are dynamically linked and replaceable.
 
 ## Shipped with the app: NuGet packages
 
@@ -38,8 +38,8 @@ StoreShot Studio uses the following third-party components. Only permissive lice
 
 ## Not bundled
 
-- **Android SDK tools** (adb, emulator, aapt2, Android CLI, system images) are installed by the user under Google's [Android SDK License](https://developer.android.com/studio/terms). StoreShot never redistributes them.
-- **Segoe Fluent Icons / Segoe MDL2 Assets** are Windows system fonts. StoreShot uses the installed copies.
+- **Android SDK tools** (adb, emulator, aapt2, Android CLI, system images) are installed by the user under Google's [Android SDK License](https://developer.android.com/studio/terms). SSGen never redistributes them.
+- **Segoe Fluent Icons / Segoe MDL2 Assets** are Windows system fonts. SSGen uses the installed copies.
 
 ## Planned (to be added when introduced)
 

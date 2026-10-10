@@ -34,7 +34,7 @@ public sealed class DotNetRuntimeCheck : ISetupCheck
 {
     public string Id => "dotnet";
     public string Title => ".NET runtime";
-    public string Purpose => "Runs StoreShot Studio itself.";
+    public string Purpose => "Runs SSGen itself.";
     public int Order => 0;
 
     public Task<CheckResult> RunAsync(SetupContext context, CancellationToken ct) =>
@@ -187,7 +187,7 @@ public sealed class CmdlineToolsCheck : ISetupCheck
                 : new CheckResult(CheckStatus.Pass, "sdkmanager (legacy) available", legacy));
         }
 
-        return Task.FromResult(new CheckResult(CheckStatus.Warning, "Not installed. StoreShot can't download SDK parts for you.",
+        return Task.FromResult(new CheckResult(CheckStatus.Warning, "Not installed. SSGen can't download SDK parts for you.",
             FixInstructions: Fixes.SdkManagerHint));
     }
 }

@@ -4,6 +4,28 @@ using StoreShot.Core.Settings;
 
 namespace StoreShot.Core.Tests;
 
+public class AppPathsTests
+{
+    [Fact]
+    public void Legacy_data_folder_is_moved_once()
+    {
+        using var dir = new TempDir();
+        var legacy = dir.Combine("StoreShotStudio");
+        var target = dir.Combine("SSGen");
+        dir.Touch("StoreShotStudio", "app.db");
+
+        AppPaths.MigrateLegacyFolder(legacy, target);
+        Assert.True(File.Exists(Path.Combine(target, "app.db")));
+        Assert.False(Directory.Exists(legacy));
+
+        // An existing target is never overwritten.
+        dir.Touch("StoreShotStudio", "other.db");
+        AppPaths.MigrateLegacyFolder(legacy, target);
+        Assert.True(File.Exists(Path.Combine(legacy, "other.db")));
+        Assert.False(File.Exists(Path.Combine(target, "other.db")));
+    }
+}
+
 public class MigrationRunnerTests
 {
     [Theory]

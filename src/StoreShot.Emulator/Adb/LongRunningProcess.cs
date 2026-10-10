@@ -7,7 +7,7 @@ namespace StoreShot.Emulator.Adb;
 
 /// <summary>
 /// A process that runs until stopped (emulator, logcat, scrcpy server). Output lines are delivered as they arrive.
-/// When a <see cref="JobObject"/> is given, Windows kills the process if StoreShot exits unexpectedly.
+/// When a <see cref="JobObject"/> is given, Windows kills the process if SSGen exits unexpectedly.
 /// </summary>
 public sealed class LongRunningProcess : IDisposable
 {

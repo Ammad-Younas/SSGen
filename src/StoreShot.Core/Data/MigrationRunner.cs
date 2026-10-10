@@ -59,8 +59,8 @@ public static partial class MigrationRunner
         if (current > migrations.Count)
         {
             throw new UserFacingException(
-                $"This {set.ToString().ToLowerInvariant()} database was created by a newer version of StoreShot Studio (schema v{current}).",
-                "Update StoreShot Studio to the latest version.");
+                $"This {set.ToString().ToLowerInvariant()} database was created by a newer version of SSGen (schema v{current}).",
+                "Update SSGen to the latest version.");
         }
 
         foreach (var (version, sql) in migrations.Where(m => m.Version > current))

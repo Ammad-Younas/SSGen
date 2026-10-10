@@ -1,5 +1,6 @@
 using System.Collections.ObjectModel;
 using CommunityToolkit.Mvvm.ComponentModel;
+using CommunityToolkit.Mvvm.Input;
 using StoreShot.App.Services;
 using StoreShot.Core.Projects;
 using StoreShot.Core.Settings;
@@ -40,11 +41,26 @@ public sealed partial class MainViewModel : ObservableObject
         projects.CurrentChanged += (_, p) => UpdateTitle(p);
         UpdateTitle(projects.Current);
 
+        _settings = settingsService;
+        IsNavCollapsed = settingsService.Current.NavCollapsed;
+
         // First run lands on the setup assistant; afterwards on Home.
         SelectedNav = NavItems.First(n => n.Key == (settingsService.Current.SetupCompleted ? PageKey.Home : PageKey.Setup));
     }
 
+    private readonly ISettingsService _settings;
+
     public ObservableCollection<NavItem> NavItems { get; }
+
+    [ObservableProperty]
+    public partial bool IsNavCollapsed { get; set; }
+
+    [RelayCommand]
+    private void ToggleNav()
+    {
+        IsNavCollapsed = !IsNavCollapsed;
+        _settings.Save(_settings.Current with { NavCollapsed = IsNavCollapsed });
+    }
 
     [ObservableProperty]
     public partial NavItem? SelectedNav { get; set; }
@@ -53,7 +69,7 @@ public sealed partial class MainViewModel : ObservableObject
     public partial object? CurrentPage { get; set; }
 
     [ObservableProperty]
-    public partial string WindowTitle { get; set; } = "StoreShot Studio";
+    public partial string WindowTitle { get; set; } = "SSGen";
 
     [ObservableProperty]
     public partial string? ProjectName { get; set; }
@@ -75,7 +91,7 @@ public sealed partial class MainViewModel : ObservableObject
     private void UpdateTitle(Project? project)
     {
         ProjectName = project?.Name;
-        WindowTitle = project is null ? "StoreShot Studio" : $"{project.Name} – StoreShot Studio";
+        WindowTitle = project is null ? "SSGen" : $"{project.Name} – SSGen";
     }
 }
 

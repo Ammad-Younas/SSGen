@@ -95,7 +95,7 @@ public sealed class LocalAvdProvider : IEmulatorProvider, IDisposable
                 "avd:" + a.Name,
                 a.Name,
                 DeviceTargetKind.Avd,
-                a.Summary + (a.IsManagedByStoreShot ? " · StoreShot" : ""),
+                a.Summary + (a.IsManagedByStoreShot ? " · SSGen" : ""),
                 running.GetValueOrDefault(a.Name),
                 a,
                 a.IsComplete ? null : "Its files are missing; recreate it."))

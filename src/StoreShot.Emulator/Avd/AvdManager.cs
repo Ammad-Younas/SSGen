@@ -218,7 +218,7 @@ public sealed partial class AvdManager
         if (!avd.IsManagedByStoreShot)
         {
             throw new UserFacingException(
-                $"StoreShot won't {action} \"{avd.Name}\" because it didn't create it.",
+                $"SSGen won't {action} \"{avd.Name}\" because it didn't create it.",
                 "Manage your own virtual devices in Android Studio's Device Manager.");
         }
     }
@@ -236,7 +236,7 @@ public sealed partial class AvdManager
             "tablet_10" => "Tablet10",
             _ => "Device",
         };
-        var baseName = $"StoreShot_{kind}_API{image.ApiLevel}";
+        var baseName = $"SSGen_{kind}_API{image.ApiLevel}";
         var existing = List().Select(a => a.Name).ToHashSet(StringComparer.OrdinalIgnoreCase);
         var name = baseName;
         for (var i = 2; existing.Contains(name); i++)

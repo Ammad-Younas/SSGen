@@ -1,9 +1,10 @@
-# StoreShot Studio — guide for Claude Code
+# SSGen — guide for Claude Code
 
 Windows desktop app: import an Android APK → run it in the emulator → (optionally AI-)explore it → pick the best screens → render store listing screenshots (Google Play / App Store) → edit → export.
 
 ## Decisions (from the owner; they override the original brief)
 
+- **Product name is "SSGen"** (renamed from "StoreShot Studio" after M2). All user-facing text, the exe (`SSGen.exe`), the data folder (`%LOCALAPPDATA%\SSGen`, migrated automatically from `StoreShotStudio`) and the default projects folder (`Documents\SSGen\Projects`) use it. Code namespaces, project names and internal keys (`StoreShot.*`, `storeshot.managed`, the DPAPI entropy) are unchanged unless the owner asks. The existing AVD keeps the name `StoreShot_Pixel_API36`; new AVDs are named `SSGen_*`.
 - **Windows 10/11 only.** C# / .NET 10 (LTS) / **WPF** with the built-in Fluent theme (`Application.ThemeMode`). No Electron, macOS, Linux, Docker mode or CI.
 - **MVVM** with CommunityToolkit.Mvvm (partial-property `[ObservableProperty]`, `[RelayCommand]`), DI via Microsoft.Extensions.DependencyInjection.
 - **SkiaSharp** for both the editor canvas and the export renderer, driven by **one JSON scene-document format** shared by templates, editor and export. Undo/redo uses the command pattern.
@@ -21,14 +22,14 @@ StoreShot.slnx
 Directory.Build.props        # net10, nullable, warnings-as-errors, analyzers (latest-recommended)
 Directory.Packages.props     # central package versions — add versions here, not in csproj
 src/StoreShot.Core/          # no UI: data, settings, secrets, projects, process runner, setup checks
-  AppPaths.cs                # %LOCALAPPDATA%\StoreShotStudio\{app.db,logs,cache}
+  AppPaths.cs                # %LOCALAPPDATA%\SSGen\{app.db,logs,cache}
   Data/                      # SqliteDatabase, MigrationRunner, Migrations/{App,Project}/NNNN_name.sql (embedded)
   Settings/                  # AppSettings record (JSON in settings table), SettingsService
   Security/SecretStore.cs    # ISecretStore + DpapiSecretStore
   Projects/ProjectService.cs # project = folder with project.db + screens/ renders/ export/
   Processes/ProcessRunner.cs # IProcessRunner: timeouts, cancellation, kill-tree, line callbacks, stdin
   Setup/                     # AndroidSdk(+Locator), JavaLocator, SdkPackages (list parser + installer), ISetupCheck impls, SetupService
-src/StoreShot.App/           # WPF shell (assembly name StoreShotStudio)
+src/StoreShot.App/           # WPF shell (assembly name SSGen -> SSGen.exe)
   App.xaml(.cs)              # composition root, Serilog, global exception handlers
   Services/                  # ThemeService, DialogService (all modal UI), NavigationService (PageKey)
   ViewModels/ Views/         # page VMs are singletons; PageTemplates.xaml maps VM type -> View
@@ -75,7 +76,7 @@ $env:STORESHOT_INTEGRATION='1'; dotnet test tests/StoreShot.Emulator.Tests   # +
 
 Diagnostics env vars: `STORESHOT_MOCK_DEVICE=1` shows a mock device in the app; `STORESHOT_SCRCPY_LOG=verbose` logs scrcpy server output (`ScrcpyMirror.ServerOutput`).
 
-To reset first-run state, delete `%LOCALAPPDATA%\StoreShotStudio` (it holds app.db, logs and cache).
+To reset first-run state, delete `%LOCALAPPDATA%\SSGen` (it holds app.db, logs and cache).
 
 ## Conventions
 
@@ -90,6 +91,8 @@ To reset first-run state, delete `%LOCALAPPDATA%\StoreShotStudio` (it holds app.
 - Android SDK: prefer the new native **Android CLI** (`cmdline-tools/latest/bin/android.exe`, `android sdk list|install`, no Java needed). `sdkmanager.bat` is deprecated and is only a fallback.
 - Theme colours: use Fluent brush keys via `DynamicResource` (e.g. `TextFillColorPrimaryBrush`, `CardBackgroundFillColorDefaultBrush`, `SystemFillColorCriticalBrush`).
 - Accessibility: buttons whose content is not plain text need `AutomationProperties.Name`. UI Automation drives the app in manual tests.
+- Don't use the Fluent `TabControl` for panels that need to scroll. It hosts content without a height constraint (lists grow unbounded and never scroll). Use the `TabStripButton` RadioButton strip with a `*` Grid row instead.
+- Nav selection and accent underlines use `{DynamicResource {x:Static SystemColors.AccentColorDark2BrushKey}}` (the same in light and dark). `DynamicResource` on a brush's `Color` inside a resource dictionary throws at runtime.
 - Store specs (dimensions, limits) are never invented. They go in config with the source URL and the verified date (M5).
 - When writing files from PowerShell, use UTF-8 explicitly. `Get-Content -Raw` without an encoding has corrupted `…` before.
 - Every new third-party dependency or bundled asset gets a line in `THIRD_PARTY_NOTICES.md`. Permissive licences only (LGPL only if dynamically linked).

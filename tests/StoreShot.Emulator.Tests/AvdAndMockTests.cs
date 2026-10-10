@@ -23,7 +23,7 @@ public class AvdManagerTests
         var (manager, image, sdk) = Setup(dir);
 
         var name = manager.SuggestName(DeviceProfile.PixelPhone, image);
-        Assert.Equal("StoreShot_Pixel_API36", name);
+        Assert.Equal("SSGen_Pixel_API36", name);
         var avd = manager.Create(name, DeviceProfile.PixelPhone, image, sdk);
 
         Assert.True(avd.IsManagedByStoreShot);
@@ -33,7 +33,7 @@ public class AvdManagerTests
         var config = File.ReadAllText(Path.Combine(avd.Directory!, "config.ini"));
         Assert.Contains(@"image.sysdir.1=system-images\android-36\google_apis_playstore\x86_64\", config, StringComparison.Ordinal);
         Assert.Contains("PlayStore.enabled=true", config, StringComparison.Ordinal);
-        Assert.Equal("StoreShot_Pixel_API36_2", manager.SuggestName(DeviceProfile.PixelPhone, image));
+        Assert.Equal("SSGen_Pixel_API36_2", manager.SuggestName(DeviceProfile.PixelPhone, image));
 
         AvdManager.Delete(avd);
         Assert.Empty(manager.List());

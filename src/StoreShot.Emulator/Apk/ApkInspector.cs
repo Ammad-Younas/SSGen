@@ -87,7 +87,7 @@ public sealed class ApkInspector
 
         if (info.LauncherActivity is null)
         {
-            warnings.Add("The app has no launcher activity, so StoreShot can't open it automatically.");
+            warnings.Add("The app has no launcher activity, so SSGen can't open it automatically.");
         }
 
         if (icon is null)

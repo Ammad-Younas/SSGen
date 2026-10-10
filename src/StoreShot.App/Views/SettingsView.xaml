@@ -89,7 +89,7 @@
                 <StackPanel>
                     <TextBlock Text="No AI provider configured" Foreground="{DynamicResource TextFillColorPrimaryBrush}" />
                     <TextBlock Style="{StaticResource Caption}"
-                               Text="StoreShot doesn't ship with or default to any AI provider. Provider profiles (Anthropic, OpenAI, Gemini, OpenAI-compatible endpoints, Ollama) arrive in M3. Until then everything works in manual mode." />
+                               Text="SSGen doesn't ship with or default to any AI provider. Provider profiles (Anthropic, OpenAI, Gemini, OpenAI-compatible endpoints, Ollama) arrive in M3. Until then everything works in manual mode." />
                 </StackPanel>
             </Border>
 
@@ -98,7 +98,7 @@
             <Border Style="{StaticResource Card}">
                 <StackPanel>
                     <TextBlock Text="No telemetry" Foreground="{DynamicResource TextFillColorPrimaryBrush}" />
-                    <TextBlock Style="{StaticResource Caption}" Text="StoreShot Studio collects and sends no usage data. API keys are encrypted with Windows DPAPI and only readable by your Windows account." />
+                    <TextBlock Style="{StaticResource Caption}" Text="SSGen collects and sends no usage data. API keys are encrypted with Windows DPAPI and only readable by your Windows account." />
                     <Separator Margin="0,12" />
                     <DockPanel>
                         <Button DockPanel.Dock="Right" Content="Clear cache" Command="{Binding ClearCacheCommand}" VerticalAlignment="Center" />
@@ -128,7 +128,7 @@
                     <Button DockPanel.Dock="Right" Content="Open data folder" Command="{Binding OpenDataFolderCommand}" VerticalAlignment="Center" />
                     <StackPanel>
                         <TextBlock Foreground="{DynamicResource TextFillColorPrimaryBrush}">
-                            <Run Text="StoreShot Studio" /> <Run Text="{Binding Version, Mode=OneWay}" />
+                            <Run Text="SSGen" /> <Run Text="{Binding Version, Mode=OneWay}" />
                         </TextBlock>
                         <TextBox Style="{StaticResource SelectableText}" Text="{Binding DataFolder, Mode=OneWay}" />
                     </StackPanel>

@@ -29,7 +29,7 @@ public partial class App : Application
                 shared: true,
                 formatProvider: System.Globalization.CultureInfo.InvariantCulture)
             .CreateLogger();
-        Log.Information("StoreShot Studio {Version} starting", typeof(App).Assembly.GetName().Version);
+        Log.Information("SSGen {Version} starting", typeof(App).Assembly.GetName().Version);
 
         DispatcherUnhandledException += OnDispatcherUnhandledException;
         TaskScheduler.UnobservedTaskException += (_, args) =>
@@ -54,8 +54,8 @@ public partial class App : Application
         {
             Log.Fatal(ex, "Startup failed");
             MessageBox.Show(
-                $"StoreShot Studio couldn't start.\n\n{ex.Message}\n\nLogs: {paths.LogsDir}",
-                "StoreShot Studio",
+                $"SSGen couldn't start.\n\n{ex.Message}\n\nLogs: {paths.LogsDir}",
+                "SSGen",
                 MessageBoxButton.OK,
                 MessageBoxImage.Error);
             Shutdown(1);
@@ -139,7 +139,7 @@ public partial class App : Application
         }
         else
         {
-            MessageBox.Show(e.Exception.Message, "StoreShot Studio", MessageBoxButton.OK, MessageBoxImage.Error);
+            MessageBox.Show(e.Exception.Message, "SSGen", MessageBoxButton.OK, MessageBoxImage.Error);
         }
     }
 }

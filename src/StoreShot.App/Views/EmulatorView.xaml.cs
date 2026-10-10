@@ -1,4 +1,3 @@
-using System.Collections.Specialized;
 using System.Globalization;
 using System.Windows;
 using System.Windows.Controls;
@@ -168,23 +167,65 @@ public partial class EmulatorView : UserControl
     /// <summary>Keeps the log scrolled to the newest line unless the user scrolled up.</summary>
     private void OnLogListLoaded(object sender, RoutedEventArgs e)
     {
+        // Follow the tail: stay pinned to the newest line until the user scrolls up; resume when they scroll back
+        // to the bottom. ScrollChanged fires after layout, so this also works when the panel was hidden.
         var list = (ListView)sender;
-        if (list.ItemsSource is INotifyCollectionChanged changes)
+        if (FindChild<ScrollViewer>(list) is not { } viewer || _logViewer == viewer)
         {
-            changes.CollectionChanged += (_, args) =>
+            return;
+        }
+
+        _logViewer = viewer;
+        viewer.ScrollChanged += (_, e) =>
+        {
+            if (e.ExtentHeightChange == 0 && e.ViewportHeightChange == 0)
             {
-                if (args.Action == NotifyCollectionChangedAction.Add && list.Items.Count > 0 && IsNearBottom(list))
-                {
-                    list.ScrollIntoView(list.Items[^1]);
-                }
-            };
+                _followTail = viewer.VerticalOffset >= viewer.ScrollableHeight - 1; // user scrolled
+            }
+            else if (_followTail)
+            {
+                viewer.ScrollToEnd(); // content grew or panel resized/shown
+            }
+        };
+        _followTail = true;
+        viewer.ScrollToEnd();
+    }
+
+    /// <summary>The log list has no template while its panel is collapsed; set up following once it is shown.</summary>
+    private void OnLogListVisibleChanged(object sender, DependencyPropertyChangedEventArgs e)
+    {
+        if (e.NewValue is true)
+        {
+            Dispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.Loaded, () => OnLogListLoaded(sender, new RoutedEventArgs()));
         }
     }
 
-    private static bool IsNearBottom(DependencyObject list)
+    private ScrollViewer? _logViewer;
+    private bool _followTail = true;
+
+    private double _wheelRemainder;
+
+    /// <summary>
+    /// Scrolls the log by wheel/touchpad. Precision touchpads send many small deltas (well under 120 per event);
+    /// accumulating them gives smooth two-finger scrolling instead of ignoring or over-jumping.
+    /// </summary>
+    private void OnLogMouseWheel(object sender, MouseWheelEventArgs e)
     {
-        var viewer = FindChild<ScrollViewer>(list);
-        return viewer is null || viewer.VerticalOffset >= viewer.ScrollableHeight - 3;
+        if (FindChild<ScrollViewer>((DependencyObject)sender) is not { } viewer)
+        {
+            return;
+        }
+
+        // Item-based scrolling: offsets are in lines. 3 lines per wheel notch (120).
+        _wheelRemainder += -e.Delta / 120.0 * 3;
+        var lines = Math.Truncate(_wheelRemainder);
+        if (lines != 0)
+        {
+            _wheelRemainder -= lines;
+            viewer.ScrollToVerticalOffset(Math.Clamp(viewer.VerticalOffset + lines, 0, viewer.ScrollableHeight));
+        }
+
+        e.Handled = true;
     }
 
     private static T? FindChild<T>(DependencyObject parent)

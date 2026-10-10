@@ -7,8 +7,8 @@
     <AnalysisLevel>latest-recommended</AnalysisLevel>
     <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
     <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
-    <Company>StoreShot Studio</Company>
-    <Product>StoreShot Studio</Product>
+    <Company>SSGen</Company>
+    <Product>SSGen</Product>
     <Version>0.1.0</Version>
   </PropertyGroup>
 </Project>

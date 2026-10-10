@@ -27,6 +27,9 @@ public sealed record AppSettings
     /// <summary>True once the user has finished (or explicitly skipped) the first-run setup assistant.</summary>
     public bool SetupCompleted { get; init; }
 
+    /// <summary>Left navigation collapsed to icons only.</summary>
+    public bool NavCollapsed { get; init; }
+
     /// <summary>Show the emulator's own window as well as the preview inside StoreShot.</summary>
     public bool ShowEmulatorWindow { get; init; }
 

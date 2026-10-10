@@ -100,7 +100,7 @@ public sealed class ProjectService : IProjectService
         var dbPath = Path.Combine(folder, ProjectDbFileName);
         if (!File.Exists(dbPath))
         {
-            throw new UserFacingException($"\"{folder}\" isn't a StoreShot project (no {ProjectDbFileName}).", "Pick the project folder itself, not its parent.");
+            throw new UserFacingException($"\"{folder}\" isn't a SSGen project (no {ProjectDbFileName}).", "Pick the project folder itself, not its parent.");
         }
 
         var db = new SqliteDatabase(dbPath, MigrationSet.Project);

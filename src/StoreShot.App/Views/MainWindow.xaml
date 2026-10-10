@@ -11,23 +11,38 @@
         WindowStartupLocation="CenterScreen">
     <Grid>
         <Grid.ColumnDefinitions>
-            <ColumnDefinition Width="232" />
+            <ColumnDefinition Width="Auto" />
             <ColumnDefinition Width="*" />
         </Grid.ColumnDefinitions>
 
-        <!-- Navigation -->
+        <!-- Navigation: full width (232) or an icon rail (60) -->
         <Border Grid.Column="0"
                 Background="{DynamicResource LayerFillColorDefaultBrush}"
                 BorderBrush="{DynamicResource DividerStrokeColorDefaultBrush}"
                 BorderThickness="0,0,1,0">
-            <DockPanel Margin="8,16,8,12">
-                <StackPanel DockPanel.Dock="Top" Margin="12,0,12,20">
-                    <TextBlock Text="StoreShot Studio" FontSize="18" FontWeight="SemiBold"
-                               Foreground="{DynamicResource TextFillColorPrimaryBrush}" />
-                    <TextBlock Style="{StaticResource Caption}" Margin="0,4,0,0"
-                               Text="{Binding ProjectName, TargetNullValue='No project open'}"
-                               TextTrimming="CharacterEllipsis" />
-                </StackPanel>
+            <Border.Style>
+                <Style TargetType="Border">
+                    <Setter Property="Width" Value="232" />
+                    <Style.Triggers>
+                        <DataTrigger Binding="{Binding IsNavCollapsed}" Value="True">
+                            <Setter Property="Width" Value="60" />
+                        </DataTrigger>
+                    </Style.Triggers>
+                </Style>
+            </Border.Style>
+            <DockPanel Margin="8,10,8,12">
+                <DockPanel DockPanel.Dock="Top" Margin="0,0,0,16">
+                    <Button DockPanel.Dock="Left" Command="{Binding ToggleNavCommand}" Padding="10,8" Background="Transparent" BorderThickness="0"
+                            ToolTip="Collapse or expand the menu" AutomationProperties.Name="Toggle navigation">
+                        <TextBlock Style="{StaticResource Icon}" Text="&#xE700;" />
+                    </Button>
+                    <StackPanel Margin="10,0,0,0" VerticalAlignment="Center"
+                                Visibility="{Binding IsNavCollapsed, Converter={StaticResource BoolToVisibility}, ConverterParameter=invert}">
+                        <TextBlock Text="SSGen" FontSize="18" FontWeight="SemiBold" Foreground="{DynamicResource TextFillColorPrimaryBrush}" />
+                        <TextBlock Style="{StaticResource Caption}" Text="{Binding ProjectName, TargetNullValue='No project open'}"
+                                   TextTrimming="CharacterEllipsis" />
+                    </StackPanel>
+                </DockPanel>
 
                 <ListBox ItemsSource="{Binding NavItems}"
                          SelectedItem="{Binding SelectedNav}"
@@ -35,16 +50,43 @@
                          Background="Transparent" BorderThickness="0"
                          ScrollViewer.HorizontalScrollBarVisibility="Disabled">
                     <ListBox.ItemContainerStyle>
-                        <Style TargetType="ListBoxItem" BasedOn="{StaticResource {x:Type ListBoxItem}}">
+                        <!-- Own template so the selected item is the same deep accent red with white text in light and dark. -->
+                        <Style TargetType="ListBoxItem">
                             <Setter Property="AutomationProperties.Name" Value="{Binding Title}" />
+                            <Setter Property="ToolTip" Value="{Binding Title}" />
+                            <Setter Property="Foreground" Value="{DynamicResource TextFillColorPrimaryBrush}" />
+                            <Setter Property="FocusVisualStyle" Value="{x:Null}" />
+                            <Setter Property="Cursor" Value="Hand" />
+                            <Setter Property="Template">
+                                <Setter.Value>
+                                    <ControlTemplate TargetType="ListBoxItem">
+                                        <Border x:Name="Bd" Background="Transparent" CornerRadius="6" Margin="0,2" Padding="12,10"
+                                                BorderThickness="1" BorderBrush="Transparent">
+                                            <ContentPresenter />
+                                        </Border>
+                                        <ControlTemplate.Triggers>
+                                            <Trigger Property="IsMouseOver" Value="True">
+                                                <Setter TargetName="Bd" Property="Background" Value="{DynamicResource SubtleFillColorSecondaryBrush}" />
+                                            </Trigger>
+                                            <Trigger Property="IsKeyboardFocused" Value="True">
+                                                <Setter TargetName="Bd" Property="BorderBrush" Value="{DynamicResource TextFillColorPrimaryBrush}" />
+                                            </Trigger>
+                                            <Trigger Property="IsSelected" Value="True">
+                                                <Setter TargetName="Bd" Property="Background" Value="{DynamicResource {x:Static SystemColors.AccentColorDark2BrushKey}}" />
+                                                <Setter Property="Foreground" Value="White" />
+                                            </Trigger>
+                                        </ControlTemplate.Triggers>
+                                    </ControlTemplate>
+                                </Setter.Value>
+                            </Setter>
                         </Style>
                     </ListBox.ItemContainerStyle>
                     <ListBox.ItemTemplate>
                         <DataTemplate DataType="{x:Type vm:NavItem}">
-                            <StackPanel Orientation="Horizontal" Margin="4,6"
-                                        AutomationProperties.Name="{Binding Title}">
-                                <TextBlock Style="{StaticResource Icon}" Text="{Binding Glyph}" Margin="0,0,14,0" />
-                                <TextBlock Text="{Binding Title}" FontSize="14" VerticalAlignment="Center" />
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Style="{StaticResource Icon}" Text="{Binding Glyph}" />
+                                <TextBlock Text="{Binding Title}" FontSize="14" VerticalAlignment="Center" Margin="14,0,0,0"
+                                           Visibility="{Binding DataContext.IsNavCollapsed, RelativeSource={RelativeSource AncestorType=Window}, Converter={StaticResource BoolToVisibility}, ConverterParameter=invert}" />
                             </StackPanel>
                         </DataTemplate>
                     </ListBox.ItemTemplate>

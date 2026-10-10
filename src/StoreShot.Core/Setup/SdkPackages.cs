@@ -210,7 +210,7 @@ public sealed partial class SdkPackageManager
         }
 
         throw new UserFacingException(
-            "The Android SDK command-line tools aren't installed, so StoreShot can't download SDK packages.",
+            "The Android SDK command-line tools aren't installed, so SSGen can't download SDK packages.",
             "In Android Studio open Settings > Languages & Frameworks > Android SDK > SDK Tools and install \"Android SDK Command-line Tools (latest)\".");
     }
 

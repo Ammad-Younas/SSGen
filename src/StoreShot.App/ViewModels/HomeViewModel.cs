@@ -69,7 +69,7 @@ public sealed partial class HomeViewModel : ObservableObject, IPageActivated
     [RelayCommand]
     private void OpenProject()
     {
-        var folder = _dialogs.PickFolder("Open a StoreShot project folder", _settings.Current.ProjectsFolder ?? AppPaths.DefaultProjectsDir);
+        var folder = _dialogs.PickFolder("Open a SSGen project folder", _settings.Current.ProjectsFolder ?? AppPaths.DefaultProjectsDir);
         if (folder is not null)
         {
             Try("Couldn't open the project", () => _projects.Open(folder));

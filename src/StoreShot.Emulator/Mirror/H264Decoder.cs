@@ -27,7 +27,7 @@ public sealed unsafe partial class H264Decoder : IDisposable
         var codec = ffmpeg.avcodec_find_decoder(AVCodecID.AV_CODEC_ID_H264);
         if (codec is null)
         {
-            throw new UserFacingException("The bundled FFmpeg has no H.264 decoder.", "Reinstall StoreShot Studio.");
+            throw new UserFacingException("The bundled FFmpeg has no H.264 decoder.", "Reinstall SSGen.");
         }
 
         _context = ffmpeg.avcodec_alloc_context3(codec);
@@ -58,7 +58,7 @@ public sealed unsafe partial class H264Decoder : IDisposable
 
             if (!IsAvailable(directory))
             {
-                throw new UserFacingException("The video decoder (FFmpeg) isn't installed.", "Reinstall StoreShot Studio. The preview will fall back to slower screenshots.");
+                throw new UserFacingException("The video decoder (FFmpeg) isn't installed.", "Reinstall SSGen. The preview will fall back to slower screenshots.");
             }
 
             // Map library names to whatever major versions are actually present.

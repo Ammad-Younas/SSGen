@@ -12,7 +12,7 @@
         <StackPanel DockPanel.Dock="Top" MaxWidth="900" HorizontalAlignment="Stretch">
             <TextBlock Style="{StaticResource PageTitle}" Text="Environment setup" />
             <TextBlock Style="{StaticResource PageSubtitle}"
-                       Text="StoreShot runs your APK in the Android Emulator. This checks that everything it needs is installed, and helps fix what isn't." />
+                       Text="SSGen runs your APK in the Android Emulator. This checks that everything it needs is installed, and helps fix what isn't." />
 
             <Border Style="{StaticResource Card}">
                 <DockPanel>
