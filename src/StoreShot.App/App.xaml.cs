@@ -6,6 +6,7 @@ using StoreShot.App.Services;
 using StoreShot.App.ViewModels;
 using StoreShot.App.Views;
 using StoreShot.Core;
+using StoreShot.Emulator;
 
 namespace StoreShot.App;
 
@@ -64,7 +65,26 @@ public partial class App : Application
     protected override void OnExit(ExitEventArgs e)
     {
         Log.Information("Exiting with code {Code}", e.ApplicationExitCode);
-        _services?.Dispose();
+        if (_services is { } services)
+        {
+            // Disposing the container stops the live preview and every emulator StoreShot started; emulators save
+            // their quick-boot snapshot first, which can take a while. Run off the UI thread to avoid deadlocking
+            // on the dispatcher. If it overruns, the job object terminates whatever is left when we exit.
+            _services = null;
+            var shutdown = Task.Run(() => services.DisposeAsync().AsTask());
+            try
+            {
+                if (!shutdown.Wait(TimeSpan.FromSeconds(90)))
+                {
+                    Log.Warning("Shutdown timed out; the job object will terminate remaining emulator processes");
+                }
+            }
+            catch (AggregateException ex)
+            {
+                Log.Error(ex, "Error during shutdown");
+            }
+        }
+
         Log.CloseAndFlush();
         base.OnExit(e);
     }
@@ -79,6 +99,12 @@ public partial class App : Application
         services.AddSingleton<IDialogService, DialogService>();
         services.AddSingleton<INavigationService, NavigationService>();
 
+        services.AddSingleton(sp => new DeviceHub(
+            sp.GetRequiredService<StoreShot.Core.Settings.ISettingsService>(),
+            sp.GetRequiredService<StoreShot.Core.Processes.IProcessRunner>(),
+            sp.GetRequiredService<Microsoft.Extensions.Logging.ILoggerFactory>()));
+        services.AddSingleton<EmulatorViewModel>();
+
         services.AddSingleton<MainViewModel>();
         services.AddSingleton<HomeViewModel>();
         services.AddSingleton<SetupViewModel>();
@@ -91,7 +117,22 @@ public partial class App : Application
     private void OnDispatcherUnhandledException(object sender, DispatcherUnhandledExceptionEventArgs e)
     {
         Log.Error(e.Exception, "Unhandled UI exception");
-        var dialogs = _services?.GetService<IDialogService>();
+        e.Handled = true;
+        if (_services is null)
+        {
+            return; // shutting down: log only
+        }
+
+        IDialogService? dialogs;
+        try
+        {
+            dialogs = _services.GetService<IDialogService>();
+        }
+        catch (ObjectDisposedException)
+        {
+            return;
+        }
+
         if (dialogs is not null)
         {
             dialogs.ShowError("Something went wrong", e.Exception);
@@ -100,7 +141,5 @@ public partial class App : Application
         {
             MessageBox.Show(e.Exception.Message, "StoreShot Studio", MessageBoxButton.OK, MessageBoxImage.Error);
         }
-
-        e.Handled = true;
     }
 }

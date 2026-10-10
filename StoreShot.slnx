@@ -2,8 +2,10 @@
   <Folder Name="/src/">
     <Project Path="src/StoreShot.App/StoreShot.App.csproj" />
     <Project Path="src/StoreShot.Core/StoreShot.Core.csproj" />
+    <Project Path="src/StoreShot.Emulator/StoreShot.Emulator.csproj" />
   </Folder>
   <Folder Name="/tests/">
     <Project Path="tests/StoreShot.Core.Tests/StoreShot.Core.Tests.csproj" />
+    <Project Path="tests/StoreShot.Emulator.Tests/StoreShot.Emulator.Tests.csproj" />
   </Folder>
 </Solution>

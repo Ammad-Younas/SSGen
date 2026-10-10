@@ -13,6 +13,7 @@ public sealed partial class MainViewModel : ObservableObject
 {
     public MainViewModel(
         HomeViewModel home,
+        EmulatorViewModel emulator,
         SetupViewModel setup,
         SettingsViewModel settings,
         INavigationService navigation,
@@ -22,8 +23,7 @@ public sealed partial class MainViewModel : ObservableObject
         NavItems =
         [
             new(PageKey.Home, "Home", "", home),
-            new(PageKey.Emulator, "Emulator", "", new PlaceholderViewModel("Emulator", "", "M2",
-                "Create and run virtual devices, install your APK, mirror the screen live and control it by hand. Logcat lives here too.")),
+            new(PageKey.Emulator, "Emulator", "\uE8EA", emulator),
             new(PageKey.Agent, "Explore", "", new PlaceholderViewModel("Explore", "", "M3",
                 "An AI agent (using the provider you choose, or none) walks through the app and captures every screen. Without AI you can capture screens manually.")),
             new(PageKey.Gallery, "Gallery", "", new PlaceholderViewModel("Gallery", "", "M6",

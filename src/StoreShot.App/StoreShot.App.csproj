@@ -25,6 +25,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\StoreShot.Core\StoreShot.Core.csproj" />
+    <ProjectReference Include="..\StoreShot.Emulator\StoreShot.Emulator.csproj" />
   </ItemGroup>
 
 </Project>

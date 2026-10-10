@@ -11,7 +11,7 @@
         <TextBlock Text="Create a project" FontSize="20" FontWeight="SemiBold" Margin="0,0,0,4"
                    Foreground="{DynamicResource TextFillColorPrimaryBrush}" />
         <TextBlock Style="{StaticResource Caption}" Margin="0,0,0,16"
-                   Text="A project is a folder holding your APK, captured screens and generated images. You'll import the APK in the next step (M2)." />
+                   Text="A project is a folder holding your APK, captured screens and generated images. You'll import the APK on the Emulator page." />
 
         <Label Content="_Project name" Target="{Binding ElementName=NameBox}" Padding="0,0,0,4" />
         <TextBox x:Name="NameBox" Margin="0,0,0,12" TextChanged="OnInputChanged" />

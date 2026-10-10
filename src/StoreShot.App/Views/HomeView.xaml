@@ -48,7 +48,7 @@
                                    Foreground="{DynamicResource TextFillColorPrimaryBrush}" />
                         <TextBox Style="{StaticResource SelectableText}" Text="{Binding CurrentProject.Folder, Mode=OneWay}" />
                         <TextBlock Style="{StaticResource Caption}" Margin="0,8,0,0"
-                                   Text="Next: import an APK and run it in the emulator (arrives in milestone M2)." />
+                                   Text="Next: open the Emulator page to import your APK and run it." />
                     </StackPanel>
                 </DockPanel>
             </Border>

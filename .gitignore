@@ -480,3 +480,6 @@ $RECYCLE.BIN/
 
 # Vim temporary swap files
 *.swp
+
+# Downloaded by tools/fetch-deps.ps1
+/third_party/

@@ -33,10 +33,35 @@ src/StoreShot.App/           # WPF shell (assembly name StoreShotStudio)
   Services/                  # ThemeService, DialogService (all modal UI), NavigationService (PageKey)
   ViewModels/ Views/         # page VMs are singletons; PageTemplates.xaml maps VM type -> View
   Resources/Styles.xaml      # shared styles; colours come from Fluent DynamicResource brushes
-tests/StoreShot.Core.Tests/  # xUnit
+src/StoreShot.Emulator/      # devices: no UI
+  DeviceHub.cs               # entry point: resolves SDK from settings, providers, APK inspector, mirror selection
+  Adb/                       # AdbClient (adb.exe wrapper), LongRunningProcess, output parsers, install-error mapping
+  Apk/                       # ApkInspector (aapt2 + managed AXML fallback, icon extraction), ProjectApkStore
+  Avd/AvdManager.cs          # reads/writes AVD .ini files directly; only deletes/wipes AVDs marked storeshot.managed=yes
+  Devices/                   # IDevice (what the agent uses), AdbDevice, MockDevice; IEmulatorProvider: LocalAvd/ConnectedPhone/Mock
+  Interop/JobObject.cs       # kill-on-close job: emulators die with StoreShot even on crash
+  Mirror/                    # IScreenMirror: EmulatorGrpcMirror (emulators), ScrcpyMirror+H264Decoder (phones), ScreencapMirror (fallback)
+  Logcat/                    # threadtime parser + batched streaming session
+  Protos/                    # emulator_controller.proto (Apache-2.0) -> generated gRPC client
+tests/StoreShot.Core.Tests/      # xUnit
+tests/StoreShot.Emulator.Tests/  # xUnit; EmulatorIntegrationTests is opt-in (see Commands)
+tools/fetch-deps.ps1         # downloads scrcpy-server, FFmpeg LGPL DLLs, sample APK into third_party/ (git-ignored)
 ```
 
-Planned projects, each added in the milestone that needs it: `StoreShot.Emulator` (M2), `StoreShot.Ai` and `StoreShot.Agent` (M3), `StoreShot.Scene` (SkiaSharp scene doc + renderer) and `StoreShot.Templates` (M5).
+Planned projects, each added in the milestone that needs it: `StoreShot.Ai` and `StoreShot.Agent` (M3), `StoreShot.Scene` (SkiaSharp scene doc + renderer) and `StoreShot.Templates` (M5).
+
+## Device pipeline (M2): what is verified and why it's built this way
+
+- **Live preview by device type** (`DeviceHub.StartMirrorAsync`):
+  - **Emulators** use the emulator's gRPC `streamScreenshot`. StoreShot launches emulators with `-grpc <port> -grpc-use-token`; the port and token are read from `%LOCALAPPDATA%\Temp\avd\running\pid_*.ini`. Measured **33 fps** during scrolling.
+  - **Why not scrcpy on emulators:** emulators only have *software* H.264 encoders, which manage about 5 fps. That was measured, with host-GPU rendering making no difference.
+  - **Phones** use scrcpy. Its protocol is pinned to v5.0.1, which must match `ScrcpyProtocol.ServerVersion` and `fetch-deps.ps1`.
+  - **Fallback** for everything is screencap polling.
+- **Boot pitfalls handled in `LocalAvdProvider.WaitForBootAsync`:**
+  1. *unauthorized*: a stale adb server holds another key. Fix: restart the adb server once.
+  2. *offline for more than 60 s* after a quick boot: a corrupt snapshot. Fix: kill without saving, then cold boot (`-no-snapshot-load`).
+- **Stopping**: always use `adb emu kill` and allow up to 60 s. Killing an emulator mid snapshot-save corrupts the snapshot.
+- **Touches** are in *frame* pixels at the mirror level. The gRPC mirror scales to device pixels. The scrcpy server ignores touches whose stated size doesn't match the current video size.
 
 ## Commands
 
@@ -44,7 +69,11 @@ Planned projects, each added in the milestone that needs it: `StoreShot.Emulator
 dotnet build StoreShot.slnx
 dotnet test StoreShot.slnx
 dotnet run --project src/StoreShot.App
+powershell -File tools/fetch-deps.ps1            # once after cloning: scrcpy-server, FFmpeg DLLs, sample APK
+$env:STORESHOT_INTEGRATION='1'; dotnet test tests/StoreShot.Emulator.Tests   # + real emulator end-to-end (~1-2 min)
 ```
+
+Diagnostics env vars: `STORESHOT_MOCK_DEVICE=1` shows a mock device in the app; `STORESHOT_SCRCPY_LOG=verbose` logs scrcpy server output (`ScrcpyMirror.ServerOutput`).
 
 To reset first-run state, delete `%LOCALAPPDATA%\StoreShotStudio` (it holds app.db, logs and cache).
 
@@ -70,8 +99,8 @@ To reset first-run state, delete `%LOCALAPPDATA%\StoreShotStudio` (it holds app.
 | | Status |
 |---|---|
 | M1 Foundation (shell, themes, SQLite, settings, DPAPI secrets, setup assistant) | **done** |
-| M2 Emulator (AVD mgmt, APK parse/install, live preview, manual control, logcat) | next, then **stop for review** |
-| M3 Provider layer + Agent v1 | |
+| M2 Emulator (AVD mgmt, APK parse/install, live preview, manual control, logcat) | **done**, awaiting owner review |
+| M3 Provider layer + Agent v1 | next (after review) |
 | M4 Agent v2 | |
 | M5 Selection, templates, render, verified export presets | then **stop for review** |
 | M6 Gallery + editor · M7 Export, i18n, installer · M8 Hardening | |
@@ -81,3 +110,5 @@ To reset first-run state, delete `%LOCALAPPDATA%\StoreShotStudio` (it holds app.
 - Android SDK at `D:\App_Development_Setup\Android_SDK` (ANDROID_HOME). Emulator 36.6, WHPX acceleration.
 - Installed images: API 36, 36.1 and 37.0 (ps16k), Google Play x86_64.
 - JDK 21 at `D:\App_Development_Setup\Java_JDK`. .NET SDK 10.0.401.
+- `StoreShot_Pixel_API36` exists (created by StoreShot from the API 36 Play image, marked managed). Its first cold boot is ~50 s; quick boot ~6 s.
+- Exploration lesson: `android emulator create` with no arguments *creates* an AVD. Only call these CLIs with `-h` when exploring.

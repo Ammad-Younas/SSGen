@@ -7,6 +7,9 @@
     <DataTemplate DataType="{x:Type vm:HomeViewModel}">
         <views:HomeView />
     </DataTemplate>
+    <DataTemplate DataType="{x:Type vm:EmulatorViewModel}">
+        <views:EmulatorView />
+    </DataTemplate>
     <DataTemplate DataType="{x:Type vm:SetupViewModel}">
         <views:SetupView />
     </DataTemplate>

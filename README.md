@@ -2,7 +2,7 @@
 
 Turn an Android APK into upload-ready store listing screenshots for Google Play and the App Store. The app runs your APK in the Android Emulator, captures its screens (by hand or with an AI agent of your choice), renders them into designed listing images, and exports them at the correct store sizes.
 
-> **Status: milestone M1 (foundation).** The shell, projects, settings and environment setup assistant work. The emulator, exploration, templates, editor and export arrive in M2–M7.
+> **Status: milestone M2 (emulator).** Projects, settings, the environment setup assistant and the full device pipeline work: virtual device management, APK import and install, a live preview you can control, screen capture and logcat. AI exploration, templates, the editor and export arrive in M3–M7.
 
 ## Requirements
 
@@ -15,6 +15,7 @@ Turn an Android APK into upload-ready store listing screenshots for Google Play 
 ## Build and run
 
 ```powershell
+powershell -File tools/fetch-deps.ps1   # once: downloads scrcpy-server, FFmpeg (LGPL DLLs) and a sample APK
 dotnet build StoreShot.slnx
 dotnet test StoreShot.slnx
 dotnet run --project src/StoreShot.App
@@ -38,6 +39,19 @@ The **Environment setup** assistant checks:
 Each check explains why StoreShot needs it and how to fix it. When the SDK command-line tools are installed, missing SDK packages can be installed in one click. You're asked to accept Google's SDK licence first.
 
 The SDK is found automatically through `ANDROID_HOME`, `ANDROID_SDK_ROOT` or `%LOCALAPPDATA%\Android\Sdk`. If yours is elsewhere, set the folder in **Settings**.
+
+## Running your app
+
+1. Create a project on **Home**.
+2. Open **Emulator**. Create a virtual device if you have none (*Create a virtual device*: pick a screen size and an installed Android version), then press **Start**. The first boot takes about a minute; later boots take seconds.
+3. **Import APK…** to read the app's name, icon, version and permissions. A copy is kept in the project.
+4. **Install & open** installs the app with all runtime permissions granted and launches it.
+5. Use the preview like a phone: click to tap, drag to swipe, scroll to scroll, type to send keys. Back, Home and Recents are below the preview, and **Capture** saves the current screen into the project at full resolution.
+6. **Logcat** shows the app's log, filterable by level and text.
+
+USB phones with USB debugging enabled appear in the same device list.
+
+StoreShot only resets or deletes virtual devices it created itself. Closing StoreShot shuts down the emulators it started.
 
 ## Where things are stored
 
