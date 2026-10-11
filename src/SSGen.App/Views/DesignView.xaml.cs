@@ -40,6 +40,31 @@ public partial class DesignView : UserControl
         }
     }
 
+    /// <summary>
+    /// The template list never scrolls itself (it shows every card), but its inner ScrollViewer still takes the
+    /// mouse wheel: hand the wheel to the column around it so scrolling over the cards scrolls the page.
+    /// </summary>
+    private void OnInnerListWheel(object sender, System.Windows.Input.MouseWheelEventArgs e)
+    {
+        if (e.Handled || sender is not DependencyObject list)
+        {
+            return;
+        }
+
+        e.Handled = true;
+        var parent = System.Windows.Media.VisualTreeHelper.GetParent(list);
+        while (parent is not null and not ScrollViewer)
+        {
+            parent = System.Windows.Media.VisualTreeHelper.GetParent(parent);
+        }
+
+        (parent as UIElement)?.RaiseEvent(new System.Windows.Input.MouseWheelEventArgs(e.MouseDevice, e.Timestamp, e.Delta)
+        {
+            RoutedEvent = UIElement.MouseWheelEvent,
+            Source = sender,
+        });
+    }
+
     /// <summary>Live preview while typing.</summary>
     private void OnCaptionChanged(object sender, TextChangedEventArgs e) => (DataContext as DesignViewModel)?.CaptionsTyping();
 

@@ -330,6 +330,41 @@ public class EditorTests
         Assert.Empty(Directory.GetFiles(p.Project.Folder, "*.tmp", SearchOption.AllDirectories));
     }
 
+    [Fact]
+    public void A_screen_can_have_its_own_template_and_can_be_deleted()
+    {
+        using var p = new TempProject();
+        var shots = Enumerable.Range(0, 2).Select(i => p.AddScreen(TestImages.Screenshot(Teal, seed: i), $"x/.S{i}Activity", $"Screen {i}")).ToList();
+        var store = new SSGen.Selection.SelectionStore(p.Project);
+        store.Save(new SSGen.Selection.SelectionItem(shots[0].Id, true, 0, 50, null, "A", "A", "", "", "manual"));
+        store.SetTemplate(shots[1].Id, "tilted");
+
+        // Ranking again rewrites the row but keeps the screen's own design.
+        store.Save(new SSGen.Selection.SelectionItem(shots[1].Id, true, 1, 40, null, "B", "B", "", "", "heuristic"));
+        Assert.Equal("tilted", store.Load().Single(i => i.ScreenId == shots[1].Id).TemplateId);
+        Assert.Null(store.Load().Single(i => i.ScreenId == shots[0].Id).TemplateId);
+
+        var preset = StorePresetCatalog.BuiltIn().Find("play-phone")!;
+        RenderService.Render(p.Project, new RenderRequest
+        {
+            Presets = [preset],
+            Template = TemplateLibrary.Find("headline-top")!,
+            Items =
+            [
+                new RenderItem(shots[0].Id, shots[0].FullPath(p.Project), 1080, 2400, "A", "A", ""),
+                new RenderItem(shots[1].Id, shots[1].FullPath(p.Project), 1080, 2400, "B", "B", "") { Template = TemplateLibrary.Find("tilted") },
+            ],
+        });
+        Assert.Equal(["headline-top", "tilted"], RenderStore.List(p.Project).OrderBy(r => r.Position).Select(r => r.TemplateId));
+
+        var file = shots[0].FullPath(p.Project);
+        SSGen.Core.Projects.ScreenRepository.Delete(p.Project, shots[0].Id);
+        Assert.False(File.Exists(file));
+        Assert.DoesNotContain(SSGen.Core.Projects.ScreenRepository.List(p.Project), s => s.Id == shots[0].Id);
+        Assert.DoesNotContain(store.Load(), i => i.ScreenId == shots[0].Id);           // selection row went with it
+        Assert.Null(RenderStore.List(p.Project).Single(r => r.Position == 0).ScreenId); // the render forgets it
+    }
+
     private static byte[] Solid(SKColor color)
     {
         using var bmp = new SKBitmap(100, 100);

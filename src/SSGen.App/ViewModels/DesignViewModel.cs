@@ -60,6 +60,15 @@ public sealed partial class CandidateViewModel : ObservableObject
     [ObservableProperty]
     public partial string Source { get; set; } = "";
 
+    /// <summary>This screen's own design (null = the set's template).</summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(TemplateText), nameof(HasOwnTemplate))]
+    public partial string? TemplateId { get; set; }
+
+    public bool HasOwnTemplate => TemplateId is not null;
+
+    public string TemplateText => TemplateId is { } id && TemplateLibrary.Find(id) is { } t ? "Design: " + t.Name : "";
+
     public string ScoreText => Score is { } s ? "Score " + s.ToString("0", CultureInfo.CurrentCulture) : "Not ranked yet";
 
     public string PositionText => Position is { } p ? (p + 1).ToString(CultureInfo.CurrentCulture) : "";
@@ -166,6 +175,9 @@ public sealed partial class TranslationRowViewModel : ObservableObject
     }
 }
 
+/// <summary>A design choice for one screen: null id = the set's template.</summary>
+public sealed record TemplateChoice(string? Id, string Name);
+
 /// <summary>A line in the render report.</summary>
 public sealed record RenderReportLine(bool IsError, string Text);
 
@@ -221,6 +233,28 @@ public sealed partial class DesignViewModel : ObservableObject, IPageActivated, 
     public IReadOnlyList<Language> SetLanguages => [PrimaryLanguage, .. ExtraLanguages];
 
     public ObservableCollection<TranslationRowViewModel> TranslationRows { get; } = [];
+
+    /// <summary>"Same as the set" followed by every screenshot template.</summary>
+    public IReadOnlyList<TemplateChoice> ScreenTemplateChoices =>
+        [new(null, $"Same as the set ({SelectedTemplate?.Name ?? "template"})"), .. Templates.Select(t => new TemplateChoice(t.Template.Id, t.Name))];
+
+    /// <summary>The selected screen's design choice (bound to the picker under the captions).</summary>
+    public TemplateChoice? ScreenTemplate
+    {
+        get => SelectedCandidate is { } c ? ScreenTemplateChoices.FirstOrDefault(x => x.Id == c.TemplateId) : null;
+        set
+        {
+            if (value is null || SelectedCandidate is not { } c || c.TemplateId == value.Id || _project is not { } p)
+            {
+                return;
+            }
+
+            c.TemplateId = value.Id;
+            new SelectionStore(p).SetTemplate(c.ScreenId, value.Id);
+            OnPropertyChanged();
+            RequestPreview();
+        }
+    }
 
     [ObservableProperty]
     public partial Language PrimaryLanguage { get; set; } = Languages.Find("en-US");
@@ -308,12 +342,15 @@ public sealed partial class DesignViewModel : ObservableObject, IPageActivated, 
 
     partial void OnSelectedCandidateChanged(CandidateViewModel? value)
     {
+        OnPropertyChanged(nameof(ScreenTemplate));
         RequestPreview();
         RequestThumbnails();
     }
 
     partial void OnSelectedTemplateChanged(TemplateCardViewModel? value)
     {
+        OnPropertyChanged(nameof(ScreenTemplateChoices));
+        OnPropertyChanged(nameof(ScreenTemplate));
         SaveMeta("design.template", value?.Template.Id ?? "");
         RequestPreview();
     }
@@ -427,6 +464,7 @@ public sealed partial class DesignViewModel : ObservableObject, IPageActivated, 
                     Subheadline = item?.Subheadline ?? "",
                     Reasoning = item?.Reasoning ?? "",
                     Source = item?.Source ?? "",
+                    TemplateId = item?.TemplateId,
                 });
             }
 
@@ -776,7 +814,7 @@ public sealed partial class DesignViewModel : ObservableObject, IPageActivated, 
         _ = Task.Run(async () =>
         {
             await Task.Delay(120, cts.Token); // debounce typing
-            var bytes = RenderPng(t.Template, inputs, w, h, frame, maxHeight: 900);
+            var bytes = RenderPng(TemplateFor(c) ?? t.Template, inputs, w, h, frame, maxHeight: 900);
             var image = Decode(bytes, 0);
             await Application.Current.Dispatcher.InvokeAsync(() =>
             {
@@ -874,7 +912,7 @@ public sealed partial class DesignViewModel : ObservableObject, IPageActivated, 
                     Items = set.Select(c =>
                     {
                         var (headline, subheadline) = Captions(c, language);
-                        return new RenderItem(c.ScreenId, c.File, c.PixelWidth, c.PixelHeight, c.Label, headline, subheadline);
+                        return new RenderItem(c.ScreenId, c.File, c.PixelWidth, c.PixelHeight, c.Label, headline, subheadline) { Template = TemplateFor(c) };
                     }).ToList(),
                     Palette = Palette(),
                     IconFile = _apk?.IconPath(project),
@@ -1075,6 +1113,39 @@ public sealed partial class DesignViewModel : ObservableObject, IPageActivated, 
         finally
         {
             IsBusy = false;
+        }
+    }
+
+    private static TemplateDefinition? TemplateFor(CandidateViewModel c) => c.TemplateId is { } id ? TemplateLibrary.Find(id) : null;
+
+    /// <summary>Removes a captured screen from the project (its image, captions and place in the set).</summary>
+    [RelayCommand]
+    private void DeleteScreen(CandidateViewModel? c)
+    {
+        if (c is null || _project is not { } p || IsBusy)
+        {
+            return;
+        }
+
+        if (!_dialogs.Confirm("Delete screenshot", $"Delete \"{c.Label}\" from this project? The captured image and its captions are removed. Store images already rendered from it stay until you render again."))
+        {
+            return;
+        }
+
+        var index = Candidates.IndexOf(c);
+        ScreenRepository.Delete(p, c.ScreenId);
+        Candidates.Remove(c);
+        SaveOrder();
+        if (SelectedCandidate is null || SelectedCandidate == c)
+        {
+            SelectedCandidate = Candidates.Count == 0 ? null : Candidates[Math.Clamp(index, 0, Candidates.Count - 1)];
+        }
+
+        LoadTranslations();
+        Status = $"Deleted {c.Label}.";
+        if (Candidates.Count == 0)
+        {
+            Blocker = "No screens captured yet. Explore the app (or use Capture on the Emulator page) first.";
         }
     }
 

@@ -52,6 +52,39 @@ public static class ScreenRepository
         cmd.ExecuteNonQuery();
     }
 
+    /// <summary>
+    /// Removes a captured screen: its row (selection and captions go with it; renders and exploration records
+    /// keep their files but forget the screen) and its image file.
+    /// </summary>
+    public static void Delete(Project project, long screenId)
+    {
+        ArgumentNullException.ThrowIfNull(project);
+        string? file = null;
+        using (var connection = project.Database.Open())
+        {
+            using (var read = connection.CreateCommand())
+            {
+                read.CommandText = "SELECT file FROM screens WHERE id = $id;";
+                read.Parameters.AddWithValue("$id", screenId);
+                file = read.ExecuteScalar() as string;
+            }
+
+            using var cmd = connection.CreateCommand();
+            cmd.CommandText = "DELETE FROM screens WHERE id = $id;";
+            cmd.Parameters.AddWithValue("$id", screenId);
+            cmd.ExecuteNonQuery();
+        }
+
+        if (file is not null)
+        {
+            var path = Path.Combine(project.Folder, file);
+            if (File.Exists(path))
+            {
+                File.Delete(path);
+            }
+        }
+    }
+
     public static IReadOnlyList<CapturedScreen> List(Project project)
     {
         ArgumentNullException.ThrowIfNull(project);

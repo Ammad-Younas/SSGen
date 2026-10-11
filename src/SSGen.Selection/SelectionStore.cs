@@ -14,7 +14,8 @@ public sealed record SelectionItem(
     string Headline,
     string Subheadline,
     string Reasoning,
-    string Source);
+    string Source,
+    string? TemplateId = null);
 
 /// <summary>Saves the ranking and the chosen set in the project database.</summary>
 public sealed class SelectionStore
@@ -81,7 +82,7 @@ public sealed class SelectionStore
         using var c = _project.Database.Open();
         using var cmd = c.CreateCommand();
         cmd.CommandText = """
-            SELECT screen_id, included, position, score, reject, COALESCE(label, ''), COALESCE(headline, ''), COALESCE(subheadline, ''), COALESCE(reasoning, ''), source
+            SELECT screen_id, included, position, score, reject, COALESCE(label, ''), COALESCE(headline, ''), COALESCE(subheadline, ''), COALESCE(reasoning, ''), source, template_id
             FROM selection ORDER BY included DESC, position, score DESC;
             """;
         using var r = cmd.ExecuteReader();
@@ -90,10 +91,26 @@ public sealed class SelectionStore
         {
             list.Add(new SelectionItem(
                 r.GetInt64(0), r.GetInt64(1) != 0, r.IsDBNull(2) ? null : r.GetInt32(2), r.IsDBNull(3) ? null : r.GetDouble(3),
-                r.IsDBNull(4) ? null : r.GetString(4), r.GetString(5), r.GetString(6), r.GetString(7), r.GetString(8), r.GetString(9)));
+                r.IsDBNull(4) ? null : r.GetString(4), r.GetString(5), r.GetString(6), r.GetString(7), r.GetString(8), r.GetString(9),
+                r.IsDBNull(10) ? null : r.GetString(10)));
         }
 
         return list;
+    }
+
+    /// <summary>Gives one screen its own design (null = the set's template).</summary>
+    public void SetTemplate(long screenId, string? templateId)
+    {
+        using var c = _project.Database.Open();
+        using var cmd = c.CreateCommand();
+        cmd.CommandText = """
+            INSERT INTO selection(screen_id, included, source, updated_utc, template_id) VALUES ($id, 0, 'manual', $t, $tpl)
+            ON CONFLICT(screen_id) DO UPDATE SET template_id = $tpl, updated_utc = $t;
+            """;
+        cmd.Parameters.AddWithValue("$id", screenId);
+        cmd.Parameters.AddWithValue("$tpl", (object?)templateId ?? DBNull.Value);
+        cmd.Parameters.AddWithValue("$t", Now());
+        cmd.ExecuteNonQuery();
     }
 
     private static void Upsert(Microsoft.Data.Sqlite.SqliteConnection c, Microsoft.Data.Sqlite.SqliteTransaction? tx, SelectionItem item)

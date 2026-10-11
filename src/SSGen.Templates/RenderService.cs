@@ -7,7 +7,11 @@ using SSGen.Scene;
 namespace SSGen.Templates;
 
 /// <summary>One screen to render, in set order.</summary>
-public sealed record RenderItem(long ScreenId, string ScreenFile, int Width, int Height, string Label, string Headline, string Subheadline);
+public sealed record RenderItem(long ScreenId, string ScreenFile, int Width, int Height, string Label, string Headline, string Subheadline)
+{
+    /// <summary>This screen's own design; null = the request's template.</summary>
+    public TemplateDefinition? Template { get; init; }
+}
 
 public sealed record RenderRequest
 {
@@ -101,7 +105,8 @@ public static partial class RenderService
                             RightToLeft = request.RightToLeft,
                         };
                         var name = $"{i + 1:00}_{Slug(item.Label)}";
-                        images.Add(RenderOne(project, preset, request, inputs, folder, name, item.ScreenId, i, assets));
+                        var own = item.Template is { } t ? request with { Template = t } : request;
+                        images.Add(RenderOne(project, preset, own, inputs, folder, name, item.ScreenId, i, assets));
                         done++;
                     }
 
