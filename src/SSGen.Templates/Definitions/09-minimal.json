@@ -1,0 +1,11 @@
+{
+  "id": "minimal",
+  "name": "Minimal light",
+  "description": "Clean off-white background, dark text and a softly shadowed device.",
+  "background": { "type": "solid", "colors": [ "#F6F7F9" ] },
+  "layers": [
+    { "type": "text", "role": "headline", "x": 0.08, "y": 0.055, "w": 0.84, "h": 0.13, "size": 0.08, "minSize": 0.05, "weight": 600, "color": "{text.onLight}" },
+    { "type": "text", "role": "subheadline", "x": 0.1, "y": 0.18, "w": 0.8, "h": 0.06, "size": 0.04, "minSize": 0.03, "weight": 400, "color": "{brand.deep}", "maxLines": 2 },
+    { "type": "device", "role": "screenshot", "cx": 0.5, "top": 0.27, "height": 0.75, "maxWidth": 0.7, "frameColor": "#FF2A2C31" }
+  ]
+}

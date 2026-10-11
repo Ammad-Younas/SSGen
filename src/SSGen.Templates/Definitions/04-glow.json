@@ -1,0 +1,12 @@
+{
+  "id": "glow",
+  "name": "Dark with glow",
+  "description": "Deep brand-dark background with a soft coloured glow behind the device.",
+  "background": { "type": "solid", "colors": [ "{brand.dark}" ] },
+  "layers": [
+    { "type": "shape", "name": "Glow", "shape": "ellipse", "x": 0.02, "y": 0.3, "w": 0.96, "h": 0.58, "fill": { "type": "radial", "colors": [ "{brand.primary@90}", "{brand.primary@0}" ], "radius": 0.5 }, "blur": 0.03 },
+    { "type": "text", "role": "headline", "x": 0.08, "y": 0.05, "w": 0.84, "h": 0.13, "size": 0.085, "minSize": 0.05, "weight": 700, "color": "{white}" },
+    { "type": "text", "role": "subheadline", "x": 0.1, "y": 0.18, "w": 0.8, "h": 0.06, "size": 0.042, "minSize": 0.03, "weight": 400, "color": "{white}", "opacity": 0.75, "maxLines": 2 },
+    { "type": "device", "role": "screenshot", "cx": 0.5, "top": 0.26, "height": 0.76, "maxWidth": 0.72, "frameColor": "#FF1C1D22" }
+  ]
+}

@@ -5,10 +5,14 @@
     <Project Path="src/SSGen.App/SSGen.App.csproj" />
     <Project Path="src/SSGen.Core/SSGen.Core.csproj" />
     <Project Path="src/SSGen.Emulator/SSGen.Emulator.csproj" />
+    <Project Path="src/SSGen.Scene/SSGen.Scene.csproj" />
+    <Project Path="src/SSGen.Selection/SSGen.Selection.csproj" />
+    <Project Path="src/SSGen.Templates/SSGen.Templates.csproj" />
   </Folder>
   <Folder Name="/tests/">
     <Project Path="tests/SSGen.Agent.Tests/SSGen.Agent.Tests.csproj" />
     <Project Path="tests/SSGen.Core.Tests/SSGen.Core.Tests.csproj" />
+    <Project Path="tests/SSGen.Design.Tests/SSGen.Design.Tests.csproj" />
     <Project Path="tests/SSGen.Emulator.Tests/SSGen.Emulator.Tests.csproj" />
   </Folder>
 </Solution>

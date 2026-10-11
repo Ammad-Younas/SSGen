@@ -1,0 +1,11 @@
+{
+  "id": "headline-bottom",
+  "name": "Headline below",
+  "description": "Device enters from the top; the headline sits underneath on a deep gradient.",
+  "background": { "type": "linear", "colors": [ "{brand.secondary}", "{brand.deep}" ], "angle": 90 },
+  "layers": [
+    { "type": "device", "role": "screenshot", "cx": 0.5, "bottom": 0.72, "height": 0.8, "maxWidth": 0.74 },
+    { "type": "text", "role": "headline", "x": 0.08, "y": 0.755, "w": 0.84, "h": 0.12, "size": 0.082, "minSize": 0.05, "weight": 700, "color": "{text.onDark}" },
+    { "type": "text", "role": "subheadline", "x": 0.1, "y": 0.88, "w": 0.8, "h": 0.07, "size": 0.04, "minSize": 0.03, "weight": 400, "color": "{text.onDark}", "opacity": 0.8, "maxLines": 2 }
+  ]
+}

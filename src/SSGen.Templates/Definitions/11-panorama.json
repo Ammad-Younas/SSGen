@@ -1,0 +1,21 @@
+{
+  "id": "panorama",
+  "name": "Panorama",
+  "description": "One continuous background flows across the whole set, so the screenshots connect side by side in the store.",
+  "panorama": true,
+  "background": { "type": "linear", "colors": [ "{brand.primary}", "{brand.secondary}", "{brand.deep}", "{brand.primary}" ], "angle": 0 },
+  "layers": [
+    { "type": "shape", "name": "Wave 1", "shape": "ellipse", "x": 0.55, "y": 0.62, "w": 1.0, "h": 0.5, "fill": { "type": "solid", "colors": [ "{white@14}" ] } },
+    { "type": "shape", "name": "Wave 2", "shape": "ellipse", "x": 1.6, "y": 0.05, "w": 0.9, "h": 0.45, "fill": { "type": "solid", "colors": [ "{white@10}" ] } },
+    { "type": "shape", "name": "Wave 3", "shape": "ellipse", "x": 2.55, "y": 0.58, "w": 1.0, "h": 0.5, "fill": { "type": "solid", "colors": [ "{white@14}" ] } },
+    { "type": "shape", "name": "Wave 4", "shape": "ellipse", "x": 3.6, "y": 0.08, "w": 0.9, "h": 0.45, "fill": { "type": "solid", "colors": [ "{white@10}" ] } },
+    { "type": "shape", "name": "Wave 5", "shape": "ellipse", "x": 4.55, "y": 0.6, "w": 1.0, "h": 0.5, "fill": { "type": "solid", "colors": [ "{white@14}" ] } },
+    { "type": "shape", "name": "Wave 6", "shape": "ellipse", "x": 5.6, "y": 0.06, "w": 0.9, "h": 0.45, "fill": { "type": "solid", "colors": [ "{white@10}" ] } },
+    { "type": "shape", "name": "Wave 7", "shape": "ellipse", "x": 6.55, "y": 0.6, "w": 1.0, "h": 0.5, "fill": { "type": "solid", "colors": [ "{white@14}" ] } },
+    { "type": "shape", "name": "Wave 8", "shape": "ellipse", "x": 7.6, "y": 0.07, "w": 0.9, "h": 0.45, "fill": { "type": "solid", "colors": [ "{white@10}" ] } },
+    { "type": "shape", "name": "Wave 9", "shape": "ellipse", "x": 8.55, "y": 0.6, "w": 1.0, "h": 0.5, "fill": { "type": "solid", "colors": [ "{white@14}" ] } },
+    { "type": "text", "role": "headline", "x": 0.08, "y": 0.05, "w": 0.84, "h": 0.13, "size": 0.085, "minSize": 0.05, "weight": 700, "color": "{text.onBrand}" },
+    { "type": "text", "role": "subheadline", "x": 0.1, "y": 0.18, "w": 0.8, "h": 0.06, "size": 0.042, "minSize": 0.03, "weight": 400, "color": "{text.onBrand}", "opacity": 0.85, "maxLines": 2 },
+    { "type": "device", "role": "screenshot", "cx": 0.5, "top": 0.26, "height": 0.8, "maxWidth": 0.74 }
+  ]
+}

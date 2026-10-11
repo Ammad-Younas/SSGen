@@ -1,0 +1,13 @@
+{
+  "id": "duo",
+  "name": "Two screens",
+  "description": "Two overlapping devices show this screen and the next one in the set.",
+  "screens": 2,
+  "background": { "type": "linear", "colors": [ "{brand.primary}", "{brand.deep}" ], "angle": 135 },
+  "layers": [
+    { "type": "text", "role": "headline", "x": 0.08, "y": 0.05, "w": 0.84, "h": 0.13, "size": 0.085, "minSize": 0.05, "weight": 700, "color": "{text.onPrimary}" },
+    { "type": "text", "role": "subheadline", "x": 0.1, "y": 0.18, "w": 0.8, "h": 0.06, "size": 0.042, "minSize": 0.03, "weight": 400, "color": "{text.onPrimary}", "opacity": 0.85, "maxLines": 2 },
+    { "type": "device", "role": "screenshot2", "frame": "phone", "cx": 0.67, "top": 0.33, "height": 0.62, "maxWidth": 0.5, "rotation": 5 },
+    { "type": "device", "role": "screenshot", "frame": "phone", "cx": 0.35, "top": 0.28, "height": 0.66, "maxWidth": 0.52, "rotation": -4 }
+  ]
+}

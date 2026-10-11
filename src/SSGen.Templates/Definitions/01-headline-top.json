@@ -1,0 +1,11 @@
+{
+  "id": "headline-top",
+  "name": "Headline on top",
+  "description": "Brand gradient, bold headline above a device that runs off the bottom edge.",
+  "background": { "type": "linear", "colors": [ "{brand.primary}", "{brand.secondary}" ], "angle": 120 },
+  "layers": [
+    { "type": "text", "role": "headline", "x": 0.08, "y": 0.05, "w": 0.84, "h": 0.13, "size": 0.085, "minSize": 0.05, "weight": 700, "color": "{text.onBrand}" },
+    { "type": "text", "role": "subheadline", "x": 0.1, "y": 0.18, "w": 0.8, "h": 0.06, "size": 0.042, "minSize": 0.03, "weight": 400, "color": "{text.onBrand}", "opacity": 0.85, "maxLines": 2 },
+    { "type": "device", "role": "screenshot", "cx": 0.5, "top": 0.26, "height": 0.8, "maxWidth": 0.74 }
+  ]
+}

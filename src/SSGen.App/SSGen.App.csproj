@@ -35,6 +35,7 @@
     <ProjectReference Include="..\SSGen.Emulator\SSGen.Emulator.csproj" />
     <ProjectReference Include="..\SSGen.Ai\SSGen.Ai.csproj" />
     <ProjectReference Include="..\SSGen.Agent\SSGen.Agent.csproj" />
+    <ProjectReference Include="..\SSGen.Selection\SSGen.Selection.csproj" />
   </ItemGroup>
 
 </Project>

@@ -1,0 +1,12 @@
+{
+  "id": "diagonal",
+  "name": "Diagonal split",
+  "description": "A tilted band of brand colour across a light background, behind the device.",
+  "background": { "type": "solid", "colors": [ "{brand.light}" ] },
+  "layers": [
+    { "type": "shape", "name": "Band", "x": -0.35, "y": 0.47, "w": 1.7, "h": 0.75, "rotation": -14, "fill": { "type": "linear", "colors": [ "{brand.primary}", "{brand.secondary}" ], "angle": 0 } },
+    { "type": "text", "role": "headline", "x": 0.08, "y": 0.05, "w": 0.84, "h": 0.13, "size": 0.085, "minSize": 0.05, "weight": 700, "color": "{text.onLight}" },
+    { "type": "text", "role": "subheadline", "x": 0.1, "y": 0.18, "w": 0.8, "h": 0.06, "size": 0.042, "minSize": 0.03, "weight": 400, "color": "{text.onLight}", "opacity": 0.7, "maxLines": 2 },
+    { "type": "device", "role": "screenshot", "cx": 0.5, "top": 0.26, "height": 0.78, "maxWidth": 0.72 }
+  ]
+}

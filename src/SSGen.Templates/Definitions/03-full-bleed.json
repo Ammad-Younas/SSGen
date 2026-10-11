@@ -1,0 +1,12 @@
+{
+  "id": "full-bleed",
+  "name": "Full screen with caption",
+  "description": "The screenshot fills the image; a dark fade at the bottom carries the caption.",
+  "background": { "type": "solid", "colors": [ "{black}" ] },
+  "layers": [
+    { "type": "image", "role": "screenshot", "x": 0, "y": 0, "w": 1, "h": 1, "fit": "cover" },
+    { "type": "shape", "name": "Fade", "x": 0, "y": 0.5, "w": 1, "h": 0.5, "fill": { "type": "linear", "colors": [ "{black@0}", "{black@55}", "{black@88}" ], "angle": 90 } },
+    { "type": "text", "role": "headline", "x": 0.08, "y": 0.75, "w": 0.84, "h": 0.13, "size": 0.085, "minSize": 0.05, "weight": 700, "color": "{white}", "align": "left", "verticalAlign": "bottom" },
+    { "type": "text", "role": "subheadline", "x": 0.08, "y": 0.885, "w": 0.84, "h": 0.07, "size": 0.042, "minSize": 0.03, "weight": 400, "color": "{white}", "opacity": 0.85, "align": "left", "maxLines": 2 }
+  ]
+}

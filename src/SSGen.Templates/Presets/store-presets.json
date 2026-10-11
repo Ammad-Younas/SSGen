@@ -1,0 +1,135 @@
+{
+  "verified": "2026-10-11",
+  "note": "Every number below was checked against the official pages listed in 'source' on the 'verified' date. Requirements change: re-check them before relying on this file, and update 'verified'. A copy in %LOCALAPPDATA%\\SSGen\\store-presets.json overrides this one.",
+  "stores": [
+    {
+      "id": "google-play",
+      "name": "Google Play",
+      "source": "https://support.google.com/googleplay/android-developer/answer/9866151",
+      "rules": {
+        "formats": [ "png", "jpeg" ],
+        "alpha": false,
+        "minDimension": 320,
+        "maxDimension": 3840,
+        "maxAspect": 2.0,
+        "minCount": 2,
+        "maxCount": 8
+      },
+      "presets": [
+        {
+          "id": "play-phone",
+          "name": "Phone",
+          "kind": "screenshot",
+          "device": "phone",
+          "width": 1080,
+          "height": 1920,
+          "frame": "phonePunchHole",
+          "defaultSelected": true,
+          "notes": "9:16 at 1080 px. Promotion needs at least four screenshots of at least 1080 px. Up to 8 per device type."
+        },
+        {
+          "id": "play-tablet-7",
+          "name": "7-inch tablet",
+          "kind": "screenshot",
+          "device": "tablet",
+          "width": 1080,
+          "height": 1920,
+          "frame": "tablet",
+          "rules": { "minDimension": 1080, "maxDimension": 7680, "exactAspects": [ "9:16", "16:9" ], "minCount": 4, "maxCount": 8 },
+          "notes": "Tablets: at least 4 screenshots, sides between 1,080 and 7,680 px, 9:16 portrait or 16:9 landscape."
+        },
+        {
+          "id": "play-tablet-10",
+          "name": "10-inch tablet",
+          "kind": "screenshot",
+          "device": "tablet",
+          "width": 1440,
+          "height": 2560,
+          "frame": "tablet",
+          "rules": { "minDimension": 1080, "maxDimension": 7680, "exactAspects": [ "9:16", "16:9" ], "minCount": 4, "maxCount": 8 },
+          "notes": "Tablets: at least 4 screenshots, sides between 1,080 and 7,680 px, 9:16 portrait or 16:9 landscape."
+        },
+        {
+          "id": "play-feature-graphic",
+          "name": "Feature graphic",
+          "kind": "featureGraphic",
+          "width": 1024,
+          "height": 500,
+          "defaultSelected": true,
+          "rules": { "formats": [ "png", "jpeg" ], "alpha": false, "exactSize": true, "minCount": 1, "maxCount": 1 },
+          "notes": "JPEG or 24-bit PNG (no alpha), exactly 1024 x 500 px."
+        },
+        {
+          "id": "play-icon",
+          "name": "App icon",
+          "kind": "icon",
+          "width": 512,
+          "height": 512,
+          "rules": { "formats": [ "png" ], "alpha": true, "exactSize": true, "maxBytes": 1048576, "minCount": 1, "maxCount": 1 },
+          "notes": "32-bit PNG (with alpha), exactly 512 x 512 px, at most 1024 KB."
+        }
+      ]
+    },
+    {
+      "id": "app-store",
+      "name": "App Store",
+      "source": "https://developer.apple.com/help/app-store-connect/reference/app-information/screenshot-specifications",
+      "warning": "SSGen renders your Android screens into iPhone-style frames. Apple expects screenshots to show the app's actual iOS interface: replace them with real iOS captures before submitting if the iOS app looks different.",
+      "rules": {
+        "formats": [ "png", "jpeg" ],
+        "alpha": false,
+        "exactSize": true,
+        "minCount": 1,
+        "maxCount": 10
+      },
+      "presets": [
+        {
+          "id": "as-iphone-6.9",
+          "name": "iPhone 6.9\" (Dynamic Island, large)",
+          "kind": "screenshot",
+          "device": "phone",
+          "width": 1320,
+          "height": 2868,
+          "frame": "phoneIsland",
+          "acceptedSizes": [ "1260x2736", "1290x2796", "1320x2868" ],
+          "notes": "If not provided, scaled screenshots for iPhone with Face ID (large display) are used."
+        },
+        {
+          "id": "as-iphone-6.5",
+          "name": "iPhone 6.5\" (Face ID, large)",
+          "kind": "screenshot",
+          "device": "phone",
+          "width": 1284,
+          "height": 2778,
+          "frame": "phoneIsland",
+          "acceptedSizes": [ "1284x2778", "1242x2688" ],
+          "notes": "Required if the app runs on iPhone and screenshots for iPhone with Dynamic Island (large display) aren't provided."
+        },
+        {
+          "id": "as-iphone-6.1",
+          "name": "iPhone 6.1\" (Dynamic Island, medium)",
+          "kind": "screenshot",
+          "device": "phone",
+          "width": 1206,
+          "height": 2622,
+          "frame": "phoneIsland",
+          "required": true,
+          "acceptedSizes": [ "1179x2556", "1206x2622" ],
+          "notes": "Required: at least one screenshot for iPhone with Dynamic Island (medium display)."
+        },
+        {
+          "id": "as-ipad-13",
+          "name": "iPad 13\"",
+          "kind": "screenshot",
+          "device": "tablet",
+          "width": 2064,
+          "height": 2752,
+          "frame": "tablet",
+          "requiredIf": "the app runs on iPad",
+          "acceptedSizes": [ "2064x2752", "2048x2732" ],
+          "notes": "Required if the app runs on iPad."
+        }
+      ]
+    }
+  ]
+}

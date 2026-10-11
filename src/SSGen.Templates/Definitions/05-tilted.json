@@ -1,0 +1,12 @@
+{
+  "id": "tilted",
+  "name": "Tilted device",
+  "description": "Light background, left-aligned headline and a device leaning in from the right.",
+  "background": { "type": "linear", "colors": [ "{brand.light}", "{white}" ], "angle": 90 },
+  "layers": [
+    { "type": "shape", "name": "Accent circle", "shape": "ellipse", "x": 0.42, "y": 0.34, "w": 0.9, "h": 0.5, "fill": { "type": "solid", "colors": [ "{brand.soft@45}" ] } },
+    { "type": "text", "role": "headline", "x": 0.08, "y": 0.055, "w": 0.84, "h": 0.14, "size": 0.088, "minSize": 0.05, "weight": 800, "color": "{text.onLight}", "align": "left" },
+    { "type": "text", "role": "subheadline", "x": 0.08, "y": 0.195, "w": 0.8, "h": 0.06, "size": 0.042, "minSize": 0.03, "weight": 400, "color": "{text.onLight}", "opacity": 0.7, "align": "left", "maxLines": 2 },
+    { "type": "device", "role": "screenshot", "cx": 0.58, "top": 0.28, "height": 0.76, "maxWidth": 0.7, "rotation": -9 }
+  ]
+}

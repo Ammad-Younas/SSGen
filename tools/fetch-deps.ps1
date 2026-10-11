@@ -1,4 +1,4 @@
-<#
+﻿<#
 .SYNOPSIS
   Downloads third-party binaries that are too large or not appropriate for git into third_party/.
   Run once after cloning (the build copies them next to the app):  powershell -File tools/fetch-deps.ps1
@@ -63,6 +63,24 @@ if (-not (Test-Path $sampleApk)) {
     New-Item -ItemType Directory -Force $samples | Out-Null
     Write-Host 'Downloading sample APK (Privacy Friendly Notes)'
     Invoke-WebRequest 'https://f-droid.org/repo/org.secuso.privacyfriendlynotes_105.apk' -OutFile $sampleApk
+}
+
+# --- Fonts for rendered screenshots (SIL Open Font License 1.1; shipped with the app) ---
+# Static weights from the Google Fonts repository. File names must stay Family-Weight.ttf (see SSGen.Scene.Fonts).
+$fontDir = Join-Path $root 'fonts'
+$fontFiles = @(
+    @{ Url = 'https://raw.githubusercontent.com/google/fonts/main/ofl/poppins/Poppins-Regular.ttf'; Name = 'Poppins-Regular.ttf' },
+    @{ Url = 'https://raw.githubusercontent.com/google/fonts/main/ofl/poppins/Poppins-SemiBold.ttf'; Name = 'Poppins-SemiBold.ttf' },
+    @{ Url = 'https://raw.githubusercontent.com/google/fonts/main/ofl/poppins/Poppins-Bold.ttf'; Name = 'Poppins-Bold.ttf' },
+    @{ Url = 'https://raw.githubusercontent.com/google/fonts/main/ofl/poppins/Poppins-ExtraBold.ttf'; Name = 'Poppins-ExtraBold.ttf' },
+    @{ Url = 'https://raw.githubusercontent.com/google/fonts/main/ofl/poppins/OFL.txt'; Name = 'Poppins-OFL.txt' },
+    @{ Url = 'https://raw.githubusercontent.com/google/fonts/main/ofl/dmserifdisplay/DMSerifDisplay-Regular.ttf'; Name = 'DMSerifDisplay-Regular.ttf' },
+    @{ Url = 'https://raw.githubusercontent.com/google/fonts/main/ofl/dmserifdisplay/OFL.txt'; Name = 'DMSerifDisplay-OFL.txt' }
+)
+New-Item -ItemType Directory -Force $fontDir | Out-Null
+foreach ($font in $fontFiles) {
+    $target = Join-Path $fontDir $font.Name
+    if (-not (Test-Path $target)) { Write-Host "Downloading $($font.Name)"; Invoke-WebRequest $font.Url -OutFile $target }
 }
 
 Get-ChildItem $root -Recurse -File | ForEach-Object { "{0,10:N0}  {1}" -f $_.Length, $_.FullName.Substring($root.Length + 1) }

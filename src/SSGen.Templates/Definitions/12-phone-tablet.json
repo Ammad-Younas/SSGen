@@ -1,0 +1,12 @@
+{
+  "id": "phone-tablet",
+  "name": "Phone and tablet",
+  "description": "A tablet with a phone in front, to show the app works on every screen size.",
+  "background": { "type": "linear", "colors": [ "{brand.soft}", "{brand.light}" ], "angle": 90 },
+  "layers": [
+    { "type": "text", "role": "headline", "x": 0.08, "y": 0.05, "w": 0.84, "h": 0.13, "size": 0.082, "minSize": 0.05, "weight": 700, "color": "{text.onLight}" },
+    { "type": "text", "role": "subheadline", "x": 0.1, "y": 0.18, "w": 0.8, "h": 0.06, "size": 0.04, "minSize": 0.03, "weight": 400, "color": "{text.onLight}", "opacity": 0.7, "maxLines": 2 },
+    { "type": "device", "role": "screenshot", "frame": "tablet", "cx": 0.43, "top": 0.31, "height": 0.52, "maxWidth": 0.78 },
+    { "type": "device", "role": "screenshot", "frame": "phone", "cx": 0.8, "top": 0.47, "height": 0.46, "maxWidth": 0.3 }
+  ]
+}

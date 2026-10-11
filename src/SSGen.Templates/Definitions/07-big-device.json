@@ -1,0 +1,10 @@
+{
+  "id": "big-device",
+  "name": "Large device",
+  "description": "A big device cropped by the bottom edge puts the screen front and centre.",
+  "background": { "type": "solid", "colors": [ "{brand.primary}" ] },
+  "layers": [
+    { "type": "text", "role": "headline", "x": 0.07, "y": 0.045, "w": 0.86, "h": 0.15, "size": 0.1, "minSize": 0.055, "weight": 800, "color": "{text.onPrimary}", "lineHeight": 1.05 },
+    { "type": "device", "role": "screenshot", "cx": 0.5, "top": 0.22, "height": 1.0, "maxWidth": 0.88 }
+  ]
+}

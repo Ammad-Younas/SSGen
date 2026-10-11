@@ -1,0 +1,22 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0-windows</TargetFramework>
+    <RootNamespace>SSGen.Scene</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="SkiaSharp" />
+    <PackageReference Include="SkiaSharp.NativeAssets.Win32" />
+  </ItemGroup>
+
+  <!-- Open-licence fonts fetched by tools/fetch-deps.ps1 (not in git). Copied next to the app. -->
+  <ItemGroup>
+    <None Include="..\..\third_party\fonts\*.ttf;..\..\third_party\fonts\*.txt" Link="fonts\%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" Condition="Exists('..\..\third_party\fonts')" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="SSGen.Design.Tests" />
+  </ItemGroup>
+
+</Project>

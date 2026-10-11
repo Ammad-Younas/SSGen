@@ -1,0 +1,14 @@
+{
+  "id": "feature-graphic",
+  "name": "Feature graphic",
+  "description": "Google Play feature graphic: app icon, name and tagline on the brand gradient.",
+  "kind": "featureGraphic",
+  "background": { "type": "linear", "colors": [ "{brand.primary}", "{brand.secondary}" ], "angle": 135 },
+  "layers": [
+    { "type": "shape", "name": "Circle 1", "shape": "ellipse", "x": 0.68, "y": -0.35, "w": 0.45, "h": 0.95, "fill": { "type": "solid", "colors": [ "{white@12}" ] } },
+    { "type": "shape", "name": "Circle 2", "shape": "ellipse", "x": 0.8, "y": 0.45, "w": 0.3, "h": 0.65, "fill": { "type": "solid", "colors": [ "{white@9}" ] } },
+    { "type": "image", "role": "icon", "x": 0.075, "y": 0.29, "w": 0.205, "h": 0.42, "fit": "contain", "radius": 0.09, "shadow": true },
+    { "type": "text", "role": "appName", "x": 0.33, "y": 0.27, "w": 0.6, "h": 0.24, "size": 0.15, "minSize": 0.08, "weight": 800, "color": "{text.onBrand}", "align": "left", "verticalAlign": "bottom", "maxLines": 1 },
+    { "type": "text", "role": "subheadline", "x": 0.33, "y": 0.53, "w": 0.6, "h": 0.22, "size": 0.07, "minSize": 0.045, "weight": 400, "color": "{text.onBrand}", "opacity": 0.9, "align": "left", "maxLines": 2 }
+  ]
+}
