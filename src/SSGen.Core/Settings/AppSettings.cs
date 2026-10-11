@@ -42,6 +42,9 @@ public sealed record AppSettings
     /// <summary>Design page column proportions (screens, preview, options). Null = defaults.</summary>
     public double[]? DesignPaneWeights { get; init; }
 
+    /// <summary>Editor page column proportions (layers, canvas, properties). Null = defaults.</summary>
+    public double[]? EditorPaneWeights { get; init; }
+
     /// <summary>Left navigation collapsed to icons only.</summary>
     public bool NavCollapsed { get; init; }
 

@@ -207,6 +207,16 @@ public static class SceneRenderer
         }
 
         canvas.DrawPath(path, paint);
+
+        if (shape.StrokeColor is { Length: > 0 } strokeColor && shape.StrokeWidth > 0)
+        {
+            // Inside the shape's box, so the outline never grows the layer.
+            var inset = (float)shape.StrokeWidth / 2;
+            var inner = SKRect.Inflate(rect, -inset, -inset);
+            using var strokePath = shape.Shape == ShapeKind.Ellipse ? OvalPath(inner) : RoundRectPath(inner, Math.Max(0, (float)shape.Radius - inset));
+            using var stroke = new SKPaint { IsAntialias = true, Style = SKPaintStyle.Stroke, StrokeWidth = (float)shape.StrokeWidth, Color = Colors.Parse(strokeColor) };
+            canvas.DrawPath(strokePath, stroke);
+        }
     }
 
     private static void DrawImage(SKCanvas canvas, ImageLayer layer, SKRect rect, IAssetResolver assets)
@@ -221,7 +231,8 @@ public static class SceneRenderer
 
         var count = canvas.Save();
         canvas.ClipPath(clip, antialias: true);
-        canvas.DrawImage(image, FitRect(image.Width, image.Height, rect, layer.Fit), new SKSamplingOptions(SKCubicResampler.Mitchell));
+        using var paint = AdjustPaint(layer.Adjust);
+        canvas.DrawImage(image, FitRect(image.Width, image.Height, rect, layer.Fit), new SKSamplingOptions(SKCubicResampler.Mitchell), paint);
         canvas.RestoreToCount(count);
     }
 
@@ -267,7 +278,8 @@ public static class SceneRenderer
         canvas.DrawRect(screen, new SKPaint { Color = SKColors.Black });
         if (assets.Resolve(device.Source) is { } shot)
         {
-            canvas.DrawImage(shot, FitRect(shot.Width, shot.Height, screen, ImageFit.Cover), new SKSamplingOptions(SKCubicResampler.Mitchell));
+            using var paint = AdjustPaint(device.Adjust);
+            canvas.DrawImage(shot, FitRect(shot.Width, shot.Height, screen, ImageFit.Cover), new SKSamplingOptions(SKCubicResampler.Mitchell), paint);
         }
         else
         {
@@ -374,6 +386,42 @@ public static class SceneRenderer
         using var builder = new SKPathBuilder();
         builder.AddOval(rect, SKPathDirection.Clockwise);
         return builder.Detach();
+    }
+
+    /// <summary>A paint with a colour filter for brightness, contrast and saturation (null when nothing changes).</summary>
+    internal static SKPaint? AdjustPaint(ImageAdjust? adjust)
+    {
+        if (adjust is null || adjust.IsIdentity)
+        {
+            return null;
+        }
+
+        // Saturation: blend with the luminance (Rec. 709 weights). 1 + s: 0 = grey, 2 = twice as saturated.
+        var s = (float)(1 + Math.Clamp(adjust.Saturation, -1, 1));
+        const float lr = 0.2126f, lg = 0.7152f, lb = 0.0722f;
+        float[] saturation =
+        [
+            lr + ((1 - lr) * s), lg - (lg * s), lb - (lb * s), 0, 0,
+            lr - (lr * s), lg + ((1 - lg) * s), lb - (lb * s), 0, 0,
+            lr - (lr * s), lg - (lg * s), lb + ((1 - lb) * s), 0, 0,
+            0, 0, 0, 1, 0,
+        ];
+
+        // Contrast scales around mid grey; brightness shifts. Translations are in 0..1 units.
+        var c = (float)(1 + Math.Clamp(adjust.Contrast, -1, 1));
+        var b = (float)(Math.Clamp(adjust.Brightness, -1, 1) * 0.5);
+        var t = ((1 - c) / 2) + b;
+        float[] tone =
+        [
+            c, 0, 0, 0, t,
+            0, c, 0, 0, t,
+            0, 0, c, 0, t,
+            0, 0, 0, 1, 0,
+        ];
+
+        using var inner = SKColorFilter.CreateColorMatrix(saturation);
+        using var outer = SKColorFilter.CreateColorMatrix(tone);
+        return new SKPaint { IsAntialias = true, ColorFilter = SKColorFilter.CreateCompose(outer, inner) };
     }
 
     private static void DrawMissing(SKCanvas canvas, SKRect rect)

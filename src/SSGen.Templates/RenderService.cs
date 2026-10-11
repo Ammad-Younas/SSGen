@@ -127,6 +127,7 @@ public static partial class RenderService
         var scenesDir = Path.Combine(project.Folder, "renders", "scenes");
         Directory.CreateDirectory(scenesDir);
         var sceneFile = Path.Combine(scenesDir, $"{preset.Id}_{name}.json");
+        SceneAssets.MakeRelative(scene, project.Folder);
         File.WriteAllText(sceneFile, scene.ToJson());
 
         var issues = PresetValidator.ValidateImage(preset, image.Width, image.Height, format == ImageFormat.Png ? "png" : "jpeg", hasAlpha: false, bytes.Length);

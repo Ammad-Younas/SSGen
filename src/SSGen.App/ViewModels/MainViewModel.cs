@@ -17,6 +17,8 @@ public sealed partial class MainViewModel : ObservableObject
         EmulatorViewModel emulator,
         AgentViewModel agent,
         DesignViewModel design,
+        GalleryViewModel gallery,
+        EditorViewModel editor,
         SetupViewModel setup,
         SettingsViewModel settings,
         INavigationService navigation,
@@ -25,16 +27,15 @@ public sealed partial class MainViewModel : ObservableObject
         IDialogService dialogs)
     {
         _dialogs = dialogs;
+        _editor = editor;
         NavItems =
         [
             new(PageKey.Home, "Home", "", home),
             new(PageKey.Emulator, "Emulator", "\uE8EA", emulator),
             new(PageKey.Agent, "Explore", "", agent),
             new(PageKey.Design, "Design", "", design),
-            new(PageKey.Gallery, "Gallery", "", new PlaceholderViewModel("Gallery", "", "M6",
-                "Your generated store images, grouped by store and device size, with a store-listing preview.")),
-            new(PageKey.Editor, "Editor", "", new PlaceholderViewModel("Editor", "", "M6",
-                "A layered editor for any image: text, backgrounds, frames, filters, undo/redo.")),
+            new(PageKey.Gallery, "Gallery", "", gallery),
+            new(PageKey.Editor, "Editor", "", editor),
             new(PageKey.Export, "Export", "", new PlaceholderViewModel("Export", "", "M7",
                 "Validate and export store-ready files per store and device size, with a manifest and optional ZIP.")),
             new(PageKey.Setup, "Environment", "", setup),
@@ -54,6 +55,10 @@ public sealed partial class MainViewModel : ObservableObject
 
     private readonly ISettingsService _settings;
     private readonly IDialogService _dialogs;
+    private readonly EditorViewModel _editor;
+
+    /// <summary>Before the window closes: unsaved editor changes get a Save / Don't save / Cancel prompt.</summary>
+    public bool CanClose() => _editor.ConfirmDiscard();
 
     /// <summary>Once, after the window is shown: users who finished setup before AI support existed get the AI choice.</summary>
     public void OnShown()

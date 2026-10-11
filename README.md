@@ -2,7 +2,7 @@
 
 Turn an Android APK into upload-ready store listing screenshots for Google Play and the App Store. The app runs your APK in the Android Emulator, captures its screens (by hand or with an AI agent of your choice), renders them into designed listing images, and exports them at the correct store sizes.
 
-> **Status: milestone M5 (selection, templates and rendering).** Projects, settings, the environment setup assistant, the full device pipeline (virtual devices, APK import and install, a live preview you can control, screen capture, logcat) and app exploration (with your own AI provider or the built-in systematic explorer) work, and so does designing and rendering store-ready images. The gallery, the full editor and export arrive in M6 and M7.
+> **Status: milestone M6 (gallery and editor).** Projects, settings, the environment setup assistant, the full device pipeline (virtual devices, APK import and install, a live preview you can control, screen capture, logcat) and app exploration (with your own AI provider or the built-in systematic explorer) work, and so do designing, rendering, reviewing and editing store-ready images. Export packages and translations arrive in M7.
 
 ## Requirements
 
@@ -91,6 +91,20 @@ API keys are encrypted with Windows DPAPI and can only be read by your Windows a
 App Store images show your Android screens in an iPhone-style frame. Apple expects screenshots of the actual iOS app, so replace them with real iOS captures if your iOS app looks different.
 
 Exploration turns on a clean status bar (9:41, full battery, no notifications) while it runs, and restores the real one afterwards.
+
+## Reviewing and editing
+
+**Gallery** shows every rendered image by store and size, each checked against that store's rules (a tick, a warning or an error with the reason), plus count problems for the whole set (for example fewer than the minimum). **Listing preview** lines the set up with your app icon, name and tagline (and the feature graphic for Google Play), to check order and flow. Double-click an image, or use Edit, to open it in the editor.
+
+**Editor** changes one image at a time:
+
+- Click a layer on the canvas or in the Layers list. Drag to move (it snaps to the centre lines), drag a corner to resize, drag the round handle to rotate. Shift changes the behaviour: free proportions for pictures and devices, kept proportions for the rest, 15° steps for rotation.
+- Add text, rectangles, ellipses and pictures (logos, badges; the file is copied into the project).
+- Properties: text, font, weight, size, colour and alignment; fills (solid or gradient), outlines and soft edges; device frame and colour; brightness, contrast and saturation for screenshots and pictures; position, rotation, opacity and shadow. With nothing selected you edit the background.
+- Undo and redo everything (Ctrl+Z, Ctrl+Y). Arrow keys nudge, Delete removes, Ctrl+D duplicates, Ctrl+S saves.
+- **Save** renders the image file again with the same engine as Render all, and checks it against the store rules. **Apply style to all** gives the other images of the same size this image's look and layout; each keeps its own headline and screenshot.
+
+Rendering again on the Design page replaces edited images with fresh designs; SSGen asks first.
 
 ## AI
 

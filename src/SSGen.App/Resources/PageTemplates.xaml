@@ -16,6 +16,12 @@
     <DataTemplate DataType="{x:Type vm:DesignViewModel}">
         <views:DesignView />
     </DataTemplate>
+    <DataTemplate DataType="{x:Type vm:GalleryViewModel}">
+        <views:GalleryView />
+    </DataTemplate>
+    <DataTemplate DataType="{x:Type vm:EditorViewModel}">
+        <views:EditorView />
+    </DataTemplate>
     <DataTemplate DataType="{x:Type vm:SetupViewModel}">
         <views:SetupView />
     </DataTemplate>

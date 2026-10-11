@@ -34,6 +34,7 @@ src/SSGen.App/           # WPF shell (assembly name SSGen -> SSGen.exe)
   Services/                  # ThemeService, DialogService (all modal UI), NavigationService (PageKey)
   ViewModels/ Views/         # page VMs are singletons; PageTemplates.xaml maps VM type -> View
   Resources/Styles.xaml      # shared styles; colours come from Fluent DynamicResource brushes
+  Controls/                  # ScreenMapView (Explore diagram), ColorBox (swatch palette + hex)
 src/SSGen.Emulator/      # devices: no UI
   DeviceHub.cs               # entry point: resolves SDK from settings, providers, APK inspector, mirror selection
   Adb/                       # AdbClient (adb.exe wrapper), LongRunningProcess, output parsers, install-error mapping
@@ -62,11 +63,13 @@ src/SSGen.Scene/         # the one scene-document format (JSON) + SkiaSharp rend
   TextLayout.cs, Fonts.cs    # shrink-to-fit wrapping; bundled OFL fonts (third_party/fonts) then Windows fonts
   DeviceGeometry.cs          # original frame proportions (punch-hole phone, island phone, tablet)
   Palette.cs, Colors.cs      # brand palette from the app icon; WCAG contrast for text colour
+  Editing/                   # SceneEditor (all edits + gestures), commands + EditHistory (undo/redo, merge, dirty), SceneGeometry (hit test, resize, rotate), StyleTransfer
 src/SSGen.Templates/     # templates and store specs: no UI
   Definitions/*.json         # 12 screenshot templates + feature graphic (fractions of the canvas, colour tokens, roles)
   Presets/store-presets.json # VERIFIED store specs with source URLs and date; %LOCALAPPDATA%\SSGen\store-presets.json overrides
   TemplateEngine.cs          # template + inputs -> pixel-exact SceneDocument for a preset
   RenderService.cs           # renders the set per preset into renders/<Store>/<Size>/NN_name.png (+ scene JSON), validates
+  RenderStore.cs             # renders table: list, load/save edited scenes (re-renders the image), validate files on disk
 src/SSGen.Selection/     # choosing screens: no UI
   ScreenCandidate.cs         # image metrics (richness, colourfulness, blank, keyboard, dHash)
   Ranking.cs                 # HeuristicRanker (no AI), StoryPicker (hero first, settings last)
@@ -75,10 +78,19 @@ src/SSGen.Selection/     # choosing screens: no UI
 tests/SSGen.Core.Tests/      # xUnit
 tests/SSGen.Emulator.Tests/  # xUnit; EmulatorIntegrationTests is opt-in (see Commands)
 tests/SSGen.Agent.Tests/     # providers via fake HttpMessageHandler, structured output, guardrails, full runs on MockDevice; real-emulator run opt-in
-tests/SSGen.Design.Tests/    # every template x every preset renders and validates; ranking, AI ranking, selection, render pipeline
+tests/SSGen.Design.Tests/    # every template x every preset renders and validates; ranking, AI ranking, selection, render pipeline; editor core
 tools/fetch-deps.ps1         # downloads scrcpy-server, FFmpeg LGPL DLLs, OFL fonts (Poppins, DM Serif Display), sample APK into third_party/ (git-ignored)
 tools/make-icon.ps1          # regenerates src/SSGen.App/Assets/ssgen.ico (each size drawn natively); every Window sets Icon to it
 ```
+
+## Gallery and editor (M6): rules and lessons
+
+- **Every edit is a command** (`SSGen.Scene.Editing`). Layer changes store the layer as JSON before/after, so the live object can change freely. Field edits carry a merge key (`{layer}:{field}`): typing or dragging a slider within 1.5 s is one undo step. Canvas drags are gestures: previewed live, recorded once on mouse up. A click that only selects must change nothing (a drag that rounded fractional coordinates once recorded an invisible "Move" and made the image look unsaved).
+- **Canvas**: the stage is a Grid in document pixels scaled by a `LayoutTransform`, so `GetPosition(Stage)` is already in document coordinates. SkiaSharp renders the document (longest side 1600 px) on a background loop where the newest state wins, into a `WriteableBitmap`. Handles are WPF shapes sized `1/scale` so they stay the same on screen.
+- **Saving** writes the scene JSON and renders the image again through the export renderer (temp file + move, so readers never see half a file), and sets `renders.edited_utc` (project.db 0006). The Design page asks before re-rendering sizes with edited images. Scene image sources inside the project are stored relative to it.
+- **Apply style to all** (same size only) matches layers by id (template roles): copies look and position, keeps each image's text and screenshot, copies added layers, removes deleted ones, and keeps panorama offsets.
+- The Gallery validates files on disk (`ImageFileInfo` reads size, format and alpha). The listing preview is a generic approximation, not a copy of either store's page.
+- UI Automation notes: `Grid`/`Canvas` aren't in the UIA tree (name a `ScrollViewer` instead); `RadioButton` needs `SelectionItemPattern`, not Invoke; MessageBox buttons show as panes, so click them by position.
 
 ## Selection, templates, render (M5): rules and lessons
 
@@ -162,6 +174,7 @@ To reset first-run state, delete `%LOCALAPPDATA%\SSGen` (it holds app.db, logs a
 - Store specs (dimensions, limits) are never invented. They go in config with the source URL and the verified date (M5).
 - Button labels never end with "…" or "..." (owner's request), even when they open a dialog ("Browse", "Import APK", "Edit"). Status text may use "…".
 - No em or en dashes in any text (UI strings, prompts, docs, comments): the owner asked for none. Use a colon, comma, parentheses or "to" instead.
+- Scripted edits through the shell tool turn a backslash-n escape inside strings into a real newline (twice broke a C# string). Use the Edit tool for text that contains escapes. Some files are CRLF: check before matching multi-line text.
 - When writing files from PowerShell, use UTF-8 explicitly. `Get-Content -Raw` without an encoding has corrupted `…` before.
 - Every new third-party dependency or bundled asset gets a line in `THIRD_PARTY_NOTICES.md`. Permissive licences only (LGPL only if dynamically linked).
 
@@ -173,8 +186,9 @@ To reset first-run state, delete `%LOCALAPPDATA%\SSGen` (it holds app.db, logs a
 | M2 Emulator (AVD mgmt, APK parse/install, live preview, manual control, logcat) | **done** (reviewed) |
 | M3 Provider layer + Agent v1 (providers, settings UI, first-run AI choice, guardrails, systematic + AI explorer, Explore page) | **done** |
 | M4 Agent v2 (interruptions, sign-in + takeover, crash/circle/no-progress recovery, resume, form filling, popups, screen map) | **done** |
-| M5 Selection, templates, render, verified export presets (Design page) | **done**, awaiting owner review |
-| M6 Gallery + editor · M7 Export, i18n, installer · M8 Hardening | |
+| M5 Selection, templates, render, verified export presets (Design page) | **done** (reviewed) |
+| M6 Gallery + editor (layers, text, shapes, pictures, filters, undo/redo, apply style to all) | **done** |
+| M7 Export, i18n, installer · M8 Hardening | |
 
 ## Dev machine facts (owner's PC)
 

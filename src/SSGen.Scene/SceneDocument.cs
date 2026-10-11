@@ -6,7 +6,8 @@ namespace SSGen.Scene;
 /// <summary>
 /// The one editable image format shared by templates (which produce it), the renderer (which draws it) and the
 /// editor (M6, which changes it). Coordinates are canvas pixels; rotation is in degrees around a layer's centre.
-/// Layers draw in list order (first = bottom). Nothing is flattened until export.
+/// Layers draw in list order (first = bottom). Nothing is flattened until export. New optional fields keep
+/// <see cref="CurrentVersion"/>: older files simply don't have them.
 /// </summary>
 public sealed class SceneDocument
 {
@@ -68,6 +69,12 @@ public sealed record LinearGradientFill(IReadOnlyList<string> Colors, double Ang
 /// <param name="Radius">Radius as a fraction of the larger side.</param>
 public sealed record RadialGradientFill(IReadOnlyList<string> Colors, double Cx = 0.5, double Cy = 0.5, double Radius = 0.7) : Fill;
 
+/// <summary>Colour adjustments for pictures. Each value runs from -1 to 1; 0 leaves the image unchanged.</summary>
+public sealed record ImageAdjust(double Brightness = 0, double Contrast = 0, double Saturation = 0)
+{
+    public bool IsIdentity => Brightness == 0 && Contrast == 0 && Saturation == 0;
+}
+
 /// <summary>Drop shadow (blurred, offset copy of the layer's shape).</summary>
 public sealed record Shadow(string Color = "#59000000", double Blur = 30, double OffsetX = 0, double OffsetY = 18);
 
@@ -119,6 +126,11 @@ public sealed class ShapeLayer : Layer
 
     /// <summary>Gaussian blur radius applied to the shape (soft glows and blobs).</summary>
     public double Blur { get; set; }
+
+    /// <summary>Outline colour; null = no outline.</summary>
+    public string? StrokeColor { get; set; }
+
+    public double StrokeWidth { get; set; }
 }
 
 public enum ImageFit
@@ -136,6 +148,9 @@ public sealed class ImageLayer : Layer
     public ImageFit Fit { get; set; } = ImageFit.Cover;
 
     public double Radius { get; set; }
+
+    /// <summary>Brightness, contrast and saturation; null = unchanged.</summary>
+    public ImageAdjust? Adjust { get; set; }
 }
 
 public enum DeviceFrame
@@ -162,6 +177,9 @@ public sealed class DeviceLayer : Layer
 
     /// <summary>Body colour of the frame.</summary>
     public string FrameColor { get; set; } = "#FF101114";
+
+    /// <summary>Brightness, contrast and saturation of the screenshot; null = unchanged.</summary>
+    public ImageAdjust? Adjust { get; set; }
 }
 
 public enum TextAlign

@@ -706,6 +706,12 @@ public sealed partial class DesignViewModel : ObservableObject, IPageActivated, 
             return;
         }
 
+        var edited = RenderStore.CountEdited(project, presets.Select(p => p.Id));
+        if (edited > 0 && !_dialogs.Confirm("Replace edited images?", $"{edited} image(s) of these sizes were changed in the editor. Rendering again replaces them with fresh designs from the template.\n\nContinue?"))
+        {
+            return;
+        }
+
         IsBusy = true;
         Report.Clear();
         try
@@ -758,6 +764,9 @@ public sealed partial class DesignViewModel : ObservableObject, IPageActivated, 
 
     [RelayCommand]
     private void GoExplore() => _navigation.NavigateTo(PageKey.Agent);
+
+    [RelayCommand]
+    private void GoGallery() => _navigation.NavigateTo(PageKey.Gallery);
 
     public void Dispose()
     {

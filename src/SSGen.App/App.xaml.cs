@@ -115,6 +115,8 @@ public partial class App : Application
         services.AddSingleton<EmulatorViewModel>();
         services.AddSingleton<AgentViewModel>();
         services.AddSingleton<DesignViewModel>();
+        services.AddSingleton<EditorViewModel>();
+        services.AddSingleton<GalleryViewModel>();
 
         services.AddSingleton<MainViewModel>();
         services.AddSingleton<HomeViewModel>();

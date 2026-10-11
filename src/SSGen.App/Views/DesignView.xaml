@@ -294,6 +294,8 @@
                             <StackPanel Margin="16,12,16,16">
                                 <WrapPanel>
                                     <Button Content="Render all" Command="{Binding RenderCommand}" Style="{DynamicResource AccentButtonStyle}" MinWidth="110" Margin="0,0,8,6" />
+                                    <Button Content="Open gallery" Command="{Binding GoGalleryCommand}" Margin="0,0,8,6"
+                                            Visibility="{Binding RenderFolder, Converter={StaticResource NullToVisibility}}" />
                                     <Button Content="Open folder" Command="{Binding OpenRendersCommand}" Margin="0,0,8,6"
                                             Visibility="{Binding RenderFolder, Converter={StaticResource NullToVisibility}}" />
                                 </WrapPanel>

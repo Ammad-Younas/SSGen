@@ -99,6 +99,49 @@
         </Setter>
     </Style>
 
+    <!-- ListBox item that looks like a TabStripButton (a tab per item of a bound list). -->
+    <Style x:Key="TabStripItem" TargetType="ListBoxItem">
+        <Setter Property="Foreground" Value="{DynamicResource TextFillColorSecondaryBrush}" />
+        <Setter Property="FontSize" Value="14" />
+        <Setter Property="Cursor" Value="Hand" />
+        <Setter Property="Margin" Value="0,0,4,0" />
+        <Setter Property="FocusVisualStyle" Value="{x:Null}" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="ListBoxItem">
+                    <Border x:Name="Bd" Background="Transparent" CornerRadius="4" Padding="12,6,12,4">
+                        <StackPanel>
+                            <ContentPresenter HorizontalAlignment="Center" />
+                            <Border x:Name="Underline" Height="3" CornerRadius="1.5" Margin="0,5,0,0" Width="18"
+                                    Background="{DynamicResource NavSelectedBrush}" Visibility="Hidden" />
+                        </StackPanel>
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="Bd" Property="Background" Value="{DynamicResource SubtleFillColorSecondaryBrush}" />
+                        </Trigger>
+                        <Trigger Property="IsSelected" Value="True">
+                            <Setter TargetName="Underline" Property="Visibility" Value="Visible" />
+                            <Setter Property="Foreground" Value="{DynamicResource TextFillColorPrimaryBrush}" />
+                            <Setter Property="FontWeight" Value="SemiBold" />
+                        </Trigger>
+                        <Trigger Property="IsKeyboardFocused" Value="True">
+                            <Setter TargetName="Bd" Property="BorderBrush" Value="{DynamicResource TextFillColorPrimaryBrush}" />
+                            <Setter TargetName="Bd" Property="BorderThickness" Value="1" />
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <!-- Small label in a form grid (properties panels). -->
+    <Style x:Key="FieldLabel" TargetType="TextBlock">
+        <Setter Property="Foreground" Value="{DynamicResource TextFillColorSecondaryBrush}" />
+        <Setter Property="FontSize" Value="12" />
+        <Setter Property="Margin" Value="0,8,0,3" />
+    </Style>
+
     <!-- Vertical pane splitter: 14px hit area with a thin divider that turns accent on hover/drag. -->
     <!-- Horizontal counterpart of PaneSplitter: resizes the rows above and below. -->
     <Style x:Key="RowSplitter" TargetType="GridSplitter">

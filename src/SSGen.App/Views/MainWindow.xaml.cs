@@ -11,5 +11,6 @@ public partial class MainWindow : Window
         DataContext = viewModel;
         Services.HorizontalScrollSupport.Attach(this);
         ContentRendered += (_, _) => viewModel.OnShown();
+        Closing += (_, e) => e.Cancel = !viewModel.CanClose();
     }
 }

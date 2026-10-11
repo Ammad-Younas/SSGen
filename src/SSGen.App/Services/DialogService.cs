@@ -21,6 +21,11 @@ public interface IDialogService
 
     string? PickSaveFile(string title, string filter, string defaultFileName);
 
+    string? PickOpenFile(string title, string filter);
+
+    /// <summary>Save / Don't save / Cancel. Null = cancel.</summary>
+    bool? AskSave(string title, string message);
+
     /// <summary>Returns (name, parent folder) or null if cancelled.</summary>
     (string Name, string ParentFolder)? ShowNewProjectDialog(string defaultParentFolder);
 
@@ -78,6 +83,20 @@ public sealed class DialogService : IDialogService
         var dialog = new SaveFileDialog { Title = title, Filter = filter, FileName = defaultFileName };
         return dialog.ShowDialog(Owner) == true ? dialog.FileName : null;
     }
+
+    public string? PickOpenFile(string title, string filter)
+    {
+        var dialog = new OpenFileDialog { Title = title, Filter = filter };
+        return dialog.ShowDialog(Owner) == true ? dialog.FileName : null;
+    }
+
+    public bool? AskSave(string title, string message) =>
+        Show(title, message + "\n\nYes saves, No discards the changes.", MessageBoxButton.YesNoCancel, MessageBoxImage.Question) switch
+        {
+            MessageBoxResult.Yes => true,
+            MessageBoxResult.No => false,
+            _ => null,
+        };
 
     public (string Name, string ParentFolder)? ShowNewProjectDialog(string defaultParentFolder)
     {
