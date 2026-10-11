@@ -74,8 +74,10 @@ public sealed class ProcessRunner : IProcessRunner
         var stderr = new StringBuilder();
         var stdoutDone = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
         var stderrDone = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
-        process.OutputDataReceived += (_, e) => Collect(e.Data, stdout, stdoutDone, spec.OnLine);
-        process.ErrorDataReceived += (_, e) => Collect(e.Data, stderr, stderrDone, spec.OnLine);
+        // stdout and stderr arrive on different threads; serialise the callback so handlers needn't be thread-safe.
+        var onLineGate = new object();
+        process.OutputDataReceived += (_, e) => Collect(e.Data, stdout, stdoutDone, spec.OnLine, onLineGate);
+        process.ErrorDataReceived += (_, e) => Collect(e.Data, stderr, stderrDone, spec.OnLine, onLineGate);
 
         try
         {
@@ -133,7 +135,7 @@ public sealed class ProcessRunner : IProcessRunner
         }
     }
 
-    private static void Collect(string? line, StringBuilder sink, TaskCompletionSource done, Action<string>? onLine)
+    private static void Collect(string? line, StringBuilder sink, TaskCompletionSource done, Action<string>? onLine, object onLineGate)
     {
         if (line is null)
         {
@@ -146,7 +148,13 @@ public sealed class ProcessRunner : IProcessRunner
             sink.AppendLine(line);
         }
 
-        onLine?.Invoke(line);
+        if (onLine is not null)
+        {
+            lock (onLineGate)
+            {
+                onLine(line);
+            }
+        }
     }
 
     private static void KillTree(Process process)
