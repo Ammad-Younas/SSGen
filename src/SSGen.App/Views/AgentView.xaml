@@ -41,8 +41,7 @@
                             BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}">
                         <StackPanel>
                             <DockPanel Margin="0,0,0,10">
-                                <TextBlock DockPanel.Dock="Left" Style="{StaticResource Icon}" Text="&#xE946;" FontSize="18" Margin="0,0,10,0"
-                                           Foreground="{DynamicResource AccentTextFillColorPrimaryBrush}" />
+                                <Border DockPanel.Dock="Left" Style="{StaticResource PanelHeaderIconTile}" VerticalAlignment="Top"><TextBlock Style="{StaticResource PanelHeaderIcon}" Text="&#xE946;" /></Border>
                                 <StackPanel>
                                     <TextBlock Text="Get ready to explore" FontWeight="SemiBold" FontSize="14" Foreground="{DynamicResource TextFillColorPrimaryBrush}" />
                                     <TextBlock Text="{Binding Blocker}" TextWrapping="Wrap" Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
@@ -76,7 +75,7 @@
                         <DockPanel>
                             <Border Style="{StaticResource PanelHeader}">
                                 <StackPanel Orientation="Horizontal">
-                                    <TextBlock Style="{StaticResource PanelHeaderIcon}" Text="&#xE713;" />
+                                    <Border Style="{StaticResource PanelHeaderIconTile}"><TextBlock Style="{StaticResource PanelHeaderIcon}" Text="&#xE713;" /></Border>
                                     <TextBlock Style="{StaticResource PanelHeaderTitle}" Text="Explorer settings" />
                                 </StackPanel>
                             </Border>
@@ -114,7 +113,7 @@
                         <DockPanel>
                             <Border Style="{StaticResource PanelHeader}">
                                 <StackPanel Orientation="Horizontal">
-                                    <TextBlock Style="{StaticResource PanelHeaderIcon}" Text="&#xE768;" />
+                                    <Border Style="{StaticResource PanelHeaderIconTile}"><TextBlock Style="{StaticResource PanelHeaderIcon}" Text="&#xE768;" /></Border>
                                     <TextBlock Style="{StaticResource PanelHeaderTitle}" Text="Run" />
                                 </StackPanel>
                             </Border>
@@ -169,7 +168,7 @@
                         <DockPanel>
                             <Border Style="{StaticResource PanelHeader}">
                                 <DockPanel>
-                                    <TextBlock Style="{StaticResource PanelHeaderIcon}" Text="&#xE8EA;" />
+                                    <Border Style="{StaticResource PanelHeaderIconTile}"><TextBlock Style="{StaticResource PanelHeaderIcon}" Text="&#xE8EA;" /></Border>
                                     <TextBlock Style="{StaticResource PanelHeaderTitle}" Text="Current screen" />
                                 </DockPanel>
                             </Border>
@@ -199,7 +198,7 @@
                             <DockPanel>
                                 <Border Style="{StaticResource PanelHeader}">
                                     <StackPanel Orientation="Horizontal">
-                                        <TextBlock Style="{StaticResource PanelHeaderIcon}" Text="&#xE81C;" />
+                                        <Border Style="{StaticResource PanelHeaderIconTile}"><TextBlock Style="{StaticResource PanelHeaderIcon}" Text="&#xE81C;" /></Border>
                                         <TextBlock Style="{StaticResource PanelHeaderTitle}" Text="Activity" />
                                     </StackPanel>
                                 </Border>
@@ -230,7 +229,7 @@
                             <DockPanel Grid.Row="2">
                                 <Border Style="{StaticResource PanelHeader}" BorderThickness="0,1,0,1" CornerRadius="0">
                                     <StackPanel Orientation="Horizontal">
-                                        <TextBlock Style="{StaticResource PanelHeaderIcon}" Text="&#xE81E;" />
+                                        <Border Style="{StaticResource PanelHeaderIconTile}"><TextBlock Style="{StaticResource PanelHeaderIcon}" Text="&#xE81E;" /></Border>
                                         <TextBlock Style="{StaticResource PanelHeaderTitle}" Text="Screen map" />
                                         <Border Style="{StaticResource CountBadge}" ToolTip="Links between screens">
                                             <TextBlock Text="{Binding Map.Count}" Style="{StaticResource Caption}" HorizontalAlignment="Center" />
@@ -258,7 +257,7 @@
                     <DockPanel>
                         <Border Style="{StaticResource PanelHeader}">
                             <StackPanel Orientation="Horizontal">
-                                <TextBlock Style="{StaticResource PanelHeaderIcon}" Text="&#xE91B;" />
+                                <Border Style="{StaticResource PanelHeaderIconTile}"><TextBlock Style="{StaticResource PanelHeaderIcon}" Text="&#xE91B;" /></Border>
                                 <TextBlock Style="{StaticResource PanelHeaderTitle}" Text="Discovered screens" />
                                 <Border Style="{StaticResource CountBadge}" ToolTip="Unique screens found in this run">
                                     <TextBlock Text="{Binding Screens.Count}" Style="{StaticResource Caption}" HorizontalAlignment="Center" />

@@ -29,10 +29,20 @@
         <!-- Card corner (8) minus its border (1); headers in the middle of a card set 0. -->
         <Setter Property="CornerRadius" Value="7,7,0,0" />
     </Style>
-    <Style x:Key="PanelHeaderIcon" TargetType="TextBlock" BasedOn="{StaticResource Icon}">
-        <Setter Property="FontSize" Value="16" />
+    <!-- Header icon: a white glyph on a small tile in the app's red (NavSelectedBrush, the selected-tab colour that
+         ThemeService sets per theme), so it matches exactly and stays readable on dark headers. -->
+    <Style x:Key="PanelHeaderIconTile" TargetType="Border">
+        <Setter Property="Width" Value="26" />
+        <Setter Property="Height" Value="26" />
+        <Setter Property="CornerRadius" Value="6" />
         <Setter Property="Margin" Value="0,0,10,0" />
-        <Setter Property="Foreground" Value="{DynamicResource AccentTextFillColorPrimaryBrush}" />
+        <Setter Property="VerticalAlignment" Value="Center" />
+        <Setter Property="Background" Value="{DynamicResource NavSelectedBrush}" />
+    </Style>
+    <Style x:Key="PanelHeaderIcon" TargetType="TextBlock" BasedOn="{StaticResource Icon}">
+        <Setter Property="FontSize" Value="14" />
+        <Setter Property="HorizontalAlignment" Value="Center" />
+        <Setter Property="Foreground" Value="White" />
     </Style>
     <Style x:Key="PanelHeaderTitle" TargetType="TextBlock">
         <Setter Property="FontSize" Value="14" />
