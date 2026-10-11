@@ -2,7 +2,9 @@ using System.Globalization;
 
 namespace SSGen.Core.Projects;
 
-public sealed record CapturedScreen(long Id, string File, string Source, string? Activity, int Width, int Height, DateTime CapturedUtc)
+/// <param name="Title">App bar title from the UI tree (agent captures), if known.</param>
+/// <param name="UiText">Visible text on the screen, newline-separated (agent captures), if known.</param>
+public sealed record CapturedScreen(long Id, string File, string Source, string? Activity, int Width, int Height, DateTime CapturedUtc, string? Title = null, string? UiText = null)
 {
     public string FullPath(Project project) => Path.Combine((project ?? throw new ArgumentNullException(nameof(project))).Folder, File);
 }
@@ -37,19 +39,34 @@ public static class ScreenRepository
         return new CapturedScreen(id, relative, source, activity, width, height, now);
     }
 
+    /// <summary>Stores the screen's title and visible text (used for headlines without AI).</summary>
+    public static void SetText(Project project, long screenId, string? title, string? uiText)
+    {
+        ArgumentNullException.ThrowIfNull(project);
+        using var connection = project.Database.Open();
+        using var cmd = connection.CreateCommand();
+        cmd.CommandText = "UPDATE screens SET title = $t, ui_text = $u WHERE id = $id;";
+        cmd.Parameters.AddWithValue("$t", (object?)title ?? DBNull.Value);
+        cmd.Parameters.AddWithValue("$u", (object?)uiText ?? DBNull.Value);
+        cmd.Parameters.AddWithValue("$id", screenId);
+        cmd.ExecuteNonQuery();
+    }
+
     public static IReadOnlyList<CapturedScreen> List(Project project)
     {
         ArgumentNullException.ThrowIfNull(project);
         using var connection = project.Database.Open();
         using var cmd = connection.CreateCommand();
-        cmd.CommandText = "SELECT id, file, source, activity, width, height, captured_utc FROM screens ORDER BY id;";
+        cmd.CommandText = "SELECT id, file, source, activity, width, height, captured_utc, title, ui_text FROM screens ORDER BY id;";
         using var r = cmd.ExecuteReader();
         var list = new List<CapturedScreen>();
         while (r.Read())
         {
             list.Add(new CapturedScreen(
                 r.GetInt64(0), r.GetString(1), r.GetString(2), r.IsDBNull(3) ? null : r.GetString(3), r.GetInt32(4), r.GetInt32(5),
-                DateTime.Parse(r.GetString(6), CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind)));
+                DateTime.Parse(r.GetString(6), CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind),
+                r.IsDBNull(7) ? null : r.GetString(7),
+                r.IsDBNull(8) ? null : r.GetString(8)));
         }
 
         return list;

@@ -290,7 +290,7 @@ public sealed partial class ExplorationAgent
                 node.HasScrollable |= ui.Elements.Any(e => e.Scrollable);
                 if (isNew)
                 {
-                    SaveScreen(node, png, activity);
+                    SaveScreen(node, png, activity, ui);
                 }
 
                 s.StepsWithoutNewScreen = isNew ? 0 : s.StepsWithoutNewScreen + 1;
@@ -722,10 +722,11 @@ public sealed partial class ExplorationAgent
         }
     }
 
-    private void SaveScreen(ScreenNode node, byte[] png, string? activity)
+    private void SaveScreen(ScreenNode node, byte[] png, string? activity, UiSnapshot ui)
     {
         using var bitmap = SKBitmap.Decode(png);
         var saved = ScreenRepository.Add(_project, png, "agent", activity, bitmap?.Width ?? 0, bitmap?.Height ?? 0);
+        ScreenRepository.SetText(_project, saved.Id, ui.Title, string.Join("\n", ui.AllText.Distinct().Take(60)));
         node.ScreenId = saved.Id;
         node.ScreenFile = saved.FullPath(_project);
         _store.SaveNode(_runId, node);

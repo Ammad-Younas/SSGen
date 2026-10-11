@@ -104,7 +104,8 @@ public sealed record UiElement
 
 /// <summary>A parsed uiautomator dump: interactive elements in reading order plus all visible text.</summary>
 /// <param name="HasSpinner">A visible indeterminate progress indicator (loading).</param>
-public sealed record UiSnapshot(IReadOnlyList<UiElement> Elements, IReadOnlyList<string> AllText, string? RootPackage, bool HasSpinner = false)
+/// <param name="Title">The app bar title (first text in the top band of the screen), when there is one.</param>
+public sealed record UiSnapshot(IReadOnlyList<UiElement> Elements, IReadOnlyList<string> AllText, string? RootPackage, bool HasSpinner = false, string? Title = null)
 {
     public static readonly UiSnapshot Empty = new([], [], null);
 
@@ -140,6 +141,8 @@ public static partial class UiHierarchyParser
         var texts = new List<string>();
         string? rootPackage = null;
         var hasSpinner = false;
+        string? title = null;
+        var screenHeight = 0;
         foreach (var node in doc.Descendants("node"))
         {
             var pkg = (string?)node.Attribute("package") ?? "";
@@ -151,6 +154,14 @@ public static partial class UiHierarchyParser
 
             var text = (string?)node.Attribute("text") ?? "";
             var desc = (string?)node.Attribute("content-desc") ?? "";
+            var nodeBounds = ParseBounds((string?)node.Attribute("bounds"));
+            screenHeight = Math.Max(screenHeight, nodeBounds.Bottom);
+            if (title is null && !string.IsNullOrWhiteSpace(text) && (string?)node.Attribute("clickable") != "true" &&
+                ((string?)node.Attribute("class") ?? "").EndsWith("TextView", StringComparison.Ordinal) &&
+                nodeBounds.Top < screenHeight * 0.14 && nodeBounds.Top > screenHeight * 0.02)
+            {
+                title = text.Trim(); // app bar title (below the status bar)
+            }
             if (!string.IsNullOrWhiteSpace(text))
             {
                 texts.Add(text.Trim());
@@ -211,7 +222,7 @@ public static partial class UiHierarchyParser
             .Select((e, i) => e with { Id = i + 1 })
             .ToList();
 
-        return new UiSnapshot(deduped, texts, rootPackage, hasSpinner);
+        return new UiSnapshot(deduped, texts, rootPackage, hasSpinner, title);
     }
 
     internal static UiBounds ParseBounds(string? s)

@@ -15,6 +15,9 @@ public sealed record StructuredResult<T>(T Value, LlmUsage Usage, int Attempts, 
 /// </summary>
 public static partial class StructuredOutput
 {
+    /// <summary>The tolerant settings used to read model replies (case-insensitive, snake_case enums); reusable for caches.</summary>
+    public static JsonSerializerOptions JsonOptions => Options;
+
     private static readonly JsonSerializerOptions Options = new()
     {
         PropertyNameCaseInsensitive = true,
