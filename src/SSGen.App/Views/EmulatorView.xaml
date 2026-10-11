@@ -147,6 +147,8 @@
                                             <Style.Triggers>
                                                 <DataTrigger Binding="{Binding IsChecked, ElementName=CreateToggle}" Value="True">
                                                     <Setter Property="Text" Value="&#xE70E;" />
+                                                    <!-- Pressed state sits on the red accent: always a white arrow (light mode otherwise drew it black). -->
+                                                    <Setter Property="Foreground" Value="White" />
                                                 </DataTrigger>
                                             </Style.Triggers>
                                         </Style>
