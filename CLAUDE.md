@@ -135,6 +135,7 @@ To reset first-run state, delete `%LOCALAPPDATA%\SSGen` (it holds app.db, logs a
 - WPF has no horizontal-wheel event. `HorizontalScrollSupport` (attached to MainWindow) handles `WM_MOUSEHWHEEL` (two-finger sideways swipe, tilt wheel) and Shift+wheel for any ScrollViewer under the pointer.
 - A `ScrollViewer` around wrapping content needs `HorizontalScrollBarVisibility="Disabled"`. Otherwise text never wraps and gets clipped.
 - Store specs (dimensions, limits) are never invented. They go in config with the source URL and the verified date (M5).
+- Button labels never end with "…" or "..." (owner's request), even when they open a dialog ("Browse", "Import APK", "Edit"). Status text may use "…".
 - No em or en dashes in any text (UI strings, prompts, docs, comments): the owner asked for none. Use a colon, comma, parentheses or "to" instead.
 - When writing files from PowerShell, use UTF-8 explicitly. `Get-Content -Raw` without an encoding has corrupted `…` before.
 - Every new third-party dependency or bundled asset gets a line in `THIRD_PARTY_NOTICES.md`. Permissive licences only (LGPL only if dynamically linked).

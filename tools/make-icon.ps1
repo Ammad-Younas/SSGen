@@ -1,10 +1,27 @@
-# Generates src/SSGen.App/Assets/ssgen.ico (16-256 px) and ssgen-256.png.
-# Each size is drawn natively (not downscaled) so small sizes stay crisp.
-# Design: red rounded square; a white phone outline with app-screen content; a white "capture" corner frame.
+﻿# Generates src/SSGen.App/Assets/ssgen.ico (16-256 px) and ssgen-256.png.
+# Each size is drawn natively (not downscaled); small sizes drop detail so they stay crisp.
+# Design: vivid red squircle; two tilted "screenshot" cards (translucent back, white front showing a mini app
+# screen) with soft depth; a sparkle for the AI part.
 param([string]$OutDir = (Join-Path $PSScriptRoot "..\src\SSGen.App\Assets"))
 $ErrorActionPreference = 'Stop'
 Add-Type -AssemblyName System.Drawing
 New-Item -ItemType Directory -Force $OutDir | Out-Null
+
+function C([int]$a, [int]$r, [int]$g, [int]$b) { [System.Drawing.Color]::FromArgb($a, $r, $g, $b) }
+
+# Superellipse ("squircle") |x|^n + |y|^n = 1, the modern app-icon shape.
+function Squircle([float]$cx, [float]$cy, [float]$radius, [float]$n = 5) {
+    $pts = for ($i = 0; $i -lt 360; $i += 2) {
+        $t = $i * [Math]::PI / 180
+        $c = [Math]::Cos($t); $s = [Math]::Sin($t)
+        $x = [Math]::Sign($c) * [Math]::Pow([Math]::Abs($c), 2 / $n)
+        $y = [Math]::Sign($s) * [Math]::Pow([Math]::Abs($s), 2 / $n)
+        [System.Drawing.PointF]::new($cx + $radius * $x, $cy + $radius * $y)
+    }
+    $p = New-Object System.Drawing.Drawing2D.GraphicsPath
+    $p.AddClosedCurve([System.Drawing.PointF[]]$pts, 0.2)
+    return $p
+}
 
 function RoundRect([float]$x, [float]$y, [float]$w, [float]$h, [float]$r) {
     $p = New-Object System.Drawing.Drawing2D.GraphicsPath
@@ -14,43 +31,85 @@ function RoundRect([float]$x, [float]$y, [float]$w, [float]$h, [float]$r) {
     $p.CloseFigure(); return $p
 }
 
+# A path rotated by $deg degrees around (cx, cy).
+function Rotated($path, [float]$deg, [float]$cx, [float]$cy) {
+    $m = New-Object System.Drawing.Drawing2D.Matrix
+    $m.RotateAt($deg, [System.Drawing.PointF]::new($cx, $cy))
+    $path.Transform($m)
+    return $path
+}
+
+# Four-pointed sparkle (concave star).
+function Sparkle([float]$cx, [float]$cy, [float]$r) {
+    $k = $r * 0.18
+    $p = New-Object System.Drawing.Drawing2D.GraphicsPath
+    $pts = [System.Drawing.PointF[]]@(
+        [System.Drawing.PointF]::new($cx, $cy - $r), [System.Drawing.PointF]::new($cx + $k, $cy - $k),
+        [System.Drawing.PointF]::new($cx + $r, $cy), [System.Drawing.PointF]::new($cx + $k, $cy + $k),
+        [System.Drawing.PointF]::new($cx, $cy + $r), [System.Drawing.PointF]::new($cx - $k, $cy + $k),
+        [System.Drawing.PointF]::new($cx - $r, $cy), [System.Drawing.PointF]::new($cx - $k, $cy - $k))
+    $p.AddClosedCurve($pts, 0.25)
+    return $p
+}
+
 function Draw([int]$size) {
     $bmp = New-Object System.Drawing.Bitmap $size, $size, ([System.Drawing.Imaging.PixelFormat]::Format32bppArgb)
     $g = [System.Drawing.Graphics]::FromImage($bmp)
-    $g.SmoothingMode = 'AntiAlias'; $g.PixelOffsetMode = 'HighQuality'; $g.Clear([System.Drawing.Color]::Transparent)
-    $s = $size / 256.0
+    $g.SmoothingMode = 'AntiAlias'; $g.PixelOffsetMode = 'HighQuality'; $g.InterpolationMode = 'HighQualityBicubic'
+    $g.Clear([System.Drawing.Color]::Transparent)
+    $g.ScaleTransform($size / 256.0, $size / 256.0)
+    $detail = if ($size -ge 48) { 2 } elseif ($size -ge 32) { 1 } else { 0 }
 
-    # Background: rounded square, red gradient.
-    $bg = RoundRect (8 * $s) (8 * $s) (240 * $s) (240 * $s) (52 * $s)
-    $grad = New-Object System.Drawing.Drawing2D.LinearGradientBrush ([System.Drawing.PointF]::new(0, 0)), ([System.Drawing.PointF]::new($size, $size)),
-        ([System.Drawing.Color]::FromArgb(255, 232, 64, 52)), ([System.Drawing.Color]::FromArgb(255, 150, 16, 22))
+    # Background squircle with a diagonal red gradient and a soft top highlight.
+    $bg = Squircle 128 128 120
+    $grad = New-Object System.Drawing.Drawing2D.LinearGradientBrush ([System.Drawing.PointF]::new(20, 10)), ([System.Drawing.PointF]::new(236, 246)), (C 255 255 94 98), (C 255 176 18 52)
     $g.FillPath($grad, $bg)
+    $g.SetClip($bg)
+    # The gradient runs past the filled area so its end never shows as a line.
+    $shine = New-Object System.Drawing.Drawing2D.LinearGradientBrush ([System.Drawing.PointF]::new(0, 0)), ([System.Drawing.PointF]::new(0, 150)), (C 46 255 255 255), (C 0 255 255 255)
+    $g.FillRectangle($shine, 0, 8, 256, 128)
+    $g.ResetClip()
 
-    $white = [System.Drawing.Color]::White
-    $stroke = [Math]::Max(1.5, 14 * $s)
-
-    # Phone outline.
-    $phone = RoundRect (84 * $s) (44 * $s) (88 * $s) (168 * $s) (18 * $s)
-    $pen = New-Object System.Drawing.Pen $white, $stroke
-    $pen.LineJoin = 'Round'
-    $g.DrawPath($pen, $phone)
-
-    # Screen content: a header bar and two rows (dropped at tiny sizes where they'd turn to mush).
-    if ($size -ge 32) {
-        $fill = New-Object System.Drawing.SolidBrush ([System.Drawing.Color]::FromArgb(235, 255, 255, 255))
-        $g.FillPath($fill, (RoundRect (102 * $s) (70 * $s) (52 * $s) (26 * $s) (5 * $s)))
-        $g.FillPath($fill, (RoundRect (102 * $s) (110 * $s) (52 * $s) (12 * $s) (4 * $s)))
-        $g.FillPath($fill, (RoundRect (102 * $s) (134 * $s) (36 * $s) (12 * $s) (4 * $s)))
+    # Back card (translucent), tilted left.
+    if ($detail -ge 1) {
+        $back = Rotated (RoundRect 62 64 96 148 18) -13 110 138
+        $g.FillPath((New-Object System.Drawing.SolidBrush (C 85 255 255 255)), $back)
     }
 
-    # Capture frame: four corner brackets around the phone.
-    $cpen = New-Object System.Drawing.Pen $white, ([Math]::Max(1.5, 12 * $s))
-    $cpen.StartCap = 'Round'; $cpen.EndCap = 'Round'; $cpen.LineJoin = 'Round'
-    $l = 50 * $s; $t = 30 * $s; $r = 206 * $s; $b = 226 * $s; $k = 34 * $s
-    $g.DrawLines($cpen, [System.Drawing.PointF[]]@([System.Drawing.PointF]::new($l, $t + $k), [System.Drawing.PointF]::new($l, $t), [System.Drawing.PointF]::new($l + $k, $t)))
-    $g.DrawLines($cpen, [System.Drawing.PointF[]]@([System.Drawing.PointF]::new($r - $k, $t), [System.Drawing.PointF]::new($r, $t), [System.Drawing.PointF]::new($r, $t + $k)))
-    $g.DrawLines($cpen, [System.Drawing.PointF[]]@([System.Drawing.PointF]::new($r, $b - $k), [System.Drawing.PointF]::new($r, $b), [System.Drawing.PointF]::new($r - $k, $b)))
-    $g.DrawLines($cpen, [System.Drawing.PointF[]]@([System.Drawing.PointF]::new($l + $k, $b), [System.Drawing.PointF]::new($l, $b), [System.Drawing.PointF]::new($l, $b - $k)))
+    # Front card: soft shadow, then white, tilted right.
+    $cardX = 96; $cardY = 54; $cardW = 100; $cardH = 158
+    if ($size -lt 32) { $cardX = 50; $cardY = 64; $cardW = 104; $cardH = 156 } # leave the top-right corner to the sparkle
+    foreach ($s in @(@(10, 22), @(6, 30), @(3, 40))) {
+        $sh = Rotated (RoundRect ($cardX + $s[0] * 0.4) ($cardY + $s[0]) $cardW $cardH 20) 8 ($cardX + $cardW / 2) ($cardY + $cardH / 2)
+        $g.FillPath((New-Object System.Drawing.SolidBrush (C $s[1] 60 0 10)), $sh)
+    }
+    $front = Rotated (RoundRect $cardX $cardY $cardW $cardH 20) 8 ($cardX + $cardW / 2) ($cardY + $cardH / 2)
+    $g.FillPath([System.Drawing.Brushes]::White, $front)
+
+    # Mini app screen inside the front card (same rotation).
+    if ($detail -ge 1) {
+        $state = $g.Save()
+        $g.TranslateTransform($cardX + $cardW / 2, $cardY + $cardH / 2); $g.RotateTransform(8); $g.TranslateTransform(-($cardX + $cardW / 2), -($cardY + $cardH / 2))
+        $ix = $cardX + 12; $iw = $cardW - 24
+        $bar = New-Object System.Drawing.Drawing2D.LinearGradientBrush ([System.Drawing.PointF]::new($ix, 0)), ([System.Drawing.PointF]::new($ix + $iw, 0)), (C 255 255 94 98), (C 255 196 24 58)
+        $g.FillPath($bar, (RoundRect $ix ($cardY + 14) $iw 20 7))
+        if ($detail -ge 2) {
+            $g.FillPath((New-Object System.Drawing.SolidBrush (C 255 255 214 220)), (RoundRect $ix ($cardY + 44) $iw 56 9))
+            $line = New-Object System.Drawing.SolidBrush (C 255 226 230 236)
+            $g.FillPath($line, (RoundRect $ix ($cardY + 112) $iw 10 5))
+            $g.FillPath($line, (RoundRect $ix ($cardY + 130) ($iw * 0.62) 10 5))
+        }
+        $g.Restore($state)
+    }
+
+    # Sparkle (AI): one large, one small at bigger sizes.
+    $sparkBrush = New-Object System.Drawing.SolidBrush (C 255 255 255 255)
+    if ($size -lt 32) {
+        $g.FillPath($sparkBrush, (Sparkle 198 62 40))
+    } else {
+        $g.FillPath($sparkBrush, (Sparkle 198 66 34))
+        if ($detail -ge 2) { $g.FillPath((New-Object System.Drawing.SolidBrush (C 230 255 255 255)), (Sparkle 224 104 13)) }
+    }
 
     $g.Dispose()
     $ms = New-Object System.IO.MemoryStream

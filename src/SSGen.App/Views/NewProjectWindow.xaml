@@ -19,7 +19,7 @@
 
         <Label Content="_Location" Target="{Binding ElementName=FolderBox}" Padding="0,0,0,4" />
         <DockPanel Margin="0,0,0,6">
-            <Button DockPanel.Dock="Right" Content="Browse…" Margin="8,0,0,0" Click="OnBrowse" />
+            <Button DockPanel.Dock="Right" Content="Browse" Margin="8,0,0,0" Click="OnBrowse" />
             <TextBox x:Name="FolderBox" TextChanged="OnInputChanged" />
         </DockPanel>
         <TextBlock x:Name="PreviewText" Style="{StaticResource Caption}" TextTrimming="CharacterEllipsis" Margin="0,0,0,4" />

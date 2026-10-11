@@ -46,7 +46,7 @@
                 <StackPanel>
                     <DockPanel>
                         <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center">
-                            <Button Content="Browse…" Command="{Binding BrowseSdkCommand}" Margin="0,0,8,0" />
+                            <Button Content="Browse" Command="{Binding BrowseSdkCommand}" Margin="0,0,8,0" />
                             <Button Content="Auto-detect" Command="{Binding ResetSdkCommand}" />
                         </StackPanel>
                         <StackPanel>
@@ -58,7 +58,7 @@
                     <Separator Margin="0,12" />
                     <DockPanel>
                         <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center">
-                            <Button Content="Browse…" Command="{Binding BrowseJavaCommand}" Margin="0,0,8,0" />
+                            <Button Content="Browse" Command="{Binding BrowseJavaCommand}" Margin="0,0,8,0" />
                             <Button Content="Auto-detect" Command="{Binding ResetJavaCommand}" />
                         </StackPanel>
                         <StackPanel>
@@ -84,7 +84,7 @@
                 <Border Padding="16">
                 <DockPanel>
                     <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center">
-                        <Button Content="Browse…" Command="{Binding BrowseProjectsCommand}" Margin="0,0,8,0" />
+                        <Button Content="Browse" Command="{Binding BrowseProjectsCommand}" Margin="0,0,8,0" />
                         <Button Content="Default" Command="{Binding ResetProjectsCommand}" />
                     </StackPanel>
                     <StackPanel>
@@ -139,7 +139,7 @@
                 <Border Padding="16">
                 <StackPanel>
                     <DockPanel Margin="0,0,0,8">
-                        <Button DockPanel.Dock="Right" Content="Add provider…" Command="{Binding Ai.AddProviderCommand}"
+                        <Button DockPanel.Dock="Right" Content="Add provider" Command="{Binding Ai.AddProviderCommand}"
                                 Style="{DynamicResource AccentButtonStyle}" VerticalAlignment="Center" />
                         <StackPanel>
                             <TextBlock Text="{Binding Ai.ActiveSummary}" Foreground="{DynamicResource TextFillColorPrimaryBrush}" />
@@ -153,7 +153,7 @@
                                 <Border BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}" BorderThickness="0,1,0,0" Padding="0,8">
                                     <DockPanel>
                                         <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center">
-                                            <Button Content="Edit…" Margin="0,0,8,0"
+                                            <Button Content="Edit" Margin="0,0,8,0"
                                                     Command="{Binding DataContext.Ai.EditProviderCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
                                                     CommandParameter="{Binding}" />
                                             <Button Content="Remove"
@@ -306,7 +306,7 @@
                     <DockPanel>
                         <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center">
                             <Button Content="Open logs folder" Command="{Binding OpenLogsFolderCommand}" Margin="0,0,8,0" />
-                            <Button Content="Export logs…" Command="{Binding ExportLogsCommand}" />
+                            <Button Content="Export logs" Command="{Binding ExportLogsCommand}" />
                         </StackPanel>
                         <StackPanel>
                             <TextBlock Text="Logs" Foreground="{DynamicResource TextFillColorPrimaryBrush}" />

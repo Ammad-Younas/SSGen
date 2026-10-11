@@ -296,7 +296,7 @@
                                 <WrapPanel Margin="0,12,0,0">
                                     <Button Content="Install &amp; open" Style="{DynamicResource AccentButtonStyle}" Command="{Binding InstallAndLaunchCommand}" Margin="0,0,6,6" />
                                     <Button Content="Open app" Command="{Binding LaunchAppCommand}" Margin="0,0,6,6" />
-                                    <Button Content="Replace APK…" Command="{Binding ImportApkCommand}" Margin="0,0,6,6" />
+                                    <Button Content="Replace APK" Command="{Binding ImportApkCommand}" Margin="0,0,6,6" />
                                 </WrapPanel>
                                 <TextBlock Style="{StaticResource Caption}" Text="Runtime permissions are granted automatically on install."
                                            Visibility="{Binding HasDevice, Converter={StaticResource BoolToVisibility}}" />
@@ -317,7 +317,7 @@
                                 <TextBlock Text="No APK imported yet" FontWeight="SemiBold" Foreground="{DynamicResource TextFillColorPrimaryBrush}" />
                                 <TextBlock Style="{StaticResource Caption}" Margin="0,4,0,10"
                                            Text="Import your app's .apk. SSGen reads its name, icon, version and permissions, and keeps a copy in the project." />
-                                <Button Content="Import APK…" Style="{DynamicResource AccentButtonStyle}" Command="{Binding ImportApkCommand}" HorizontalAlignment="Left" />
+                                <Button Content="Import APK" Style="{DynamicResource AccentButtonStyle}" Command="{Binding ImportApkCommand}" HorizontalAlignment="Left" />
                             </StackPanel>
                             </DockPanel>
                         </Border>
