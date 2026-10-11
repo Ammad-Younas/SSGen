@@ -74,6 +74,14 @@ public sealed class BoolToVisibilityConverter : IValueConverter
 }
 
 /// <summary>Formats a UTC timestamp as a short, human relative time ("5 min ago", "yesterday", or a date).</summary>
+/// <summary>true &lt;-&gt; false, both ways (e.g. the second of two radio buttons bound to one bool).</summary>
+public sealed class InvertBoolConverter : IValueConverter
+{
+    public object Convert(object value, Type targetType, object parameter, CultureInfo culture) => value is not true;
+
+    public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture) => value is not true;
+}
+
 public sealed class RelativeTimeConverter : IValueConverter
 {
     public object Convert(object value, Type targetType, object parameter, CultureInfo culture)

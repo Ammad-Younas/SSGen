@@ -54,6 +54,16 @@ public partial class AgentView : UserControl
         };
     }
 
+    /// <summary>The PasswordBox can't be bound: save what was typed when leaving it, then clear the box.</summary>
+    private void OnPasswordLostFocus(object sender, RoutedEventArgs e)
+    {
+        if (DataContext is AgentViewModel vm && LoginPassword.Password.Length > 0)
+        {
+            vm.SetPassword(LoginPassword.Password);
+            LoginPassword.Clear();
+        }
+    }
+
     /// <summary>The split definitions in saved order: pairs of (first, second) for each splitter.</summary>
     private DefinitionBase[] Definitions => [ControlsColumn, RestColumn, TopRow, ScreensRow, ScreenColumn, ActivityColumn, LogRow, MapRow];
 

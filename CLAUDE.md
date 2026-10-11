@@ -74,7 +74,19 @@ Planned projects, each added in the milestone that needs it: `SSGen.Scene` (Skia
 - **Back on the launch screen closes the app.** The agent marks the screen after a (re)launch, and any screen whose Back left the app, as `IsRoot`; the systematic strategy stops there instead of pressing Back, and the AI prompt says so. Before this, a real run wasted 30 of 45 steps in a back/relaunch loop.
 - **Revisiting**: edges store the tapped element's key, so the systematic strategy can travel to a screen that still has untried elements (`FirstHopToUnfinished`, capped at 3 re-taps per element).
 - **Speed**: `SettleAsync` returns the last stable screenshot, which becomes the observation (about 3.5 s per step on the emulator; `uiautomator dump` is most of it).
-- Real sample-app run (systematic): 6 unique screens in 25 steps, 1 min 41 s, completed (tutorial, notes list, drawer, text note, manage categories, recycle bin).
+- Real sample-app run (systematic, M3): 6 unique screens in 25 steps, 1 min 41 s, completed.
+
+## Agent v2 (M4): interruptions, sign-in, recovery, resume
+
+- **Order in each step** (`ExplorationAgent`): observe (settle, UI dump, close the keyboard if a text field has it open, verify the screenshot still matches the dump) → `ScreenClassifier` interruptions (permission dialog → allow while using; "not responding" → wait; crash dialog → close + count; ad/promo popup → close/"Not now"; spinner-only → wait) → outside-app handling (Back exited → root; pid gone → crash) → graph → sign-in handling → stuck/circle checks → strategy → guardrails → act.
+- **Sign-in walls**: test account typed by the agent itself (`LoginOptions`; password in DPAPI as `project-login:{project id}`); never in an AI prompt (`AgentContext.Secrets` masked) or any log. Then a guest route (user hint, then guest/skip/later wording). A sign-in panel deeper in the app is a dead end (Back). On the start screen with no way in: hand over to the user once (`AgentControl.TakeOver` + `IAgentObserver.OnTakeoverRequested`), else finish with advice. A sign-in screen already got past counts as explored.
+- **Progress** = a new screen or a first try of an element. The no-progress limit (25) and the going-in-circles check use it; using only "new screen" ended runs early on element-rich screens (formatting toolbars). Same for "stuck": in-place actions that try something new aren't stuck.
+- **Systematic order on a screen**: onboarding skip, then elements specific to this screen before ones many screens share (so a popup's own items come before the menu button of the screen behind it), then reading order; then fill text fields once (`DemoText`; keyed by position because the text changes); then leaving buttons (Navigate up, Back, Close, Save). Sample text must not contain guardrail words (a saved "Buy milk" note became untappable); a test enforces it.
+- **Screenshot integrity**: after an action, wait for the screen to change (bounded 1.5 s) before settling, and re-observe if the screen changed during the UI dump. Without this a slow transition saved the tutorial image under the main screen's activity.
+- **Resume**: every node's full state (structure, selection, known/tried, revisits, flags) is saved each step (project.db 0004); a new run with `ResumeRunId` loads the graph and continues. Runs left "running" (SSGen crashed) become "interrupted" at the next start.
+- **Popups are screens of their own**: near-identical pixels only match when the element sets are similar too (Jaccard ≥ 0.6).
+- Keyboard on API 36: `dumpsys input_method` → `mInputShown=true`; the Escape key hides it; the keyboard never appears in the UI dump.
+- Known: about 8 s per step on the emulator (two screencaps + UI dump + activity + verification); a gRPC screenshot fast path is an M8 item.
 
 ## Device pipeline (M2): what is verified and why it's built this way
 
@@ -134,7 +146,7 @@ To reset first-run state, delete `%LOCALAPPDATA%\SSGen` (it holds app.db, logs a
 | M1 Foundation (shell, themes, SQLite, settings, DPAPI secrets, setup assistant) | **done** |
 | M2 Emulator (AVD mgmt, APK parse/install, live preview, manual control, logcat) | **done** (reviewed) |
 | M3 Provider layer + Agent v1 (providers, settings UI, first-run AI choice, guardrails, systematic + AI explorer, Explore page) | **done** |
-| M4 Agent v2 | |
+| M4 Agent v2 (interruptions, sign-in + takeover, crash/circle/no-progress recovery, resume, form filling, popups, screen map) | **done** |
 | M5 Selection, templates, render, verified export presets | then **stop for review** |
 | M6 Gallery + editor · M7 Export, i18n, installer · M8 Hardening | |
 

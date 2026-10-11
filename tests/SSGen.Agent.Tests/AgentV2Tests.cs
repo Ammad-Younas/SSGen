@@ -310,7 +310,7 @@ public class AgentV2Tests
             .RunAsync(Options() with { NoProgressLimit = 4 }, new AgentControl(), CancellationToken.None);
 
         Assert.Equal(AgentRunStatus.Completed, summary.Status);
-        Assert.Contains("No new screens in the last 4 steps", summary.Message, StringComparison.Ordinal);
+        Assert.Contains("in the last 4 steps", summary.Message, StringComparison.Ordinal);
     }
 }
 
@@ -358,9 +358,41 @@ public class ClassifierAndHelpersTests
     [InlineData("phone", "Mobile number", "5550100")]
     [InlineData("search_src_text", "Search notes", "plan")]
     [InlineData("amount", "Amount", "12")]
-    [InlineData("etContent", "Note", "Buy milk, eggs and coffee. Call the bakery about Saturday.")]
+    [InlineData("etContent", "Note", "Milk, eggs and coffee. Pick up flowers on Saturday.")]
+    [InlineData("etName", "Note 1", "Weekly groceries")]
     public void Demo_text_fits_the_field(string id, string hint, string expected) =>
         Assert.Equal(expected, DemoText.For(new UiElement { Class = "android.widget.EditText", ResourceId = "com.app:id/" + id, Text = hint }));
+
+    [Fact]
+    public void A_screen_s_own_items_come_before_shared_ones()
+    {
+        static UiElement B(int id, string label, int top) => new()
+        {
+            Id = id, Class = "android.widget.Button", Text = label, Clickable = true, Bounds = new UiBounds(0, top, 100, top + 80),
+        };
+
+        var graph = new ScreenGraph();
+        var (main, _) = graph.Observe(new ScreenFingerprint(".Main", 1, new HashSet<string> { "m1", "m2", "m3" }, new HashSet<string>()));
+        var menuButton = B(1, "Open menu", 0);
+        main.Known.Add(menuButton.Key);
+        var (popup, _) = graph.Observe(new ScreenFingerprint(".Main", 1, new HashSet<string> { "p1", "p2", "p3" }, new HashSet<string>()));
+        var ui = new UiSnapshot([menuButton, B(2, "New sketch", 500)], [], "com.app");
+        popup.Known.UnionWith(ui.Elements.Select(e => e.Key));
+
+        var decision = SystematicStrategy.Decide(new AgentContext("App", "com.app", null, 1, 10, graph, popup, ui, [], []));
+        Assert.Equal("New sketch", decision.Action.Element!.Label); // not the menu button the main screen also has
+    }
+
+    [Fact]
+    public void Sample_text_never_trips_the_guardrails()
+    {
+        var guard = new Guardrails(safeMode: true);
+        foreach (var sample in DemoText.AllSamples)
+        {
+            var el = new UiElement { Class = "android.widget.TextView", Text = sample, Clickable = true, Bounds = new UiBounds(0, 0, 10, 10) };
+            Assert.Equal(GuardVerdict.Allowed, guard.Check(new AgentDecision(new AgentAction(ActionKind.Tap, el), ""), new UiSnapshot([el], [sample], "com.app")).Verdict);
+        }
+    }
 
     [Fact]
     public void A_popup_over_a_screen_is_a_different_screen()

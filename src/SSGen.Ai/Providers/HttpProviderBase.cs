@@ -101,7 +101,7 @@ public abstract class HttpProviderBase
         }
         catch (HttpRequestException ex)
         {
-            throw new LlmException(LlmErrorKind.Network, $"Couldn't reach {ProviderName} at {BaseUrl}.",
+            throw new LlmException(LlmErrorKind.Network, $"Couldn't reach {(ProviderName.StartsWith("The ", StringComparison.Ordinal) ? "the " + ProviderName[4..] : ProviderName)} at {BaseUrl}.",
                 ex.StatusCode is null ? "Check the base URL and your internet connection (or that the local server is running)." : ex.Message, ex);
         }
 

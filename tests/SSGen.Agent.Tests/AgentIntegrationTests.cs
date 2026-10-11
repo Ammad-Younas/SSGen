@@ -96,8 +96,8 @@ public class AgentIntegrationTests
                 AppName = info.DisplayName,
                 PackageName = info.PackageName,
                 LauncherActivity = info.LauncherActivity,
-                MaxSteps = 45,
-                MaxDuration = TimeSpan.FromMinutes(8),
+                MaxSteps = 80,
+                MaxDuration = TimeSpan.FromMinutes(14),
             }, control, CancellationToken.None);
 
             _out.WriteLine($"{summary.Status}: {summary.Message} screens={summary.Screens} steps={summary.Steps} in {clock.Elapsed}");

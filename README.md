@@ -2,7 +2,7 @@
 
 Turn an Android APK into upload-ready store listing screenshots for Google Play and the App Store. The app runs your APK in the Android Emulator, captures its screens (by hand or with an AI agent of your choice), renders them into designed listing images, and exports them at the correct store sizes.
 
-> **Status: milestone M3 (AI providers and exploration).** Projects, settings, the environment setup assistant, the full device pipeline (virtual devices, APK import and install, a live preview you can control, screen capture, logcat) and app exploration (with your own AI provider or the built-in systematic explorer) work. Templates, the editor and export arrive in M5 to M7.
+> **Status: milestone M4 (AI providers and exploration).** Projects, settings, the environment setup assistant, the full device pipeline (virtual devices, APK import and install, a live preview you can control, screen capture, logcat) and app exploration (with your own AI provider or the built-in systematic explorer) work. Templates, the editor and export arrive in M5 to M7.
 
 ## Requirements
 
@@ -69,7 +69,13 @@ API keys are encrypted with Windows DPAPI and can only be read by your Windows a
 
 - **With AI**, the model chooses each step from the screen's elements, and from a downscaled screenshot if the model supports images. It also names the screens.
 - **Without AI**, the systematic explorer tries every button, tab and menu item once, scrolls each list once, and returns to screens that still have untried items. It stops when nothing is left.
-- **Limits**: maximum steps and minutes, plus the cost cap for paid providers. You can pause, resume or stop a run at any time.
+- **Interruptions are handled automatically**: permission requests are allowed (while using the app), "isn't responding" dialogs are waited out, crashes are survived (the app is reopened; after 3 the run stops), ads and rating popups are closed, loading screens are waited for, and the keyboard is closed before screenshots.
+- **Sign-in screens**: enter a test account in Explore (the password is encrypted on this PC; the agent types it itself and never sends it to an AI), or describe a guest option. Otherwise SSGen pauses and asks you to log in on the Emulator page, then continues.
+- **Take over** pauses the agent so you can use the device yourself (for anything it can't do), then **Resume**.
+- **Continue last run** picks up a run that was stopped, hit a limit, or was interrupted, without repeating what was already tried.
+- Text fields get realistic sample text (a note title, a search term), so screens show content instead of empty states.
+- **Limits**: maximum steps and minutes, the cost cap for paid providers, and an automatic stop when nothing new turns up for 25 steps. You can pause, resume or stop a run at any time.
+- The **screen map** shows how the discovered screens connect, as a diagram or a list.
 - **Safe mode** (on by default) never performs purchase, payment, subscribe, delete, send, post, share, call or sign-out actions. It covers several languages and also blocks the "OK" on a dialog about one of those. You can add your own words in **Settings**. With safe mode off, SSGen asks you before each such action.
 
 ## AI

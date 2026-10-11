@@ -55,7 +55,20 @@ public sealed class SystematicStrategy : IAgentStrategy
     {
         ArgumentNullException.ThrowIfNull(context);
         var node = context.Node;
-        var candidate = Candidates(context.Ui).FirstOrDefault(e => !node.Tried.Contains(e.Key));
+
+        // Order on a screen: other taps, then fill its fields, then the buttons that leave it ("Navigate up").
+        // Among the taps, what's specific to this screen comes before what many screens share (a side-menu or
+        // search button): on a popup, its own items before the screen behind it.
+        int Shared(string key) => context.Graph.Nodes.Count(n => !ReferenceEquals(n, node) && n.Known.Contains(key));
+        var untried = Candidates(context.Ui)
+            .Select((e, i) => (Element: e, Order: i))
+            .Where(x => !node.Tried.Contains(x.Element.Key))
+            .OrderBy(x => OnboardingSkip.Contains(x.Element.Label.Trim().ToLowerInvariant()) ? 0 : 1)
+            .ThenBy(x => Shared(x.Element.Key))
+            .ThenBy(x => x.Order)
+            .Select(x => x.Element)
+            .ToList();
+        var candidate = untried.FirstOrDefault(e => !IsLeaving(e));
         if (candidate is not null)
         {
             return new AgentDecision(new AgentAction(ActionKind.Tap, candidate), $"Trying '{candidate.Label}', not explored yet on this screen.");
@@ -68,6 +81,11 @@ public sealed class SystematicStrategy : IAgentStrategy
         {
             var text = DemoText.For(field, context.Graph.Nodes.Count + node.Tried.Count);
             return new AgentDecision(new AgentAction(ActionKind.Type, field, text), $"Filling '{field.Label}' with sample text so the screen shows content.");
+        }
+
+        if (untried.FirstOrDefault(IsLeaving) is { } leave)
+        {
+            return new AgentDecision(new AgentAction(ActionKind.Tap, leave), $"Trying '{leave.Label}', not explored yet on this screen.");
         }
 
         if (!node.ScrolledDown && context.Ui.Elements.FirstOrDefault(e => e.Scrollable) is { } list)
@@ -106,6 +124,12 @@ public sealed class SystematicStrategy : IAgentStrategy
     }
 
     private static readonly string[] OnboardingSkip = ["skip", "skip intro", "skip tour", "get started", "got it"];
+
+    private static readonly string[] Leaving = ["navigate up", "back", "close", "cancel", "done", "save", "ok"];
+
+    /// <summary>Buttons that usually leave the screen (tried last, after its fields are filled).</summary>
+    internal static bool IsLeaving(UiElement e) =>
+        Leaving.Contains(e.Label.Trim().ToLowerInvariant()) || e.ResourceName is "action_save" or "home" or "up";
 
     /// <summary>
     /// Tappable elements in priority order: a way past onboarding first ("Skip", "Get started"), then navigation,

@@ -8,6 +8,7 @@
     <conv:StatusToBrushConverter x:Key="StatusToBrush" />
     <conv:NullToVisibilityConverter x:Key="NullToVisibility" />
     <conv:BoolToVisibilityConverter x:Key="BoolToVisibility" />
+    <conv:InvertBoolConverter x:Key="InvertBool" />
     <conv:RelativeTimeConverter x:Key="RelativeTime" />
 
     <FontFamily x:Key="IconFont">Segoe Fluent Icons, Segoe MDL2 Assets</FontFamily>

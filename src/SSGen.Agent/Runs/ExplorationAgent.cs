@@ -67,10 +67,14 @@ public sealed partial class ExplorationAgent
         public ulong? LastHash;
         public int NoEffectStreak;
         public int StepsWithoutNewScreen;
+
+        /// <summary>Steps with neither a new screen nor a first try of an element (the real "no progress").</summary>
+        public int StepsWithoutProgress;
         public int Crashes;
         public int LoadingWaits;
         public int LoginAttempts;
         public int LoginTakeovers;
+        public int LastTriedCount = -1;
         public readonly Queue<int> RecentNodes = new();
 
         public void ForgetPath()
@@ -116,7 +120,7 @@ public sealed partial class ExplorationAgent
             // and give a freshly booted device time to calm down before the first observation.
             await _device.ForceStopAsync(options.PackageName, ct);
             await _device.LaunchAsync(options.PackageName, options.LauncherActivity, ct);
-            await SettleAsync(options with { SettleTimeout = options.WarmupTimeout }, ct);
+            await SettleAsync(options with { SettleTimeout = options.WarmupTimeout }, null, ct);
 
             while (true)
             {
@@ -154,14 +158,15 @@ public sealed partial class ExplorationAgent
                     break;
                 }
 
-                if (s.StepsWithoutNewScreen >= options.NoProgressLimit)
+                if (s.StepsWithoutProgress >= options.NoProgressLimit)
                 {
-                    result = Summary(AgentRunStatus.Completed, $"No new screens in the last {options.NoProgressLimit} steps; the reachable app looks explored.");
+                    result = Summary(AgentRunStatus.Completed, $"No new screens or untried elements in the last {options.NoProgressLimit} steps; the reachable app looks explored.");
                     break;
                 }
 
                 step++;
-                var (png, ui, activity) = await ObserveAsync(options, ct);
+                var before = s.PreviousAction?.Kind is ActionKind.Tap or ActionKind.Type or ActionKind.Scroll or ActionKind.Back ? s.LastHash : null;
+                var (png, ui, activity) = await ObserveAsync(options, before, ct);
                 var package = activity?.Split('/')[0] ?? ui.RootPackage;
 
                 // ---- Interruptions handled the same way every time, before any strategy decides.
@@ -289,6 +294,10 @@ public sealed partial class ExplorationAgent
                 }
 
                 s.StepsWithoutNewScreen = isNew ? 0 : s.StepsWithoutNewScreen + 1;
+                if (isNew)
+                {
+                    s.StepsWithoutProgress = 0;
+                }
                 if (s.Previous is not null && s.PreviousAction is not null && s.Previous.Id != node.Id &&
                     Graph.AddEdge(s.Previous.Id, node.Id, s.PreviousAction.EdgeLabel, s.PreviousAction.Kind == ActionKind.Tap ? s.PreviousAction.Element?.Key : null) is { } edge)
                 {
@@ -313,7 +322,11 @@ public sealed partial class ExplorationAgent
                 }
 
                 // ---- Stuck: the same screen for many steps, or going back and forth between two screens.
-                s.SameNodeStreak = s.Previous?.Id == node.Id ? s.SameNodeStreak + 1 : 0;
+                // Staying on one screen is only "stuck" when nothing new gets tried there (forms, toggles, dialogs
+                // legitimately take several in-place actions).
+                var triedSomethingNew = s.Previous?.Id == node.Id && node.Tried.Count > s.LastTriedCount;
+                s.SameNodeStreak = s.Previous?.Id == node.Id && !triedSomethingNew ? s.SameNodeStreak + 1 : 0;
+                s.LastTriedCount = node.Tried.Count;
                 s.RecentNodes.Enqueue(node.Id);
                 while (s.RecentNodes.Count > CircleWindow)
                 {
@@ -327,7 +340,7 @@ public sealed partial class ExplorationAgent
                     continue;
                 }
 
-                if (s.RecentNodes.Count == CircleWindow && s.RecentNodes.Distinct().Count() <= 2 && s.StepsWithoutNewScreen >= CircleWindow)
+                if (s.RecentNodes.Count == CircleWindow && s.RecentNodes.Distinct().Count() <= 2 && s.StepsWithoutProgress >= CircleWindow)
                 {
                     Log(step, AgentLogKind.Warning, "Going back and forth between the same screens; restarting from the start screen.");
                     s.RecentNodes.Clear();
@@ -365,10 +378,8 @@ public sealed partial class ExplorationAgent
                 }
 
                 var guard = _guardrails.Check(decision, ui);
-                if (decision.Action.Element is { } chosen)
-                {
-                    node.Tried.Add(chosen.Key);
-                }
+                var firstTry = decision.Action.Element is { } chosen && node.Tried.Add(chosen.Key);
+                s.StepsWithoutProgress = firstTry || isNew ? 0 : s.StepsWithoutProgress + 1;
 
                 _store.SaveNode(_runId, node); // keep what was tried, so a crash or stop can be resumed
                 if (guard.Verdict == GuardVerdict.Blocked)
@@ -597,35 +608,69 @@ public sealed partial class ExplorationAgent
 
     // ------------------------------------------------------------------ observing and acting
 
-    private async Task<(byte[] Png, UiSnapshot Ui, string? Activity)> ObserveAsync(AgentRunOptions options, CancellationToken ct)
+    /// <summary>
+    /// Settles, reads the UI tree and activity, and makes sure the screenshot matches them: the UI dump takes a
+    /// moment, and a slow transition can still be under way. An open keyboard (only possible with text fields) is
+    /// closed first. <paramref name="before"/> is the previous screen's hash, to wait for an action's effect.
+    /// </summary>
+    private async Task<(byte[] Png, UiSnapshot Ui, string? Activity)> ObserveAsync(AgentRunOptions options, ulong? before, CancellationToken ct)
     {
-        var png = await SettleAsync(options, ct);
-
-        // A keyboard covers half the screen and isn't part of the app: close it first (Escape; Back could navigate).
-        if (await _device.IsKeyboardShownAsync(ct))
+        var png = await SettleAsync(options, before, ct);
+        var ui = UiHierarchyParser.Parse(await _device.DumpUiHierarchyAsync(ct));
+        if (ui.Elements.Any(e => e.Editable) && await _device.IsKeyboardShownAsync(ct))
         {
+            // Escape, not Back: Back could navigate away. The keyboard covers half the screen and isn't the app.
             await _device.PressKeyAsync(AndroidKey.Escape, ct);
-            png = await SettleAsync(options, ct);
+            png = await SettleAsync(options, null, ct);
+            ui = UiHierarchyParser.Parse(await _device.DumpUiHierarchyAsync(ct));
         }
 
-        var ui = UiHierarchyParser.Parse(await _device.DumpUiHierarchyAsync(ct));
         var activity = await _device.GetForegroundActivityAsync(ct);
+        var check = await _device.CaptureScreenshotPngAsync(ct);
+        if (ScreenFingerprint.Hamming(ScreenFingerprint.DifferenceHash(png), ScreenFingerprint.DifferenceHash(check)) > 4)
+        {
+            // The screen changed while reading the UI: observe again so image, tree and activity agree.
+            png = await SettleAsync(options, null, ct);
+            ui = UiHierarchyParser.Parse(await _device.DumpUiHierarchyAsync(ct));
+            activity = await _device.GetForegroundActivityAsync(ct);
+        }
+        else
+        {
+            png = check;
+        }
+
         return (png, ui, activity);
     }
 
     /// <summary>
-    /// Waits until two consecutive screenshots look the same (animations/loading finished) or a timeout, and
-    /// returns the last one so observing doesn't need another capture.
+    /// Waits for the screen to change from <paramref name="before"/> (an action's effect; bounded), then until two
+    /// consecutive screenshots look the same (animations/loading finished) or a timeout. Returns the last capture.
     /// </summary>
-    private async Task<byte[]> SettleAsync(AgentRunOptions options, CancellationToken ct)
+    private async Task<byte[]> SettleAsync(AgentRunOptions options, ulong? before, CancellationToken ct)
     {
-        var deadline = DateTime.UtcNow + options.SettleTimeout;
+        var start = DateTime.UtcNow;
+        var deadline = start + options.SettleTimeout;
+        var changeDeadline = start + TimeSpan.FromTicks(Math.Min(options.SettleTimeout.Ticks, TimeSpan.FromSeconds(1.5).Ticks));
         await Task.Delay(options.SettlePoll, ct); // let the previous input start its transition
+        var waitingForChange = before is not null;
         ulong? last = null;
         while (true)
         {
             var png = await _device.CaptureScreenshotPngAsync(ct);
             var hash = ScreenFingerprint.DifferenceHash(png);
+            if (waitingForChange)
+            {
+                if (ScreenFingerprint.Hamming(before!.Value, hash) > 2 || DateTime.UtcNow >= changeDeadline)
+                {
+                    waitingForChange = false;
+                }
+                else
+                {
+                    await Task.Delay(options.SettlePoll, ct);
+                    continue;
+                }
+            }
+
             if ((last is { } l && ScreenFingerprint.Hamming(l, hash) <= 2) || DateTime.UtcNow >= deadline)
             {
                 return png;
