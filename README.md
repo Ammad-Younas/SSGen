@@ -2,7 +2,7 @@
 
 Turn an Android APK into upload-ready store listing screenshots for Google Play and the App Store. The app runs your APK in the Android Emulator, captures its screens (by hand or with an AI agent of your choice), renders them into designed listing images, and exports them at the correct store sizes.
 
-> **Status: milestone M6 (gallery and editor).** Projects, settings, the environment setup assistant, the full device pipeline (virtual devices, APK import and install, a live preview you can control, screen capture, logcat) and app exploration (with your own AI provider or the built-in systematic explorer) work, and so do designing, rendering, reviewing and editing store-ready images. Export packages and translations arrive in M7.
+> **Status: milestone M8 (all planned milestones done).** Projects, settings, the environment setup assistant, the full device pipeline (virtual devices, APK import and install, a live preview you can control, screen capture, logcat) and app exploration (with your own AI provider or the built-in systematic explorer) work, and so do designing, rendering, reviewing, editing, translating and exporting store-ready images, plus a Windows installer.
 
 ## Requirements
 
@@ -105,6 +105,18 @@ Exploration turns on a clean status bar (9:41, full battery, no notifications) w
 - **Save** renders the image file again with the same engine as Render all, and checks it against the store rules. **Apply style to all** gives the other images of the same size this image's look and layout; each keeps its own headline and screenshot.
 
 Rendering again on the Design page replaces edited images with fresh designs; SSGen asks first.
+
+## Languages
+
+On the Design page, **Languages** sets the primary language (the captions you write) and any extra languages. For each extra language you can type the captions or click **Translate with AI** (text only: no screenshots are sent; have a native speaker check the result). **Render all** then renders every language; screens without a translation use the primary captions. Arabic, Urdu, Persian and Hebrew are shaped and laid out right to left; Chinese, Japanese and Thai wrap correctly; if the template's font lacks a script, SSGen uses a Windows font that has it.
+
+## Exporting
+
+**Export** lets you choose store sizes and languages, checks every file once more against the store rules, and saves an upload-ready folder: `Store/language/size/01_name.png`, numbered in listing order, with `manifest.json` (sizes, checksums, problems, and the official pages the rules come from). Tick **Also make a ZIP file** for a single file to share. Images that break a rule are left out unless you include them on purpose.
+
+## Installer
+
+`powershell -File tools/make-installer.ps1 -Version 0.8.0` builds `artifacts/releases/SSGen-win-Setup.exe` with Velopack. It's unsigned, so Windows SmartScreen asks for confirmation on first run ("More info", then "Run anyway"). The installer adds the .NET 10 Desktop Runtime if it's missing. Run `tools/fetch-deps.ps1` once before building it.
 
 ## AI
 

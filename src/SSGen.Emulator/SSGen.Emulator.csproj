@@ -32,7 +32,8 @@
   <!-- Third-party binaries fetched by tools/fetch-deps.ps1 (not in git). Copied next to the app. -->
   <ItemGroup>
     <None Include="..\..\third_party\scrcpy\scrcpy-server-v*" Link="tools\scrcpy\%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" Condition="Exists('..\..\third_party\scrcpy')" />
-    <None Include="..\..\third_party\ffmpeg\*.dll" Link="tools\ffmpeg\%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" Condition="Exists('..\..\third_party\ffmpeg')" />
+    <None Include="..\..\third_party\ffmpeg\*.dll;..\..\third_party\ffmpeg\*.txt" Link="tools\ffmpeg\%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" Condition="Exists('..\..\third_party\ffmpeg')" />
+    <None Include="..\..\third_party\scrcpy\LICENSE" Link="tools\scrcpy\LICENSE" CopyToOutputDirectory="PreserveNewest" Condition="Exists('..\..\third_party\scrcpy\LICENSE')" />
   </ItemGroup>
 
 </Project>

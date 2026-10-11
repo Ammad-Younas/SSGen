@@ -1,0 +1,143 @@
+<UserControl x:Class="SSGen.App.Views.ExportView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:vm="clr-namespace:SSGen.App.ViewModels"
+             mc:Ignorable="d"
+             d:DataContext="{d:DesignInstance Type=vm:ExportViewModel}"
+             x:Name="Root">
+    <UserControl.Resources>
+        <DataTemplate x:Key="OptionRow" DataType="{x:Type vm:ExportOptionViewModel}">
+            <DockPanel Margin="0,3">
+                <CheckBox DockPanel.Dock="Left" IsChecked="{Binding IsSelected}" MinWidth="0" Margin="0,0,8,0" VerticalAlignment="Top"
+                          AutomationProperties.Name="{Binding Title}" />
+                <TextBlock DockPanel.Dock="Right" Style="{StaticResource Icon}" Text="&#xE7BA;" FontSize="13" Margin="8,2,0,0" VerticalAlignment="Top"
+                           Foreground="{DynamicResource SystemFillColorCautionBrush}" ToolTip="Some images break a store rule"
+                           Visibility="{Binding HasProblems, Converter={StaticResource BoolToVisibility}}" />
+                <StackPanel>
+                    <TextBlock Text="{Binding Title}" TextWrapping="Wrap" Foreground="{DynamicResource TextFillColorPrimaryBrush}" />
+                    <TextBlock Style="{StaticResource Caption}">
+                        <Run Text="{Binding Detail, Mode=OneWay}" /><Run Text=" · " /><Run Text="{Binding Count, Mode=OneWay}" /><Run Text=" file(s)" />
+                    </TextBlock>
+                </StackPanel>
+            </DockPanel>
+        </DataTemplate>
+    </UserControl.Resources>
+
+    <Grid Margin="24,20">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+
+        <StackPanel Margin="0,0,0,12">
+            <TextBlock Style="{StaticResource PageTitle}" Text="Export" />
+            <TextBlock Style="{StaticResource PageSubtitle}" Margin="0"
+                       Text="Check everything against the store rules once more and save upload-ready folders, with a manifest and an optional ZIP." />
+        </StackPanel>
+
+        <Border Grid.Row="1" Visibility="{Binding HasBlocker, Converter={StaticResource BoolToVisibility}}" Margin="0,0,0,12"
+                CornerRadius="8" BorderThickness="1" Padding="14,10"
+                Background="{DynamicResource SystemFillColorAttentionBackgroundBrush}" BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}">
+            <DockPanel>
+                <Border DockPanel.Dock="Left" Style="{StaticResource PanelHeaderIconTile}"><TextBlock Style="{StaticResource PanelHeaderIcon}" Text="&#xE946;" /></Border>
+                <Button DockPanel.Dock="Right" Content="Go to Design" Command="{Binding GoDesignCommand}" Style="{DynamicResource AccentButtonStyle}" Margin="12,0,0,0" />
+                <TextBlock Text="{Binding Blocker}" TextWrapping="Wrap" VerticalAlignment="Center" Foreground="{DynamicResource TextFillColorPrimaryBrush}" />
+            </DockPanel>
+        </Border>
+
+        <Grid Grid.Row="2">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" MinWidth="280" />
+                <ColumnDefinition Width="16" />
+                <ColumnDefinition Width="*" MinWidth="320" />
+            </Grid.ColumnDefinitions>
+
+            <!-- What to export -->
+            <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+                <StackPanel>
+                    <Border Style="{StaticResource Card}" Padding="0">
+                        <DockPanel>
+                            <Border Style="{StaticResource PanelHeader}">
+                                <StackPanel Orientation="Horizontal">
+                                    <Border Style="{StaticResource PanelHeaderIconTile}"><TextBlock Style="{StaticResource PanelHeaderIcon}" Text="&#xE740;" /></Border>
+                                    <TextBlock Style="{StaticResource PanelHeaderTitle}" Text="Store sizes" />
+                                    <Border Style="{StaticResource CountBadge}"><TextBlock Style="{StaticResource Caption}" Text="{Binding Sizes.Count}" HorizontalAlignment="Center" /></Border>
+                                </StackPanel>
+                            </Border>
+                            <ItemsControl ItemsSource="{Binding Sizes}" ItemTemplate="{StaticResource OptionRow}" Margin="16,10,16,14" Focusable="False" />
+                        </DockPanel>
+                    </Border>
+
+                    <Border Style="{StaticResource Card}" Padding="0" Visibility="{Binding HasLanguages, Converter={StaticResource BoolToVisibility}}">
+                        <DockPanel>
+                            <Border Style="{StaticResource PanelHeader}">
+                                <StackPanel Orientation="Horizontal">
+                                    <Border Style="{StaticResource PanelHeaderIconTile}"><TextBlock Style="{StaticResource PanelHeaderIcon}" Text="&#xE774;" /></Border>
+                                    <TextBlock Style="{StaticResource PanelHeaderTitle}" Text="Languages" />
+                                    <Border Style="{StaticResource CountBadge}"><TextBlock Style="{StaticResource Caption}" Text="{Binding LanguageOptions.Count}" HorizontalAlignment="Center" /></Border>
+                                </StackPanel>
+                            </Border>
+                            <ItemsControl ItemsSource="{Binding LanguageOptions}" ItemTemplate="{StaticResource OptionRow}" Margin="16,10,16,14" Focusable="False" />
+                        </DockPanel>
+                    </Border>
+                </StackPanel>
+            </ScrollViewer>
+
+            <!-- Where and how -->
+            <ScrollViewer Grid.Column="2" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+                <Border Style="{StaticResource Card}" Padding="0" VerticalAlignment="Top">
+                    <DockPanel>
+                        <Border Style="{StaticResource PanelHeader}">
+                            <StackPanel Orientation="Horizontal">
+                                <Border Style="{StaticResource PanelHeaderIconTile}"><TextBlock Style="{StaticResource PanelHeaderIcon}" Text="&#xEDE1;" /></Border>
+                                <TextBlock Style="{StaticResource PanelHeaderTitle}" Text="Export" />
+                            </StackPanel>
+                        </Border>
+                        <StackPanel Margin="16,12,16,16">
+                            <TextBlock Style="{StaticResource FieldLabel}" Text="Save to" Margin="0,0,0,3" />
+                            <DockPanel>
+                                <Button DockPanel.Dock="Right" Content="Browse" Command="{Binding BrowseCommand}" Margin="8,0,0,0" />
+                                <TextBox Text="{Binding Destination, UpdateSourceTrigger=LostFocus}" AutomationProperties.Name="Export folder" />
+                            </DockPanel>
+                            <CheckBox Content="Also make a ZIP file" IsChecked="{Binding MakeZip}" Margin="0,12,0,0" />
+                            <CheckBox IsChecked="{Binding IncludeInvalid}" Margin="0,6,0,0" AutomationProperties.Name="Include images with problems">
+                                <TextBlock Text="Include images with problems (marked in the manifest)" TextWrapping="Wrap" />
+                            </CheckBox>
+                            <TextBlock Style="{StaticResource Caption}" TextWrapping="Wrap" Margin="0,12,0,0"
+                                       Text="Folders: Store / language / size, numbered in the order they appear in the listing. manifest.json lists every file with its size, checksum, any problems, and the official pages the store rules come from." />
+                            <TextBlock Text="{Binding Summary}" Margin="0,12,0,0" FontWeight="SemiBold" Foreground="{DynamicResource TextFillColorPrimaryBrush}" />
+                            <WrapPanel Margin="0,10,0,0">
+                                <Button Content="Export" Command="{Binding ExportCommand}" Style="{DynamicResource AccentButtonStyle}" MinWidth="110" Margin="0,0,8,6" />
+                                <Button Content="Open folder" Command="{Binding OpenFolderCommand}" Margin="0,0,8,6"
+                                        Visibility="{Binding LastFolder, Converter={StaticResource NullToVisibility}}" />
+                            </WrapPanel>
+                            <ProgressBar Value="{Binding ProgressValue}" Height="3" Margin="0,4,0,0" Visibility="{Binding IsBusy, Converter={StaticResource BoolToVisibility}}" />
+                            <TextBlock Text="{Binding Status}" TextWrapping="Wrap" Margin="0,8,0,0" Foreground="{DynamicResource TextFillColorPrimaryBrush}" />
+                            <TextBox Style="{StaticResource SelectableText}" Text="{Binding LastFolder, Mode=OneWay}" TextWrapping="Wrap" Margin="0,4,0,0" AutomationProperties.Name="Export folder path" />
+                            <ItemsControl ItemsSource="{Binding Report}" Margin="0,8,0,0" Focusable="False">
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate DataType="{x:Type vm:RenderReportLine}">
+                                        <DockPanel Margin="0,2">
+                                            <TextBlock x:Name="Mark" DockPanel.Dock="Left" Style="{StaticResource Icon}" FontSize="13" Margin="0,2,8,0" VerticalAlignment="Top"
+                                                       Text="&#xE7BA;" Foreground="{DynamicResource SystemFillColorCautionBrush}" />
+                                            <TextBlock Text="{Binding Text}" TextWrapping="Wrap" FontSize="12" Foreground="{DynamicResource TextFillColorPrimaryBrush}" />
+                                        </DockPanel>
+                                        <DataTemplate.Triggers>
+                                            <DataTrigger Binding="{Binding IsError}" Value="True">
+                                                <Setter TargetName="Mark" Property="Text" Value="&#xE783;" />
+                                                <Setter TargetName="Mark" Property="Foreground" Value="{DynamicResource SystemFillColorCriticalBrush}" />
+                                            </DataTrigger>
+                                        </DataTemplate.Triggers>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                        </StackPanel>
+                    </DockPanel>
+                </Border>
+            </ScrollViewer>
+        </Grid>
+    </Grid>
+</UserControl>

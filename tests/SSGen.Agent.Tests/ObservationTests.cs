@@ -6,6 +6,39 @@ namespace SSGen.Agent.Tests;
 
 public class UiHierarchyParserTests
 {
+    [Theory]
+    // Compose onboarding: "Skip" sits in a tappable box at the top; the big heading names the screen.
+    [InlineData("""
+        <hierarchy rotation="0"><node class="android.view.View" package="com.madi.smarttask" bounds="[0,0][1080,2400]">
+          <node class="android.view.View" package="com.madi.smarttask" clickable="true" bounds="[900,150][1040,230]">
+            <node class="android.widget.TextView" text="Skip" package="com.madi.smarttask" bounds="[920,160][1020,220]" />
+          </node>
+          <node class="android.widget.TextView" text="Organize Your Tasks" package="com.madi.smarttask" bounds="[100,1300][980,1390]" />
+          <node class="android.widget.TextView" text="Manage your daily tasks in one clean place." package="com.madi.smarttask" bounds="[80,1410][1000,1460]" />
+          <node class="android.view.View" package="com.madi.smarttask" clickable="true" bounds="[60,2000][1020,2110]">
+            <node class="android.widget.TextView" text="Next" package="com.madi.smarttask" bounds="[480,2030][600,2080]" />
+          </node>
+        </node></hierarchy>
+        """, "Organize Your Tasks")]
+    // Compose list screen: the app bar title wins over tappable row titles.
+    [InlineData("""
+        <hierarchy rotation="0"><node class="android.view.View" package="com.madi.smarttask" bounds="[0,0][1080,2400]">
+          <node class="android.widget.TextView" text="My Tasks" package="com.madi.smarttask" bounds="[48,150][400,220]" />
+          <node class="android.view.View" package="com.madi.smarttask" clickable="true" bounds="[0,400][1080,560]">
+            <node class="android.widget.TextView" text="Buy groceries" package="com.madi.smarttask" bounds="[48,420][600,470]" />
+          </node>
+        </node></hierarchy>
+        """, "My Tasks")]
+    // Nothing stands out: no name rather than a wrong one.
+    [InlineData("""
+        <hierarchy rotation="0"><node class="android.view.View" package="com.app" bounds="[0,0][1080,2400]">
+          <node class="android.widget.TextView" text="First line" package="com.app" bounds="[48,900][600,950]" />
+          <node class="android.widget.TextView" text="Second line" package="com.app" bounds="[48,1000][600,1050]" />
+        </node></hierarchy>
+        """, null)]
+    public void Screen_title_comes_from_a_heading_not_from_buttons_or_rows(string xml, string? expected) =>
+        Assert.Equal(expected, UiHierarchyParser.Parse(xml).Title);
+
     private const string Xml = """
         <?xml version='1.0' encoding='UTF-8' standalone='yes' ?>
         <hierarchy rotation="0">

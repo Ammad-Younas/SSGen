@@ -18,7 +18,8 @@ public sealed record RenderRecord(
     int Width,
     int Height,
     DateTime CreatedUtc,
-    DateTime? EditedUtc)
+    DateTime? EditedUtc,
+    string Locale = "")
 {
     public string FullPath(Project project) => Path.Combine(project?.Folder ?? throw new ArgumentNullException(nameof(project)), File);
 
@@ -82,8 +83,8 @@ public static class RenderStore
         using var c = project.Database.Open();
         using var cmd = c.CreateCommand();
         cmd.CommandText = """
-            SELECT id, screen_id, preset_id, template_id, position, file, scene_file, width, height, created_utc, edited_utc
-            FROM renders ORDER BY preset_id, position, id;
+            SELECT id, screen_id, preset_id, template_id, position, file, scene_file, width, height, created_utc, edited_utc, locale
+            FROM renders ORDER BY preset_id, locale, position, id;
             """;
         using var r = cmd.ExecuteReader();
         var list = new List<RenderRecord>();
@@ -183,7 +184,8 @@ public static class RenderStore
         r.GetInt32(7),
         r.GetInt32(8),
         Utc(r.GetString(9)),
-        r.IsDBNull(10) ? null : Utc(r.GetString(10)));
+        r.IsDBNull(10) ? null : Utc(r.GetString(10)),
+        r.GetString(11));
 
     private static DateTime Utc(string s) => DateTime.Parse(s, CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind).ToUniversalTime();
 }

@@ -113,13 +113,7 @@
                                         <MouseBinding Gesture="LeftDoubleClick" Command="{Binding DataContext.EditCommand, ElementName=Root}" CommandParameter="{Binding}" />
                                     </StackPanel.InputBindings>
                                     <Border Height="300" CornerRadius="8" ClipToBounds="True" Background="{DynamicResource SubtleFillColorSecondaryBrush}">
-                                        <Grid>
-                                            <Image Source="{Binding Thumb}" Stretch="Uniform" RenderOptions.BitmapScalingMode="HighQuality" />
-                                            <Border HorizontalAlignment="Left" VerticalAlignment="Top" Margin="6" Style="{StaticResource CountBadge}"
-                                                    Background="{DynamicResource NavSelectedBrush}" BorderThickness="0">
-                                                <TextBlock Text="{Binding PositionText}" Foreground="White" FontSize="11" FontWeight="SemiBold" HorizontalAlignment="Center" />
-                                            </Border>
-                                        </Grid>
+                                        <Image Source="{Binding Thumb}" Stretch="Uniform" RenderOptions.BitmapScalingMode="HighQuality" />
                                     </Border>
                                     <DockPanel Margin="0,8,0,0">
                                         <TextBlock x:Name="Mark" DockPanel.Dock="Right" Style="{StaticResource Icon}" FontSize="14" Text="&#xE73E;"

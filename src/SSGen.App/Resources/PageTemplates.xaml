@@ -22,13 +22,13 @@
     <DataTemplate DataType="{x:Type vm:EditorViewModel}">
         <views:EditorView />
     </DataTemplate>
+    <DataTemplate DataType="{x:Type vm:ExportViewModel}">
+        <views:ExportView />
+    </DataTemplate>
     <DataTemplate DataType="{x:Type vm:SetupViewModel}">
         <views:SetupView />
     </DataTemplate>
     <DataTemplate DataType="{x:Type vm:SettingsViewModel}">
         <views:SettingsView />
-    </DataTemplate>
-    <DataTemplate DataType="{x:Type vm:PlaceholderViewModel}">
-        <views:PlaceholderView />
     </DataTemplate>
 </ResourceDictionary>

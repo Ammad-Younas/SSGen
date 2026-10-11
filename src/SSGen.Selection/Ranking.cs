@@ -133,7 +133,7 @@ public sealed partial class HeuristicRanker : IScreenRanker
             score = Math.Round(Math.Clamp(score, 0, 100), 1);
 
             var label = c.DisplayName;
-            results.Add(new ScreenAssessment(c.Id, score, reject, label, Headline(label), "", Explain(c, reject, role), role, "heuristic") { Group = c.Screen.Activity });
+            results.Add(new ScreenAssessment(c.Id, score, reject, label, Headline(label), "", Explain(c, reject, role), role, "heuristic") { Group = c.Group });
         }
 
         return MarkDuplicates(candidates, results);

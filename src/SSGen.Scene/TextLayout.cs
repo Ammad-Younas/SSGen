@@ -1,4 +1,5 @@
 using SkiaSharp;
+using SkiaSharp.HarfBuzz;
 
 namespace SSGen.Scene;
 
@@ -18,7 +19,7 @@ public static class TextLayout
     public static TextBlock Fit(TextLayer layer)
     {
         ArgumentNullException.ThrowIfNull(layer);
-        var face = Fonts.Get(layer.Font, layer.Weight);
+        var face = Face(layer);
         var max = (float)Math.Max(1, layer.Size);
         var min = (float)Math.Clamp(layer.MinSize, 1, max);
         for (var size = max; size >= min; size -= Math.Max(1, size * 0.04f))
@@ -33,10 +34,57 @@ public static class TextLayout
         return Truncate(Wrap(layer, face, min), layer, face, min);
     }
 
-    public static SKFont Font(TextLayer layer, float size) => new(Fonts.Get(layer.Font, layer.Weight), size) { Subpixel = true, Edging = SKFontEdging.Antialias };
+    public static SKFont Font(TextLayer layer, float size) => new(Face(layer), size) { Subpixel = true, Edging = SKFontEdging.Antialias };
 
-    public static float Measure(SKFont font, string text, double letterSpacing) =>
-        font.MeasureText(text) + (float)(letterSpacing * Math.Max(0, text.Length - 1));
+    /// <summary>The layer's font, or a fallback that has every character (other scripts).</summary>
+    public static SKTypeface Face(TextLayer layer)
+    {
+        ArgumentNullException.ThrowIfNull(layer);
+        return Fonts.ForText(layer.Font, layer.Weight, layer.Text);
+    }
+
+    public static float Measure(SKFont font, string text, double letterSpacing)
+    {
+        ArgumentNullException.ThrowIfNull(font);
+        return NeedsShaping(text)
+            ? Shaper(font.Typeface).Shape(text, font).Width
+            : font.MeasureText(text) + (float)(letterSpacing * Math.Max(0, text.Length - 1));
+    }
+
+    /// <summary>
+    /// Scripts whose letters join or reorder (Arabic, Urdu, Persian, Hebrew, Indic, Thai and others) and emoji
+    /// must go through HarfBuzz; plain Latin, Greek and Cyrillic don't need it.
+    /// </summary>
+    public static bool NeedsShaping(string text)
+    {
+        foreach (var c in text ?? "")
+        {
+            if (c is (>= '\u0590' and <= '\u08FF') or (>= '\u0900' and <= '\u0DFF') or (>= '\u0E00' and <= '\u0FFF')
+                or (>= '\u1000' and <= '\u109F') or (>= '\u1780' and <= '\u17FF') or (>= '\uFB1D' and <= '\uFDFF')
+                or (>= '\uFE70' and <= '\uFEFF') || char.IsSurrogate(c))
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /// <summary>One HarfBuzz shaper per typeface and thread (shapers hold native state).</summary>
+    [ThreadStatic]
+    private static Dictionary<SKTypeface, SKShaper>? _shapers;
+
+    public static SKShaper Shaper(SKTypeface face)
+    {
+        _shapers ??= [];
+        if (!_shapers.TryGetValue(face, out var shaper))
+        {
+            shaper = new SKShaper(face);
+            _shapers[face] = shaper;
+        }
+
+        return shaper;
+    }
 
     private static TextBlock Wrap(TextLayer layer, SKTypeface face, float size)
     {
@@ -46,9 +94,9 @@ public static class TextLayout
         foreach (var paragraph in layer.Text.Replace("\r\n", "\n", StringComparison.Ordinal).Split('\n'))
         {
             var current = "";
-            foreach (var word in paragraph.Split(' ', StringSplitOptions.RemoveEmptyEntries))
+            foreach (var (word, spaced) in Units(paragraph))
             {
-                var candidate = current.Length == 0 ? word : current + " " + word;
+                var candidate = current.Length == 0 ? word : current + (spaced ? " " : "") + word;
                 if (Measure(font, candidate, layer.LetterSpacing) <= width || current.Length == 0)
                 {
                     current = candidate;
@@ -67,6 +115,30 @@ public static class TextLayout
         var tooWide = lines.Any(l => Measure(font, l, layer.LetterSpacing) > width * 1.001f);
         return new TextBlock(size, lines, size * (float)layer.LineHeight, tooWide);
     }
+
+    /// <summary>
+    /// Wrapping units: words separated by spaces, except in scripts written without spaces (Chinese, Japanese,
+    /// Thai), where any character may start a new line. "Spaced" = a space goes before this unit.
+    /// </summary>
+    private static IEnumerable<(string Text, bool Spaced)> Units(string paragraph)
+    {
+        foreach (var word in paragraph.Split(' ', StringSplitOptions.RemoveEmptyEntries))
+        {
+            if (!word.Any(IsUnspacedScript))
+            {
+                yield return (word, true);
+                continue;
+            }
+
+            for (var i = 0; i < word.Length; i += char.IsSurrogatePair(word, i) ? 2 : 1)
+            {
+                yield return (word.Substring(i, char.IsSurrogatePair(word, i) ? 2 : 1), i == 0);
+            }
+        }
+    }
+
+    private static bool IsUnspacedScript(char c) =>
+        c is (>= '฀' and <= '໿') or (>= '぀' and <= 'ヿ') or (>= '㐀' and <= '鿿') or (>= '豈' and <= '﫿') or (>= '＀' and <= '￯');
 
     private static TextBlock Truncate(TextBlock block, TextLayer layer, SKTypeface face, float size)
     {

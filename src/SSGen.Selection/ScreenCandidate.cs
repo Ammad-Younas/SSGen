@@ -131,6 +131,12 @@ public sealed record ScreenCandidate(CapturedScreen Screen, string FullPath, Scr
     /// <summary>Readable name: the app bar title, else the activity name in words ("ManageCategoriesActivity" → "Manage categories").</summary>
     public string DisplayName => NameFor(Screen);
 
+    /// <summary>
+    /// What kind of screen this is, for variety in the picked set: its title when known (single-activity apps
+    /// show every screen in one activity), else the activity.
+    /// </summary>
+    public string Group => !string.IsNullOrWhiteSpace(Screen.Title) ? $"{Screen.Activity}|{Screen.Title.Trim()}" : Screen.Activity ?? "";
+
     /// <summary>The app bar title if known, else the activity name in words.</summary>
     public static string NameFor(CapturedScreen screen)
     {

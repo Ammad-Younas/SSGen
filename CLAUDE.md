@@ -70,18 +70,33 @@ src/SSGen.Templates/     # templates and store specs: no UI
   TemplateEngine.cs          # template + inputs -> pixel-exact SceneDocument for a preset
   RenderService.cs           # renders the set per preset into renders/<Store>/<Size>/NN_name.png (+ scene JSON), validates
   RenderStore.cs             # renders table: list, load/save edited scenes (re-renders the image), validate files on disk
+  ExportService.cs           # upload-ready folders Store/language/size + manifest.json (+ ZIP), re-validated
 src/SSGen.Selection/     # choosing screens: no UI
   ScreenCandidate.cs         # image metrics (richness, colourfulness, blank, keyboard, dHash)
   Ranking.cs                 # HeuristicRanker (no AI), StoryPicker (hero first, settings last)
   AiRanker.cs                # batched vision ranking, cached (vision_cache), caption polish
   SelectionStore.cs          # selection table (included, order, captions)
+  Localization.cs            # Languages (catalog, project primary + extra), CaptionStore (captions table), CaptionTranslator (AI, text only)
 tests/SSGen.Core.Tests/      # xUnit
 tests/SSGen.Emulator.Tests/  # xUnit; EmulatorIntegrationTests is opt-in (see Commands)
 tests/SSGen.Agent.Tests/     # providers via fake HttpMessageHandler, structured output, guardrails, full runs on MockDevice; real-emulator run opt-in
 tests/SSGen.Design.Tests/    # every template x every preset renders and validates; ranking, AI ranking, selection, render pipeline; editor core
 tools/fetch-deps.ps1         # downloads scrcpy-server, FFmpeg LGPL DLLs, OFL fonts (Poppins, DM Serif Display), sample APK into third_party/ (git-ignored)
+tools/make-installer.ps1     # publish (framework-dependent) + Velopack pack -> artifacts/releases/SSGen-win-Setup.exe (unsigned)
 tools/make-icon.ps1          # regenerates src/SSGen.App/Assets/ssgen.ico (each size drawn natively); every Window sets Icon to it
 ```
+
+## Export, languages, installer (M7) and hardening (M8): rules and lessons
+
+- **Languages**: the primary language's captions stay in `selection`; each extra language has rows in `captions` (project.db 0007) and renders into `renders/<Store>/<Size>/<tag>/` with `renders.locale` set ('' = primary). Rendering one language never touches another's files or rows. The store icon has no language. "Apply style to all" stays within one size and one language.
+- **Text shaping**: Arabic, Urdu, Persian, Hebrew, Indic, Thai and emoji go through HarfBuzz (`SkiaSharp.HarfBuzz`, `TextLayout.NeedsShaping`), both to measure and to draw; letter spacing is ignored there (it breaks joins). When the chosen font lacks a script, `Fonts.ForText` asks Windows for one that has it. Chinese, Japanese and Thai wrap between characters. Right-to-left layers mirror their alignment.
+- **Translation** uses `AiTask.Translation`, text only (no screenshots, so no consent prompt; `AiRunGate.Prepare(textOnly: true)`), keeps the app name, returns one caption per input (validated, retried). Users are told to have a native speaker check.
+- **Export** copies files (never re-renders), re-validates every file and every set's count, skips files that break a rule unless asked, and writes `manifest.json` with sizes, SHA-256, problems and the store-rule sources and verified date.
+- **Installer**: Velopack, framework-dependent (installs the .NET 10 Desktop Runtime when missing), unsigned. `Program.Main` runs `VelopackApp.Build().Run()` before WPF (App.xaml is a Page, not the ApplicationDefinition). `vpk` is a local tool (dotnet-tools.json at the repo root; .NET 10 puts it there) run with `DOTNET_ROLL_FORWARD=Major`. Licence texts (FFmpeg, scrcpy, fonts, THIRD_PARTY_NOTICES.md) ship with the app.
+- **Single-activity apps** (Compose, Flutter, React Native) have one activity for every screen. Screens are named after their heading (`UiHierarchyParser.PickTitle`: app bar text, else the largest heading; never text inside anything tappable) and grouped for variety by activity plus title. A real Compose app (SmartTask) showed every screen as "MainActivity" before this.
+- **Speed**: emulator screenshots come from the emulator's gRPC `getScreenshot` (about 110 ms against 400 to 700 ms for screencap), falling back to screencap. `uiautomator dump` stays at about 2.3 s whatever the variant (process start-up); avoiding it would need an on-device helper.
+- **Safety of data**: before a database schema upgrade the file is copied with SQLite's backup API to `name.v{old}.bak` (newest three kept); each migration also runs in a transaction.
+- Startup shows the window in about 3 s; setup checks only run on the Environment page.
 
 ## Gallery and editor (M6): rules and lessons
 
@@ -188,7 +203,8 @@ To reset first-run state, delete `%LOCALAPPDATA%\SSGen` (it holds app.db, logs a
 | M4 Agent v2 (interruptions, sign-in + takeover, crash/circle/no-progress recovery, resume, form filling, popups, screen map) | **done** |
 | M5 Selection, templates, render, verified export presets (Design page) | **done** (reviewed) |
 | M6 Gallery + editor (layers, text, shapes, pictures, filters, undo/redo, apply style to all) | **done** |
-| M7 Export, i18n, installer · M8 Hardening | |
+| M7 Export (manifest, ZIP), languages (translation, RTL shaping), installer (Velopack) | **done** |
+| M8 Hardening (single-activity apps, gRPC screenshots, DB backups) | **done** |
 
 ## Dev machine facts (owner's PC)
 

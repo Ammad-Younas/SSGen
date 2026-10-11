@@ -295,6 +295,13 @@ public sealed partial class ExplorationAgent
                 node.HasScrollable |= ui.Elements.Any(e => e.Scrollable);
                 if (isNew)
                 {
+                    // Name it after its heading: single-activity apps (Jetpack Compose, one-activity Flutter or
+                    // React Native) have the same activity on every screen.
+                    if (string.IsNullOrWhiteSpace(node.Label) && ui.Title is { Length: > 0 } heading)
+                    {
+                        node.Label = heading;
+                    }
+
                     SaveScreen(node, png, activity, ui);
                 }
 

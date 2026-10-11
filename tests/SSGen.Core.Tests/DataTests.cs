@@ -43,6 +43,33 @@ public class MigrationRunnerTests
     }
 
     [Fact]
+    public void Upgrading_an_existing_database_keeps_a_backup_first()
+    {
+        using var dir = new TempDir();
+        var path = dir.Combine("project.db");
+        var db = new SqliteDatabase(path, MigrationSet.Project);
+        db.Migrate();
+        Assert.Empty(db.Backups()); // a new database has nothing to back up
+
+        // Pretend it's an older schema with data in it, then upgrade.
+        using (var c = db.Open())
+        using (var cmd = c.CreateCommand())
+        {
+            cmd.CommandText = "INSERT INTO project_meta(key, value) VALUES ('marker', 'kept'); DROP TABLE captions; ALTER TABLE renders DROP COLUMN locale; PRAGMA user_version = 6;";
+            cmd.ExecuteNonQuery();
+        }
+
+        db.Migrate();
+        var backup = Assert.Single(db.Backups());
+        Assert.EndsWith("project.db.v6.bak", backup, StringComparison.Ordinal);
+        using var copy = new Microsoft.Data.Sqlite.SqliteConnection($"Data Source={backup};Pooling=False");
+        copy.Open();
+        using var read = copy.CreateCommand();
+        read.CommandText = "SELECT value FROM project_meta WHERE key = 'marker';";
+        Assert.Equal("kept", read.ExecuteScalar());
+    }
+
+    [Fact]
     public void Migrate_refuses_database_from_newer_version()
     {
         using var dir = new TempDir();

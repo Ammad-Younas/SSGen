@@ -22,6 +22,13 @@ public sealed record RenderRequest
     public string Tagline { get; init; } = "";
 
     public ImageFormat Format { get; init; } = ImageFormat.Png;
+
+    /// <summary>Language of this set: "" = the project's primary language (renders/&lt;Store&gt;/&lt;Size&gt;/),
+    /// otherwise a BCP 47 tag (renders/&lt;Store&gt;/&lt;Size&gt;/&lt;tag&gt;/).</summary>
+    public string Locale { get; init; } = "";
+
+    /// <summary>Right-to-left captions (Arabic, Urdu, Persian, Hebrew).</summary>
+    public bool RightToLeft { get; init; }
 }
 
 /// <summary>A rendered file and what the validator found.</summary>
@@ -55,8 +62,19 @@ public static partial class RenderService
         foreach (var preset in request.Presets)
         {
             ct.ThrowIfCancellationRequested();
+            // The store icon doesn't depend on the language: only the primary set has it.
+            if (preset.Kind == PresetKind.Icon && request.Locale.Length > 0)
+            {
+                continue;
+            }
+
             var folder = Path.Combine(project.Folder, "renders", Slug(preset.Store.Name), Slug(preset.Name));
-            ClearPreset(project, preset, folder);
+            if (request.Locale.Length > 0)
+            {
+                folder = Path.Combine(folder, request.Locale);
+            }
+
+            ClearPreset(project, preset, folder, request.Locale);
             Directory.CreateDirectory(folder);
 
             switch (preset.Kind)
@@ -80,6 +98,7 @@ public static partial class RenderService
                             Palette = request.Palette,
                             Index = i,
                             Count = request.Items.Count,
+                            RightToLeft = request.RightToLeft,
                         };
                         var name = $"{i + 1:00}_{Slug(item.Label)}";
                         images.Add(RenderOne(project, preset, request, inputs, folder, name, item.ScreenId, i, assets));
@@ -98,6 +117,7 @@ public static partial class RenderService
                         AppName = request.AppName,
                         Subheadline = request.Tagline,
                         Palette = request.Palette,
+                        RightToLeft = request.RightToLeft,
                     };
                     images.Add(RenderOne(project, preset, request with { Template = fg }, fgInputs, folder, "feature_graphic", null, 0, assets));
                     done++;
@@ -126,12 +146,12 @@ public static partial class RenderService
 
         var scenesDir = Path.Combine(project.Folder, "renders", "scenes");
         Directory.CreateDirectory(scenesDir);
-        var sceneFile = Path.Combine(scenesDir, $"{preset.Id}_{name}.json");
+        var sceneFile = Path.Combine(scenesDir, $"{ScenePrefix(preset, request.Locale)}{name}.json");
         SceneAssets.MakeRelative(scene, project.Folder);
         File.WriteAllText(sceneFile, scene.ToJson());
 
         var issues = PresetValidator.ValidateImage(preset, image.Width, image.Height, format == ImageFormat.Png ? "png" : "jpeg", hasAlpha: false, bytes.Length);
-        Record(project, screenId, preset.Id, request.Template.Id, position, file, sceneFile, image.Width, image.Height);
+        Record(project, screenId, preset.Id, request.Template.Id, position, file, sceneFile, image.Width, image.Height, request.Locale);
         return new RenderedImage(preset, screenId, position, file, sceneFile, image.Width, image.Height, issues);
     }
 
@@ -168,12 +188,15 @@ public static partial class RenderService
             issues.Add(new(false, $"The APK's icon is only {source.Width}×{source.Height} px, so the {preset.Width} px store icon is upscaled and may look soft."));
         }
 
-        Record(project, null, preset.Id, "icon", 0, file, "", preset.Width, preset.Height);
+        Record(project, null, preset.Id, "icon", 0, file, "", preset.Width, preset.Height, "");
         return new RenderedImage(preset, null, 0, file, null, preset.Width, preset.Height, issues);
     }
 
-    /// <summary>Removes a preset's previous renders (files and rows) before rendering it again.</summary>
-    private static void ClearPreset(Project project, StorePreset preset, string folder)
+    /// <summary>"play-phone_" for the primary language, "play-phone@ur_" for another.</summary>
+    private static string ScenePrefix(StorePreset preset, string locale) => locale.Length == 0 ? preset.Id + "_" : $"{preset.Id}@{locale}_";
+
+    /// <summary>Removes a preset's previous renders in one language (files and rows) before rendering it again.</summary>
+    private static void ClearPreset(Project project, StorePreset preset, string folder, string locale)
     {
         if (Directory.Exists(folder))
         {
@@ -186,7 +209,7 @@ public static partial class RenderService
         var scenes = Path.Combine(project.Folder, "renders", "scenes");
         if (Directory.Exists(scenes))
         {
-            foreach (var f in Directory.EnumerateFiles(scenes, preset.Id + "_*.json"))
+            foreach (var f in Directory.EnumerateFiles(scenes, ScenePrefix(preset, locale) + "*.json"))
             {
                 File.Delete(f);
             }
@@ -194,18 +217,19 @@ public static partial class RenderService
 
         using var c = project.Database.Open();
         using var cmd = c.CreateCommand();
-        cmd.CommandText = "DELETE FROM renders WHERE preset_id = $p;";
+        cmd.CommandText = "DELETE FROM renders WHERE preset_id = $p AND locale = $l;";
         cmd.Parameters.AddWithValue("$p", preset.Id);
+        cmd.Parameters.AddWithValue("$l", locale);
         cmd.ExecuteNonQuery();
     }
 
-    private static void Record(Project project, long? screenId, string presetId, string templateId, int position, string file, string sceneFile, int width, int height)
+    private static void Record(Project project, long? screenId, string presetId, string templateId, int position, string file, string sceneFile, int width, int height, string locale)
     {
         using var c = project.Database.Open();
         using var cmd = c.CreateCommand();
         cmd.CommandText = """
-            INSERT INTO renders(screen_id, preset_id, template_id, position, file, scene_file, width, height, created_utc)
-            VALUES ($s, $p, $t, $pos, $f, $sf, $w, $h, $c);
+            INSERT INTO renders(screen_id, preset_id, template_id, position, file, scene_file, width, height, created_utc, locale)
+            VALUES ($s, $p, $t, $pos, $f, $sf, $w, $h, $c, $l);
             """;
         cmd.Parameters.AddWithValue("$s", (object?)screenId ?? DBNull.Value);
         cmd.Parameters.AddWithValue("$p", presetId);
@@ -216,6 +240,7 @@ public static partial class RenderService
         cmd.Parameters.AddWithValue("$w", width);
         cmd.Parameters.AddWithValue("$h", height);
         cmd.Parameters.AddWithValue("$c", DateTime.UtcNow.ToString("O", CultureInfo.InvariantCulture));
+        cmd.Parameters.AddWithValue("$l", locale);
         cmd.ExecuteNonQuery();
     }
 

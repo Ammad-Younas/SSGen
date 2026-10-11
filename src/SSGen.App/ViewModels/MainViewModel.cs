@@ -19,6 +19,7 @@ public sealed partial class MainViewModel : ObservableObject
         DesignViewModel design,
         GalleryViewModel gallery,
         EditorViewModel editor,
+        ExportViewModel export,
         SetupViewModel setup,
         SettingsViewModel settings,
         INavigationService navigation,
@@ -36,8 +37,7 @@ public sealed partial class MainViewModel : ObservableObject
             new(PageKey.Design, "Design", "", design),
             new(PageKey.Gallery, "Gallery", "", gallery),
             new(PageKey.Editor, "Editor", "", editor),
-            new(PageKey.Export, "Export", "", new PlaceholderViewModel("Export", "", "M7",
-                "Validate and export store-ready files per store and device size, with a manifest and optional ZIP.")),
+            new(PageKey.Export, "Export", "", export),
             new(PageKey.Setup, "Environment", "", setup),
             new(PageKey.Settings, "Settings", "", settings),
         ];
@@ -126,6 +126,3 @@ public interface IPageActivated
 {
     void OnActivated();
 }
-
-/// <summary>Empty state for features arriving in a later milestone.</summary>
-public sealed record PlaceholderViewModel(string Title, string Glyph, string Milestone, string Description);

@@ -47,8 +47,28 @@ public sealed partial class AdbDevice : IDevice
         return (int.Parse(m.Groups[1].Value, CultureInfo.InvariantCulture), int.Parse(m.Groups[2].Value, CultureInfo.InvariantCulture));
     }
 
-    public Task<byte[]> CaptureScreenshotPngAsync(CancellationToken ct = default) =>
-        _adb.ExecOutAsync(Serial, "screencap -p", TimeSpan.FromSeconds(15), ct);
+    /// <summary>gRPC screenshot channels per emulator serial (null = this device has none, use screencap).</summary>
+    private static readonly System.Collections.Concurrent.ConcurrentDictionary<string, Mirror.EmulatorScreenshots?> GrpcShots = new();
+
+    public async Task<byte[]> CaptureScreenshotPngAsync(CancellationToken ct = default)
+    {
+        // Emulators: take the frame from the host over gRPC (about 10x faster); anything else, or any failure,
+        // uses screencap. A failing channel is dropped so the next capture looks for the endpoint again.
+        if (Kind == DeviceKind.Emulator && GrpcShots.GetOrAdd(Serial, Mirror.EmulatorScreenshots.TryCreate) is { } grpc)
+        {
+            try
+            {
+                return await grpc.CapturePngAsync(ct);
+            }
+            catch (Exception ex) when (ex is Grpc.Core.RpcException or InvalidOperationException or HttpRequestException)
+            {
+                GrpcShots.TryRemove(Serial, out _);
+                grpc.Dispose();
+            }
+        }
+
+        return await _adb.ExecOutAsync(Serial, "screencap -p", TimeSpan.FromSeconds(15), ct);
+    }
 
     public async Task<string> DumpUiHierarchyAsync(CancellationToken ct = default)
     {

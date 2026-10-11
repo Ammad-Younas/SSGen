@@ -9,6 +9,6 @@
     <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
     <Company>SSGen</Company>
     <Product>SSGen</Product>
-    <Version>0.1.0</Version>
+    <Version>0.8.0</Version>
   </PropertyGroup>
 </Project>

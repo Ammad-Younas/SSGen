@@ -1,4 +1,5 @@
 using SkiaSharp;
+using SkiaSharp.HarfBuzz;
 
 namespace SSGen.Scene;
 
@@ -360,6 +361,13 @@ public static class SceneRenderer
 
     private static void DrawLine(SKCanvas canvas, string text, float x, float baseline, SKFont font, SKPaint paint, double letterSpacing)
     {
+        // Joined and reordered scripts are shaped by HarfBuzz (letter spacing would break the joins).
+        if (TextLayout.NeedsShaping(text))
+        {
+            canvas.DrawShapedText(TextLayout.Shaper(font.Typeface), text, x, baseline, SKTextAlign.Left, font, paint);
+            return;
+        }
+
         if (letterSpacing == 0)
         {
             canvas.DrawText(text, x, baseline, SKTextAlign.Left, font, paint);

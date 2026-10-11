@@ -8,6 +8,7 @@
   <ItemGroup>
     <PackageReference Include="SkiaSharp" />
     <PackageReference Include="SkiaSharp.NativeAssets.Win32" />
+    <PackageReference Include="SkiaSharp.HarfBuzz" />
   </ItemGroup>
 
   <!-- Open-licence fonts fetched by tools/fetch-deps.ps1 (not in git). Copied next to the app. -->

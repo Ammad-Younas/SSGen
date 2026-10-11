@@ -112,6 +112,60 @@ public sealed partial class PresetOptionViewModel : ObservableObject
     partial void OnIsSelectedChanged(bool value) => _changed();
 }
 
+/// <summary>One screen's caption in an additional language (edited in the Languages card).</summary>
+public sealed partial class TranslationRowViewModel : ObservableObject
+{
+    private readonly Action<TranslationRowViewModel> _changed;
+    private readonly bool _loading = true;
+
+    public TranslationRowViewModel(long screenId, string label, string sourceHeadline, string sourceSubheadline, string headline, string subheadline, bool rightToLeft, Action<TranslationRowViewModel> changed)
+    {
+        ScreenId = screenId;
+        Label = label;
+        SourceHeadline = sourceHeadline;
+        SourceSubheadline = sourceSubheadline;
+        Headline = headline;
+        Subheadline = subheadline;
+        Direction = rightToLeft ? FlowDirection.RightToLeft : FlowDirection.LeftToRight;
+        _changed = changed;
+        _loading = false;
+    }
+
+    public long ScreenId { get; }
+
+    public string Label { get; }
+
+    public string SourceHeadline { get; }
+
+    public string SourceSubheadline { get; }
+
+    public FlowDirection Direction { get; }
+
+    public string SourceText => SourceSubheadline.Length == 0 ? SourceHeadline : $"{SourceHeadline} · {SourceSubheadline}";
+
+    [ObservableProperty]
+    public partial string Headline { get; set; }
+
+    [ObservableProperty]
+    public partial string Subheadline { get; set; }
+
+    partial void OnHeadlineChanged(string value)
+    {
+        if (!_loading)
+        {
+            _changed(this);
+        }
+    }
+
+    partial void OnSubheadlineChanged(string value)
+    {
+        if (!_loading)
+        {
+            _changed(this);
+        }
+    }
+}
+
 /// <summary>A line in the render report.</summary>
 public sealed record RenderReportLine(bool IsError, string Text);
 
@@ -157,6 +211,37 @@ public sealed partial class DesignViewModel : ObservableObject, IPageActivated, 
 
     public ObservableCollection<RenderReportLine> Report { get; } = [];
 
+    /// <summary>Every language offered for the store listing.</summary>
+    public IReadOnlyList<Language> AllLanguages { get; } = Languages.All;
+
+    /// <summary>Languages besides the primary one.</summary>
+    public ObservableCollection<Language> ExtraLanguages { get; } = [];
+
+    /// <summary>The primary language followed by the extra ones (preview picker).</summary>
+    public IReadOnlyList<Language> SetLanguages => [PrimaryLanguage, .. ExtraLanguages];
+
+    public ObservableCollection<TranslationRowViewModel> TranslationRows { get; } = [];
+
+    [ObservableProperty]
+    public partial Language PrimaryLanguage { get; set; } = Languages.Find("en-US");
+
+    [ObservableProperty]
+    public partial Language? LanguageToAdd { get; set; }
+
+    [ObservableProperty]
+    public partial Language? TranslationLanguage { get; set; }
+
+    [ObservableProperty]
+    public partial Language? PreviewLanguage { get; set; }
+
+    [ObservableProperty]
+    public partial string TranslatedTagline { get; set; } = "";
+
+    [ObservableProperty]
+    public partial bool TranslationAvailable { get; set; }
+
+    public bool HasExtraLanguages => ExtraLanguages.Count > 0;
+
     [ObservableProperty]
     public partial string? Blocker { get; set; }
 
@@ -185,7 +270,7 @@ public sealed partial class DesignViewModel : ObservableObject, IPageActivated, 
     public partial string AiDescription { get; set; } = "";
 
     [ObservableProperty]
-    [NotifyCanExecuteChangedFor(nameof(RankCommand), nameof(RankWithAiCommand), nameof(RenderCommand))]
+    [NotifyCanExecuteChangedFor(nameof(RankCommand), nameof(RankWithAiCommand), nameof(RenderCommand), nameof(TranslateCommand))]
     public partial bool IsBusy { get; set; }
 
     [ObservableProperty]
@@ -241,6 +326,33 @@ public sealed partial class DesignViewModel : ObservableObject, IPageActivated, 
 
     partial void OnPreviewPresetChanged(PresetOptionViewModel? value) => RequestPreview();
 
+    partial void OnPreviewLanguageChanged(Language? value) => RequestPreview();
+
+    partial void OnPrimaryLanguageChanged(Language value)
+    {
+        if (!_loading && _project is { } p)
+        {
+            Languages.SetPrimary(p, value.Code);
+            if (ExtraLanguages.FirstOrDefault(l => l.Code == value.Code) is { } same)
+            {
+                ExtraLanguages.Remove(same);
+                SaveLanguages();
+            }
+
+            LanguagesChanged();
+        }
+    }
+
+    partial void OnTranslationLanguageChanged(Language? value) => LoadTranslations();
+
+    partial void OnTranslatedTaglineChanged(string value)
+    {
+        if (!_loading && _project is { } p && TranslationLanguage is { } l)
+        {
+            ProjectMeta.Set(p, "design.tagline@" + l.Code, value);
+        }
+    }
+
     private void OnPaletteChanged()
     {
         OnPropertyChanged(nameof(PrimaryBrush));
@@ -262,6 +374,7 @@ public sealed partial class DesignViewModel : ObservableObject, IPageActivated, 
         }
 
         RefreshAi();
+        LoadTranslations();
     }
 
     private int ScreenCountOnDisk() => _projects.Current is { } p ? ScreenRepository.List(p).Count : 0;
@@ -328,6 +441,7 @@ public sealed partial class DesignViewModel : ObservableObject, IPageActivated, 
             SelectedTemplate = Templates.FirstOrDefault(c => c.Template.Id == ProjectMeta.Get(p, "design.template")) ?? Templates[0];
 
             LoadPresets(p);
+            LoadLanguages(p);
             SelectedCandidate = Candidates.FirstOrDefault(c => c.Included) ?? Candidates.FirstOrDefault(c => !c.IsRejected) ?? Candidates.FirstOrDefault();
             UpdateCounts();
         }
@@ -374,6 +488,7 @@ public sealed partial class DesignViewModel : ObservableObject, IPageActivated, 
 
     private void RefreshAi()
     {
+        TranslationAvailable = _ai.ResolveTask(AiTask.Translation) is not null;
         var resolved = _ai.ResolveTask(AiTask.Ranking);
         AiAvailable = resolved is not null;
         AiDescription = resolved is { } r ? $"{r.Profile.Name} · {r.Model}" : "No AI provider (Settings > AI providers). The built-in ranking works without one.";
@@ -601,6 +716,24 @@ public sealed partial class DesignViewModel : ObservableObject, IPageActivated, 
 
     // ------------------------------------------------------------------ preview and thumbnails
 
+    private TemplateInputs Inputs(CandidateViewModel c, List<CandidateViewModel> set, int index, Language? language = null)
+    {
+        var (headline, subheadline) = Captions(c, language);
+        return Inputs(c, set, index) with { Headline = headline, Subheadline = subheadline, RightToLeft = (language ?? PrimaryLanguage).RightToLeft };
+    }
+
+    /// <summary>A screen's captions in a language (the primary ones when there's no translation yet).</summary>
+    private (string Headline, string Subheadline) Captions(CandidateViewModel c, Language? language)
+    {
+        var primary = (c.Headline.Length > 0 ? c.Headline : c.Label, c.Subheadline);
+        if (language is null || language.Code == PrimaryLanguage.Code || _project is not { } p)
+        {
+            return primary;
+        }
+
+        return new CaptionStore(p).Load(language.Code).TryGetValue(c.ScreenId, out var t) && t.Headline.Length > 0 ? (t.Headline, t.Subheadline) : primary;
+    }
+
     private TemplateInputs Inputs(CandidateViewModel c, List<CandidateViewModel> set, int index) => new()
     {
         Headline = c.Headline.Length > 0 ? c.Headline : c.Label,
@@ -639,7 +772,7 @@ public sealed partial class DesignViewModel : ObservableObject, IPageActivated, 
         var (w, h, frame) = preset is not null ? (preset.Width, preset.Height, preset.Frame) : (1080, 1920, DeviceFrame.PhonePunchHole);
         var set = SetOrSelection();
         var index = Math.Max(0, set.IndexOf(c));
-        var inputs = Inputs(c, set, index);
+        var inputs = Inputs(c, set, index, PreviewLanguage);
         _ = Task.Run(async () =>
         {
             await Task.Delay(120, cts.Token); // debounce typing
@@ -716,30 +849,58 @@ public sealed partial class DesignViewModel : ObservableObject, IPageActivated, 
         Report.Clear();
         try
         {
-            var request = new RenderRequest
-            {
-                Presets = presets,
-                Template = SelectedTemplate?.Template ?? Templates[0].Template,
-                Items = set.Select(c => new RenderItem(c.ScreenId, c.File, c.PixelWidth, c.PixelHeight, c.Label, c.Headline.Length > 0 ? c.Headline : c.Label, c.Subheadline)).ToList(),
-                Palette = Palette(),
-                IconFile = _apk?.IconPath(project),
-                AppName = _apk?.Info.DisplayName ?? project.Name,
-                Tagline = Tagline.Length > 0 ? Tagline : set[0].Subheadline,
-            };
-            var progress = new Progress<(int Done, int Total, string Message)>(p =>
-            {
-                ProgressValue = p.Total == 0 ? 0 : p.Done * 100.0 / p.Total;
-                Status = p.Message;
-            });
+            // One set per language: the primary captions, then each extra language's (untranslated screens fall
+            // back to the primary captions, which the report mentions).
+            var languages = SetLanguages;
             var sw = Stopwatch.StartNew();
-            var result = await Task.Run(() => RenderService.Render(project, request, progress));
-            RenderFolder = System.IO.Path.Combine(project.Folder, "renders");
-            foreach (var issue in result.SetIssues.Concat(result.Images.SelectMany(i => i.Issues)).DistinctBy(i => i.Message))
+            var count = 0;
+            var hasErrors = false;
+            for (var li = 0; li < languages.Count; li++)
             {
-                Report.Add(new RenderReportLine(issue.IsError, issue.Message));
+                var language = languages[li];
+                var isPrimary = li == 0;
+                var translations = isPrimary ? null : new CaptionStore(project).Load(language.Code);
+                var missing = isPrimary ? 0 : set.Count(c => translations is null || !translations.TryGetValue(c.ScreenId, out var t) || t.Headline.Length == 0);
+                if (missing > 0)
+                {
+                    Report.Add(new RenderReportLine(false, $"{language.Name}: {missing} screen(s) have no translation yet, so they use the {PrimaryLanguage.Name} captions."));
+                }
+
+                var tagline = isPrimary ? Tagline : ProjectMeta.Get(project, "design.tagline@" + language.Code) ?? "";
+                var request = new RenderRequest
+                {
+                    Presets = presets,
+                    Template = SelectedTemplate?.Template ?? Templates[0].Template,
+                    Items = set.Select(c =>
+                    {
+                        var (headline, subheadline) = Captions(c, language);
+                        return new RenderItem(c.ScreenId, c.File, c.PixelWidth, c.PixelHeight, c.Label, headline, subheadline);
+                    }).ToList(),
+                    Palette = Palette(),
+                    IconFile = _apk?.IconPath(project),
+                    AppName = _apk?.Info.DisplayName ?? project.Name,
+                    Tagline = tagline.Length > 0 ? tagline : Captions(set[0], language).Subheadline,
+                    Locale = isPrimary ? "" : language.Code,
+                    RightToLeft = language.RightToLeft,
+                };
+                var step = li;
+                var progress = new Progress<(int Done, int Total, string Message)>(p =>
+                {
+                    ProgressValue = ((step + (p.Total == 0 ? 0 : p.Done / (double)p.Total)) * 100.0) / languages.Count;
+                    Status = languages.Count > 1 ? $"{language.Name}: {p.Message}" : p.Message;
+                });
+                var result = await Task.Run(() => RenderService.Render(project, request, progress));
+                count += result.Images.Count;
+                hasErrors |= result.HasErrors;
+                foreach (var issue in result.SetIssues.Concat(result.Images.SelectMany(i => i.Issues)).DistinctBy(i => i.Message))
+                {
+                    Report.Add(new RenderReportLine(issue.IsError, languages.Count > 1 ? $"{language.Name}: {issue.Message}" : issue.Message));
+                }
             }
 
-            Status = $"Rendered {result.Images.Count} image(s) in {sw.Elapsed.TotalSeconds:0} s{(result.HasErrors ? ", with problems (see below)" : ", all within the store rules")}.";
+            RenderFolder = System.IO.Path.Combine(project.Folder, "renders");
+            var inLanguages = languages.Count > 1 ? $" in {languages.Count} languages" : "";
+            Status = $"Rendered {count} image(s){inLanguages} in {sw.Elapsed.TotalSeconds:0} s{(hasErrors ? ", with problems (see below)" : ", all within the store rules")}.";
         }
         catch (IOException ex)
         {
@@ -750,6 +911,170 @@ public sealed partial class DesignViewModel : ObservableObject, IPageActivated, 
         {
             IsBusy = false;
             ProgressValue = 0;
+        }
+    }
+
+    // ------------------------------------------------------------------ languages
+
+    private void LoadLanguages(Project p)
+    {
+        PrimaryLanguage = Languages.Primary(p);
+        ExtraLanguages.Clear();
+        foreach (var l in Languages.Additional(p))
+        {
+            ExtraLanguages.Add(l);
+        }
+
+        LanguagesChanged();
+    }
+
+    private void SaveLanguages()
+    {
+        if (_project is { } p)
+        {
+            Languages.SetAdditional(p, ExtraLanguages.Select(l => l.Code));
+        }
+    }
+
+    private void LanguagesChanged()
+    {
+        OnPropertyChanged(nameof(SetLanguages));
+        OnPropertyChanged(nameof(HasExtraLanguages));
+        PreviewLanguage = SetLanguages.FirstOrDefault(l => l.Code == PreviewLanguage?.Code) ?? PrimaryLanguage;
+        TranslationLanguage = ExtraLanguages.FirstOrDefault(l => l.Code == TranslationLanguage?.Code) ?? ExtraLanguages.FirstOrDefault();
+    }
+
+    [RelayCommand]
+    private void AddLanguage()
+    {
+        if (LanguageToAdd is not { } l || _project is null || l.Code == PrimaryLanguage.Code || ExtraLanguages.Any(x => x.Code == l.Code))
+        {
+            return;
+        }
+
+        ExtraLanguages.Add(l);
+        SaveLanguages();
+        LanguageToAdd = null;
+        LanguagesChanged();
+        TranslationLanguage = l;
+    }
+
+    [RelayCommand]
+    private void RemoveLanguage(Language? l)
+    {
+        if (l is null || !ExtraLanguages.Contains(l))
+        {
+            return;
+        }
+
+        ExtraLanguages.Remove(l);
+        SaveLanguages();
+        LanguagesChanged();
+    }
+
+    /// <summary>The translation rows for the chosen language: every screen in the set, in order.</summary>
+    private void LoadTranslations()
+    {
+        TranslationRows.Clear();
+        if (_project is not { } p || TranslationLanguage is not { } language)
+        {
+            TranslateCommand.NotifyCanExecuteChanged();
+            return;
+        }
+
+        var saved = new CaptionStore(p).Load(language.Code);
+        foreach (var c in Candidates.Where(c => c.Included).OrderBy(c => c.Position ?? int.MaxValue))
+        {
+            saved.TryGetValue(c.ScreenId, out var t);
+            TranslationRows.Add(new TranslationRowViewModel(c.ScreenId, c.Label, c.Headline.Length > 0 ? c.Headline : c.Label, c.Subheadline,
+                t?.Headline ?? "", t?.Subheadline ?? "", language.RightToLeft, SaveTranslation));
+        }
+
+        var wasLoading = _loading;
+        _loading = true;
+        TranslatedTagline = ProjectMeta.Get(p, "design.tagline@" + language.Code) ?? "";
+        _loading = wasLoading;
+        TranslateCommand.NotifyCanExecuteChanged();
+    }
+
+    private void SaveTranslation(TranslationRowViewModel row)
+    {
+        if (_project is { } p && TranslationLanguage is { } language)
+        {
+            new CaptionStore(p).Save(new LocalizedCaption(row.ScreenId, language.Code, row.Headline.Trim(), row.Subheadline.Trim(), "manual"));
+            if (PreviewLanguage?.Code == language.Code)
+            {
+                RequestPreview();
+            }
+        }
+    }
+
+    private bool CanTranslate() => !IsBusy && TranslationLanguage is not null && TranslationRows.Count > 0;
+
+    /// <summary>Translates the set's captions (and the tagline) into the chosen language. Text only: no screenshots.</summary>
+    [RelayCommand(CanExecute = nameof(CanTranslate))]
+    private async Task TranslateAsync()
+    {
+        if (_project is not { } project || TranslationLanguage is not { } language)
+        {
+            return;
+        }
+
+        if (await _ai.ResolveAsync(AiTask.Translation) is not { } resolved)
+        {
+            _dialogs.ShowInfo("No AI provider", "Add an AI provider in Settings > AI providers to translate automatically, or type the translations here.");
+            return;
+        }
+
+        var filled = TranslationRows.Count(r => r.Headline.Length > 0);
+        if (filled > 0 && !_dialogs.Confirm("Replace translations?", $"{filled} caption(s) in {language.Name} already have text. Replace them with new AI translations?"))
+        {
+            return;
+        }
+
+        if (_gate.Prepare(resolved, "", textOnly: true) is not { } prepared)
+        {
+            return;
+        }
+
+        IsBusy = true;
+        try
+        {
+            Status = $"Translating into {language.Name} with {resolved.Profile.Name}…";
+            var sources = TranslationRows.Select(r => new CaptionSource(r.ScreenId, r.SourceHeadline, r.SourceSubheadline)).ToList();
+            if (Tagline.Length > 0)
+            {
+                sources.Add(new CaptionSource(-1, Tagline, ""));
+            }
+
+            var translator = new CaptionTranslator(resolved.Provider, prepared.Meter.Add);
+            var result = await translator.TranslateAsync(sources, PrimaryLanguage, language, _apk?.Info.DisplayName ?? project.Name, CancellationToken.None);
+            var store = new CaptionStore(project);
+            foreach (var caption in result)
+            {
+                if (caption.ScreenId == -1)
+                {
+                    ProjectMeta.Set(project, "design.tagline@" + language.Code, caption.Headline);
+                }
+                else
+                {
+                    store.Save(caption);
+                }
+            }
+
+            LoadTranslations();
+            RequestPreview();
+            Status = $"Translated {result.Count} caption(s) into {language.Name}. Have a native speaker check store text before publishing. {prepared.Meter.Describe()}";
+        }
+        catch (LlmException ex)
+        {
+            _log.LogWarning(ex, "Translation failed");
+            Status = "Translation failed: " + ex.Message;
+            _dialogs.ShowError("Translation failed", new UserFacingException(ex.Message, ex.SuggestedFix));
+        }
+        finally
+        {
+            IsBusy = false;
         }
     }
 

@@ -251,11 +251,17 @@ public sealed partial class EditorViewModel : ObservableObject, IPageActivated, 
         var order = catalog.AllPresets.Select((p, i) => (p.Id, i)).ToDictionary(x => x.Id, x => x.i);
         var options = RenderStore.List(project)
             .Where(r => r.Editable && File.Exists(r.SceneFullPath(project)))
-            .OrderBy(r => order.GetValueOrDefault(r.PresetId, int.MaxValue)).ThenBy(r => r.Position)
+            .OrderBy(r => r.Locale.Length > 0).ThenBy(r => r.Locale, StringComparer.Ordinal)
+            .ThenBy(r => order.GetValueOrDefault(r.PresetId, int.MaxValue)).ThenBy(r => r.Position)
             .Select(r =>
             {
                 var preset = catalog.Find(r.PresetId);
                 var where = preset is null ? r.PresetId : $"{preset.Store.Name} · {preset.Name}";
+                if (r.Locale.Length > 0)
+                {
+                    where += " · " + SSGen.Selection.Languages.Find(r.Locale).Name;
+                }
+
                 return new EditorImageOption(r, preset, preset?.Kind == PresetKind.FeatureGraphic ? where : $"{where} · {r.Position + 1}. {r.DisplayName}");
             })
             .ToList();
@@ -831,7 +837,8 @@ public sealed partial class EditorViewModel : ObservableObject, IPageActivated, 
             return;
         }
 
-        var others = Images.Where(i => i.Record.PresetId == _record.PresetId && i.Record.Id != _record.Id).ToList();
+        // Same size and same language: other languages keep their own (possibly right-to-left) text styling.
+        var others = Images.Where(i => i.Record.PresetId == _record.PresetId && i.Record.Locale == _record.Locale && i.Record.Id != _record.Id).ToList();
         if (others.Count == 0)
         {
             _dialogs.ShowInfo("Nothing else to update", "This is the only image of this size.");

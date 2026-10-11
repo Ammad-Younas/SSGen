@@ -25,8 +25,6 @@ public sealed partial class GalleryImageViewModel : ObservableObject
 
     public string Name => Record.DisplayName;
 
-    public string PositionText => (Record.Position + 1).ToString(CultureInfo.CurrentCulture);
-
     public string SizeText => $"{Record.Width} × {Record.Height}";
 
     public bool IsEdited => Record.IsEdited;
@@ -50,6 +48,11 @@ public sealed partial class GalleryGroupViewModel : ObservableObject
 {
     public required string PresetId { get; init; }
 
+    /// <summary>"" = the primary language.</summary>
+    public string Locale { get; init; } = "";
+
+    public string LanguageName { get; init; } = "";
+
     public StorePreset? Preset { get; init; }
 
     public required IReadOnlyList<GalleryImageViewModel> Images { get; init; }
@@ -60,7 +63,9 @@ public sealed partial class GalleryGroupViewModel : ObservableObject
 
     public string Name => Preset?.Name ?? PresetId;
 
-    public string Title => $"{StoreName} · {Name}";
+    public string Title => Locale.Length == 0 ? $"{StoreName} · {Name}" : $"{StoreName} · {Name} · {LanguageName}";
+
+    public string Key => PresetId + "@" + Locale;
 
     public string SizeText => Preset is { } p ? $"{p.Width} × {p.Height}" : "";
 
@@ -90,6 +95,7 @@ public sealed partial class GalleryViewModel : ObservableObject, IPageActivated,
     private readonly Dictionary<(string, DateTime), BitmapSource> _thumbCache = [];
     private CancellationTokenSource? _thumbsCts;
     private string? _restoreGroup;
+    private Project? _project;
 
     public GalleryViewModel(IProjectService projects, EditorViewModel editor, INavigationService navigation, IDialogService dialogs, AppPaths paths, ILogger<GalleryViewModel> log)
     {
@@ -134,8 +140,8 @@ public sealed partial class GalleryViewModel : ObservableObject, IPageActivated,
 
     /// <summary>Google Play shows the feature graphic above the screenshots.</summary>
     public BitmapSource? ListingFeatureGraphic =>
-        SelectedGroup?.Preset?.Store.Id is { } store
-            ? Groups.FirstOrDefault(g => g.Preset is { Kind: PresetKind.FeatureGraphic } p && p.Store.Id == store)?.Images is [var first, ..] ? first.Thumb : null
+        SelectedGroup is { Preset.Store.Id: { } store } selected
+            ? Groups.FirstOrDefault(g => g.Preset is { Kind: PresetKind.FeatureGraphic } p && p.Store.Id == store && g.Locale == selected.Locale)?.Images is [var first, ..] ? first.Thumb : null
             : null;
 
     partial void OnBlockerChanged(string? value) => OnPropertyChanged(nameof(HasBlocker));
@@ -145,7 +151,13 @@ public sealed partial class GalleryViewModel : ObservableObject, IPageActivated,
         SelectedImage = value?.Images.FirstOrDefault();
         if (value is not null)
         {
-            _restoreGroup = value.PresetId;
+            _restoreGroup = value.Key;
+            if (_project is { } p)
+            {
+                // The listing shows the tagline in the set's language.
+                var primary = ProjectMeta.Get(p, "design.tagline") ?? "";
+                Tagline = value.Locale.Length == 0 ? primary : ProjectMeta.Get(p, "design.tagline@" + value.Locale) is { Length: > 0 } t ? t : primary;
+            }
         }
     }
 
@@ -166,6 +178,7 @@ public sealed partial class GalleryViewModel : ObservableObject, IPageActivated,
         var apk = ProjectApkStore.Load(project);
         AppName = apk?.Info.DisplayName ?? project.Name;
         Tagline = ProjectMeta.Get(project, "design.tagline") ?? "";
+        _project = project;
         AppIcon = apk?.IconPath(project) is { } icon && File.Exists(icon) ? Decode(icon, 128) : null;
 
         var catalog = StorePresetCatalog.Load(Path.Combine(_paths.DataRoot, "store-presets.json"));
@@ -173,9 +186,9 @@ public sealed partial class GalleryViewModel : ObservableObject, IPageActivated,
         var records = RenderStore.List(project);
         Blocker = records.Count == 0 ? "No store images yet. Choose screens and a template on the Design page, then Render all." : null;
 
-        foreach (var group in records.GroupBy(r => r.PresetId).OrderBy(g => order.GetValueOrDefault(g.Key, int.MaxValue)))
+        foreach (var group in records.GroupBy(r => (r.PresetId, r.Locale)).OrderBy(g => g.Key.Locale.Length > 0).ThenBy(g => g.Key.Locale, StringComparer.Ordinal).ThenBy(g => order.GetValueOrDefault(g.Key.PresetId, int.MaxValue)))
         {
-            var preset = catalog.Find(group.Key);
+            var preset = catalog.Find(group.Key.PresetId);
             var images = group.OrderBy(r => r.Position).Select(r => new GalleryImageViewModel
             {
                 Record = r,
@@ -184,7 +197,9 @@ public sealed partial class GalleryViewModel : ObservableObject, IPageActivated,
             }).ToList();
             Groups.Add(new GalleryGroupViewModel
             {
-                PresetId = group.Key,
+                PresetId = group.Key.PresetId,
+                Locale = group.Key.Locale,
+                LanguageName = group.Key.Locale.Length == 0 ? "" : SSGen.Selection.Languages.Find(group.Key.Locale).Name,
                 Preset = preset,
                 Images = images,
                 SetIssues = preset is { Kind: PresetKind.Screenshot } ? PresetValidator.ValidateCount(preset, images.Count) : [],
@@ -194,7 +209,7 @@ public sealed partial class GalleryViewModel : ObservableObject, IPageActivated,
         var total = Groups.Sum(g => g.Images.Count);
         var problems = Groups.Count(g => g.HasProblems);
         Summary = total == 0 ? "" : $"{total} image(s) in {Groups.Count} store size(s). {(problems == 0 ? "Everything is within the store rules." : $"{problems} size(s) need attention.")}";
-        SelectedGroup = Groups.FirstOrDefault(g => g.PresetId == _restoreGroup) ?? Groups.FirstOrDefault(g => g.IsScreenshots) ?? Groups.FirstOrDefault();
+        SelectedGroup = Groups.FirstOrDefault(g => g.Key == _restoreGroup) ?? Groups.FirstOrDefault(g => g.IsScreenshots) ?? Groups.FirstOrDefault();
         LoadThumbnails();
     }
 

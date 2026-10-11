@@ -141,7 +141,7 @@ public static partial class UiHierarchyParser
         var texts = new List<string>();
         string? rootPackage = null;
         var hasSpinner = false;
-        string? title = null;
+        var headings = new List<(string Text, UiBounds Bounds)>();
         var screenHeight = 0;
         foreach (var node in doc.Descendants("node"))
         {
@@ -156,12 +156,11 @@ public static partial class UiHierarchyParser
             var desc = (string?)node.Attribute("content-desc") ?? "";
             var nodeBounds = ParseBounds((string?)node.Attribute("bounds"));
             screenHeight = Math.Max(screenHeight, nodeBounds.Bottom);
-            if (title is null && !string.IsNullOrWhiteSpace(text) && (string?)node.Attribute("clickable") != "true" &&
-                ((string?)node.Attribute("class") ?? "").EndsWith("TextView", StringComparison.Ordinal) &&
-                nodeBounds.Top < screenHeight * 0.14 && nodeBounds.Top > screenHeight * 0.02)
+            if (IsHeadingCandidate(node, text))
             {
-                title = text.Trim(); // app bar title (below the status bar)
+                headings.Add((text.Trim(), nodeBounds));
             }
+
             if (!string.IsNullOrWhiteSpace(text))
             {
                 texts.Add(text.Trim());
@@ -222,7 +221,59 @@ public static partial class UiHierarchyParser
             .Select((e, i) => e with { Id = i + 1 })
             .ToList();
 
-        return new UiSnapshot(deduped, texts, rootPackage, hasSpinner, title);
+        return new UiSnapshot(deduped, texts, rootPackage, hasSpinner, PickTitle(headings, screenHeight));
+    }
+
+    /// <summary>
+    /// Text that could name the screen: short, not an input or control, and not inside anything tappable (so
+    /// "Skip", "Next" and list rows don't count).
+    /// </summary>
+    private static bool IsHeadingCandidate(XElement node, string text)
+    {
+        if (string.IsNullOrWhiteSpace(text) || text.Length > 40 || text.Trim().Split(' ', StringSplitOptions.RemoveEmptyEntries).Length > 6)
+        {
+            return false;
+        }
+
+        var cls = (string?)node.Attribute("class") ?? "";
+        if (cls.EndsWith("EditText", StringComparison.Ordinal) || cls.EndsWith("Button", StringComparison.Ordinal) ||
+            cls.EndsWith("CheckBox", StringComparison.Ordinal) || cls.EndsWith("Switch", StringComparison.Ordinal))
+        {
+            return false;
+        }
+
+        return node.AncestorsAndSelf("node").All(n => (string?)n.Attribute("clickable") != "true");
+    }
+
+    /// <summary>
+    /// The screen's name: the first heading in the app bar band (below the status bar), else the largest heading
+    /// text in the upper part of the screen (onboarding and sign-in pages have no app bar). Null when nothing
+    /// stands out.
+    /// </summary>
+    internal static string? PickTitle(IReadOnlyList<(string Text, UiBounds Bounds)> headings, int screenHeight)
+    {
+        if (headings.Count == 0 || screenHeight <= 0)
+        {
+            return null;
+        }
+
+        var appBar = headings.FirstOrDefault(h => h.Bounds.Top > screenHeight * 0.02 && h.Bounds.Top < screenHeight * 0.14);
+        if (appBar.Text is not null)
+        {
+            return appBar.Text;
+        }
+
+        var upper = headings.Where(h => h.Bounds.Top > screenHeight * 0.05 && h.Bounds.Top < screenHeight * 0.75).ToList();
+        if (upper.Count == 0)
+        {
+            return null;
+        }
+
+        // Text height stands in for font size: a heading is clearly taller than the typical text on the screen.
+        var heights = headings.Select(h => h.Bounds.Height).Order().ToList();
+        var median = heights[heights.Count / 2];
+        var largest = upper.OrderByDescending(h => h.Bounds.Height).ThenBy(h => h.Bounds.Top).First();
+        return largest.Bounds.Height >= median * 1.25 || headings.Count == 1 ? largest.Text : null;
     }
 
     internal static UiBounds ParseBounds(string? s)

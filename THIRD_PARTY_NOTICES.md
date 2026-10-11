@@ -28,6 +28,8 @@ SSGen uses the following third-party components. Only permissive licences are al
 | [FFmpeg 9.0](https://ffmpeg.org/legal.html), **LGPL shared build** by [BtbN/FFmpeg-Builds](https://github.com/BtbN/FFmpeg-Builds): avcodec, avutil, swscale, swresample DLLs only | LGPL-2.1-or-later | H.264 decoding for the phone preview. **Dynamically loaded and unmodified.** Users may replace the DLLs in `tools/ffmpeg/` with their own compatible build. Build info: `tools/ffmpeg/BUILD.txt`; source: https://github.com/FFmpeg/FFmpeg |
 | [Poppins](https://github.com/itfoundry/Poppins) (Regular, SemiBold, Bold, ExtraBold) | SIL Open Font License 1.1 | Text in rendered store images. Licence text: `fonts/Poppins-OFL.txt` |
 | [DM Serif Display](https://github.com/googlefonts/dm-fonts) | SIL Open Font License 1.1 | Optional serif headlines. Licence text: `fonts/DMSerifDisplay-OFL.txt` |
+| [SkiaSharp.HarfBuzz / HarfBuzzSharp](https://github.com/mono/SkiaSharp) (HarfBuzz) | MIT (HarfBuzz: Old MIT) | Text shaping for Arabic, Urdu, Hebrew, Indic and other scripts |
+| [Velopack](https://github.com/velopack/velopack) | MIT | Installer and the startup hook (`vpk` builds the installer; not shipped) |
 | `emulator_controller.proto` from the Android Emulator (`<sdk>/emulator/lib`) | Apache-2.0 (header retained) | Generated client for the emulator's gRPC API: `src/SSGen.Emulator/Protos/` |
 
 ## Development, build and test only (not shipped)
@@ -45,8 +47,3 @@ SSGen uses the following third-party components. Only permissive licences are al
 - **Android SDK tools** (adb, emulator, aapt2, Android CLI, system images) are installed by the user under Google's [Android SDK License](https://developer.android.com/studio/terms). SSGen never redistributes them.
 - **Segoe Fluent Icons / Segoe MDL2 Assets** are Windows system fonts. SSGen uses the installed copies.
 - **Device frames** in rendered images are drawn by SSGen's own code (generic shapes); no device artwork from Apple, Google or others is included.
-
-## Planned (to be added when introduced)
-
-- Velopack (MIT) for the installer (M7)
-- Additional fonts under the SIL Open Font License (M6 editor)
