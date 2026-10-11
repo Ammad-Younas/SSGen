@@ -55,7 +55,7 @@ public class MigrationRunnerTests
         using (var c = db.Open())
         using (var cmd = c.CreateCommand())
         {
-            cmd.CommandText = "INSERT INTO project_meta(key, value) VALUES ('marker', 'kept'); DROP TABLE captions; ALTER TABLE renders DROP COLUMN locale; PRAGMA user_version = 6;";
+            cmd.CommandText = "INSERT INTO project_meta(key, value) VALUES ('marker', 'kept'); DROP TABLE captions; ALTER TABLE renders DROP COLUMN locale; ALTER TABLE selection DROP COLUMN template_id; PRAGMA user_version = 6;";
             cmd.ExecuteNonQuery();
         }
 
