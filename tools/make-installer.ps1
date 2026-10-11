@@ -14,6 +14,7 @@ Set-Location $root
 $publish = Join-Path $root "artifacts\publish"
 $releases = Join-Path $root "artifacts\releases"
 if (Test-Path $publish) { Remove-Item $publish -Recurse -Force }
+if (Test-Path $releases) { Remove-Item $releases -Recurse -Force }   # one release per build (no update feed)
 New-Item -ItemType Directory -Force $releases | Out-Null
 
 foreach ($required in "third_party\scrcpy", "third_party\ffmpeg", "third_party\fonts") {
@@ -31,17 +32,21 @@ Write-Host "Packing the installer..."
 dotnet tool restore
 if ($LASTEXITCODE -ne 0) { throw "dotnet tool restore failed" }
 $env:DOTNET_ROLL_FORWARD = "Major"   # vpk targets an older .NET; let it run on .NET 10
+# The pack id names the install folder (%LOCALAPPDATA%\<packId>). It must NOT be "SSGen": that folder holds the
+# user's data (app.db, logs, settings), and uninstalling would delete it with the program.
 dotnet vpk pack `
-    --packId SSGen `
+    --packId SSGen.Desktop `
     --packVersion $Version `
     --packDir $publish `
     --mainExe SSGen.exe `
     --packTitle SSGen `
     --packAuthors SSGen `
     --icon (Join-Path $root "src\SSGen.App\Assets\ssgen.ico") `
+    --runtime win-x64 `
     --framework net10.0-x64-desktop `
     --outputDir $releases
 if ($LASTEXITCODE -ne 0) { throw "vpk pack failed" }
 
+Copy-Item (Join-Path $releases "SSGen.Desktop-win-Setup.exe") (Join-Path $releases "SSGen-Setup.exe") -Force
 Get-ChildItem $releases | Select-Object Name, @{ n = "MB"; e = { [math]::Round($_.Length / 1MB, 1) } } | Format-Table -AutoSize
-Write-Host "Installer: $(Join-Path $releases 'SSGen-win-Setup.exe') (unsigned: Windows SmartScreen will warn on first run)."
+Write-Host "Installer: $(Join-Path $releases 'SSGen-Setup.exe') (unsigned: Windows SmartScreen will warn on first run)."

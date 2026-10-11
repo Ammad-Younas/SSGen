@@ -116,7 +116,7 @@ On the Design page, **Languages** sets the primary language (the captions you wr
 
 ## Installer
 
-`powershell -File tools/make-installer.ps1 -Version 0.8.0` builds `artifacts/releases/SSGen-win-Setup.exe` with Velopack. It's unsigned, so Windows SmartScreen asks for confirmation on first run ("More info", then "Run anyway"). The installer adds the .NET 10 Desktop Runtime if it's missing. Run `tools/fetch-deps.ps1` once before building it.
+`powershell -File tools/make-installer.ps1 -Version 0.8.0` builds `artifacts/releases/SSGen-Setup.exe` with Velopack. SSGen installs into `%LOCALAPPDATA%\SSGen.Desktop` (program) and keeps your data in `%LOCALAPPDATA%\SSGen`; uninstalling (Settings > Apps) removes the program only. It's unsigned, so Windows SmartScreen asks for confirmation on first run ("More info", then "Run anyway"). The installer adds the .NET 10 Desktop Runtime if it's missing. Run `tools/fetch-deps.ps1` once before building it.
 
 ## AI
 
