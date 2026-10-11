@@ -73,8 +73,8 @@ public sealed record ScreenFingerprint(string? Activity, ulong DHash, IReadOnlyS
     }
 
     /// <summary>
-    /// Same screen if the activity matches and either the pixels are near-identical, or the interactive structure
-    /// is very similar with the same selection (same screen, different data).
+    /// Same screen if the activity matches and either the pixels are near-identical with a similar element set, or
+    /// the interactive structure is very similar with the same selection (same screen, different data).
     /// </summary>
     public bool Matches(ScreenFingerprint other)
     {
@@ -85,10 +85,6 @@ public sealed record ScreenFingerprint(string? Activity, ulong DHash, IReadOnlyS
         }
 
         var hamming = Hamming(DHash, other.DHash);
-        if (hamming <= 6)
-        {
-            return true;
-        }
 
         // Screens without a usable UI tree (games, webviews) can only be compared by pixels.
         if (Structure.Count < 3 || other.Structure.Count < 3)
@@ -96,6 +92,15 @@ public sealed record ScreenFingerprint(string? Activity, ulong DHash, IReadOnlyS
             return hamming <= 10;
         }
 
-        return Jaccard(Structure, other.Structure) >= 0.85 && Selection.SetEquals(other.Selection);
+        var jaccard = Jaccard(Structure, other.Structure);
+
+        // Near-identical pixels still need a broadly similar element set: a small popup menu or dialog barely
+        // changes the image but replaces what can be tapped, and is a screen of its own.
+        if (hamming <= 6)
+        {
+            return jaccard >= 0.6;
+        }
+
+        return jaccard >= 0.85 && Selection.SetEquals(other.Selection);
     }
 }

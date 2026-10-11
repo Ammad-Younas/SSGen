@@ -31,6 +31,17 @@ public class AgentRunTests
             Questions.Add(question);
             return Task.FromResult(ConfirmAnswer);
         }
+
+        public List<string> Takeovers { get; } = [];
+
+        /// <summary>Simulates the user during a takeover (e.g. logging in), then resuming.</summary>
+        public Action<string>? DuringTakeover { get; set; }
+
+        public void OnTakeoverRequested(string reason)
+        {
+            Takeovers.Add(reason);
+            DuringTakeover?.Invoke(reason);
+        }
     }
 
     private static AgentRunOptions Options(int maxSteps = 60) => new()
@@ -40,6 +51,8 @@ public class AgentRunTests
         MaxSteps = maxSteps,
         SettlePoll = TimeSpan.FromMilliseconds(1),
         SettleTimeout = TimeSpan.FromMilliseconds(50),
+        WarmupTimeout = TimeSpan.FromMilliseconds(50),
+        Patience = TimeSpan.FromMilliseconds(10),
     };
 
     private static string[] Tapped(MockDevice device) => device.Actions.Where(a => a.StartsWith("tap", StringComparison.Ordinal)).ToArray();

@@ -123,6 +123,12 @@ public sealed partial class AdbDevice : IDevice
         return int.TryParse(first, CultureInfo.InvariantCulture, out var pid) ? pid : null;
     }
 
+    public async Task<bool> IsKeyboardShownAsync(CancellationToken ct = default)
+    {
+        var r = await _adb.TryShellAsync(Serial, "dumpsys input_method | grep -E 'mInputShown=|mIsInputViewShown='", TimeSpan.FromSeconds(15), ct);
+        return r.StdOut.Contains("mInputShown=true", StringComparison.Ordinal) || r.StdOut.Contains("mIsInputViewShown=true", StringComparison.Ordinal);
+    }
+
     /// <summary>
     /// Escapes text for `input text`: spaces become %s (input's own encoding) and the result is single-quoted for
     /// the device shell. Only ASCII is reliable with `input text`; other characters are dropped.

@@ -19,6 +19,7 @@ public enum AndroidKey
     Delete = 67,
     Menu = 82,
     Escape = 111,
+    MoveEnd = 123,
     AppSwitch = 187,
 }
 
@@ -69,4 +70,10 @@ public interface IDevice
 
     /// <summary>Process id of a running package, or null.</summary>
     Task<int?> GetPidAsync(string packageName, CancellationToken ct = default);
+
+    /// <summary>
+    /// Whether the soft keyboard is showing. The keyboard never appears in the UI dump, so it needs its own check
+    /// (on API 36: `mInputShown=true` in `dumpsys input_method`; the Escape key hides it).
+    /// </summary>
+    Task<bool> IsKeyboardShownAsync(CancellationToken ct = default);
 }

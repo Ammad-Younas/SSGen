@@ -53,6 +53,8 @@ public class AgentIntegrationTests
         public void OnProgress(int stepNumber, CostMeter meter, ScreenGraph graph) { }
 
         public Task<bool> ConfirmAsync(string question) => Task.FromResult(false);
+
+        public void OnTakeoverRequested(string reason) => output.WriteLine("TAKEOVER: " + reason);
     }
 
     [IntegrationFact]

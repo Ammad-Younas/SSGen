@@ -40,8 +40,8 @@ public sealed partial class Guardrails
         "reset all", "uninstall", "clear data", "clear all",
         // outbound communication / public posting
         "send", "post", "publish", "share", "tweet", "reply", "comment", "invite", "call", "dial", "report",
-        // session
-        "sign out", "log out", "logout",
+        // session and accounts (creating a real account is outward-facing)
+        "sign out", "log out", "logout", "sign up", "create account", "create an account", "register",
         // German, Spanish, French, Portuguese, Italian
         "kaufen", "bezahlen", "löschen", "senden", "abonnieren",
         "comprar", "pagar", "eliminar", "borrar", "enviar", "suscribirse",

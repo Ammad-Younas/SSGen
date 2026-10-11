@@ -34,6 +34,9 @@ public sealed record UiElement
     public bool Selected { get; init; }
     public bool Password { get; init; }
 
+    /// <summary>Hint of a text field when the dump reports it (empty fields usually show their hint as text).</summary>
+    public string Hint { get; init; } = "";
+
     /// <summary>Text gathered from non-interactive descendants (e.g. a list row's title).</summary>
     public string ChildText { get; init; } = "";
 
@@ -60,8 +63,16 @@ public sealed record UiElement
         }
     }
 
-    /// <summary>Stable identity across visits (ignores data-dependent text for list rows with resource ids).</summary>
-    public string Key => $"{ResourceName}|{ShortClass}|{(string.IsNullOrEmpty(ResourceName) ? Label : Label.Length > 24 ? Label[..24] : Label)}";
+    /// <summary>
+    /// Stable identity across visits (ignores data-dependent text for list rows with resource ids). Text fields are
+    /// identified by id and position, because their text changes as soon as something is typed.
+    /// </summary>
+    public string Key => Editable
+        ? $"{ResourceName}|{ShortClass}|field@{Bounds.Left / 40},{Bounds.Top / 40}"
+        : $"{ResourceName}|{ShortClass}|{(string.IsNullOrEmpty(ResourceName) ? Label : Label.Length > 24 ? Label[..24] : Label)}";
+
+    /// <summary>True when a text field holds nothing typed yet (empty, or only showing its hint).</summary>
+    public bool IsEmptyField => Editable && (Text.Length == 0 || (Hint.Length > 0 && Text == Hint)); // without a hint attribute the agent tracks what it typed itself
 
     public override string ToString()
     {
@@ -92,7 +103,8 @@ public sealed record UiElement
 }
 
 /// <summary>A parsed uiautomator dump: interactive elements in reading order plus all visible text.</summary>
-public sealed record UiSnapshot(IReadOnlyList<UiElement> Elements, IReadOnlyList<string> AllText, string? RootPackage)
+/// <param name="HasSpinner">A visible indeterminate progress indicator (loading).</param>
+public sealed record UiSnapshot(IReadOnlyList<UiElement> Elements, IReadOnlyList<string> AllText, string? RootPackage, bool HasSpinner = false)
 {
     public static readonly UiSnapshot Empty = new([], [], null);
 
@@ -127,6 +139,7 @@ public static partial class UiHierarchyParser
         var raw = new List<UiElement>();
         var texts = new List<string>();
         string? rootPackage = null;
+        var hasSpinner = false;
         foreach (var node in doc.Descendants("node"))
         {
             var pkg = (string?)node.Attribute("package") ?? "";
@@ -150,6 +163,10 @@ public static partial class UiHierarchyParser
             bool Flag(string name) => (string?)node.Attribute(name) == "true";
             var cls = (string?)node.Attribute("class") ?? "";
             var bounds = ParseBounds((string?)node.Attribute("bounds"));
+            if (cls.EndsWith("ProgressBar", StringComparison.Ordinal) && !bounds.IsEmpty && bounds.Width < 400)
+            {
+                hasSpinner = true; // small = spinner; wide bars are usually determinate progress, not loading
+            }
             var interactive = Flag("enabled") && !bounds.IsEmpty &&
                               (Flag("clickable") || Flag("long-clickable") || Flag("checkable") || Flag("scrollable") ||
                                cls.EndsWith("EditText", StringComparison.Ordinal));
@@ -180,6 +197,7 @@ public static partial class UiHierarchyParser
                 Checked = Flag("checked"),
                 Selected = Flag("selected"),
                 Password = Flag("password"),
+                Hint = (string?)node.Attribute("hint") ?? "",
                 ChildText = childText,
             });
         }
@@ -193,7 +211,7 @@ public static partial class UiHierarchyParser
             .Select((e, i) => e with { Id = i + 1 })
             .ToList();
 
-        return new UiSnapshot(deduped, texts, rootPackage);
+        return new UiSnapshot(deduped, texts, rootPackage, hasSpinner);
     }
 
     internal static UiBounds ParseBounds(string? s)

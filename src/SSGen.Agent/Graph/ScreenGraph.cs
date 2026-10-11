@@ -75,7 +75,7 @@ public sealed class ScreenGraph
             return (existing, false);
         }
 
-        var node = new ScreenNode(_nodes.Count + 1, fingerprint) { Visits = 1 };
+        var node = new ScreenNode(_nodes.Count == 0 ? 1 : _nodes.Max(n => n.Id) + 1, fingerprint) { Visits = 1 };
         _nodes.Add(node);
         return (node, true);
     }
@@ -94,6 +94,17 @@ public sealed class ScreenGraph
     }
 
     public ScreenNode? Get(int id) => _nodes.FirstOrDefault(n => n.Id == id);
+
+    /// <summary>Re-creates a saved node (resume). Ids must be restored in ascending order.</summary>
+    public ScreenNode Restore(int id, ScreenFingerprint fingerprint, int visits)
+    {
+        var node = new ScreenNode(id, fingerprint) { Visits = visits };
+        _nodes.Add(node);
+        return node;
+    }
+
+    /// <summary>Re-adds a saved edge (resume).</summary>
+    public void RestoreEdge(ScreenEdge edge) => _edges.Add(edge);
 
     /// <summary>
     /// First tap of the shortest known tap-route from <paramref name="from"/> to any unfinished screen, or null.

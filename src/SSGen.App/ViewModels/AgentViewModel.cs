@@ -414,6 +414,8 @@ public sealed partial class AgentViewModel : ObservableObject, IPageActivated, I
         });
     }
 
+    void IAgentObserver.OnTakeoverRequested(string reason) => OnUi(() => Status = reason);
+
     Task<bool> IAgentObserver.ConfirmAsync(string question) =>
         Application.Current.Dispatcher.InvokeAsync(() => _dialogs.Confirm("Allow this action?", question)).Task;
 

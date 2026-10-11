@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using System.Text.RegularExpressions;
 using Microsoft.Extensions.Logging;
 using SkiaSharp;
 using SSGen.Agent.Graph;
@@ -12,87 +13,21 @@ using SSGen.Emulator.Devices;
 
 namespace SSGen.Agent.Runs;
 
-public enum AgentLogKind
-{
-    Info,
-    Thought,
-    Action,
-    Blocked,
-    Screen,
-    Warning,
-    Error,
-}
-
-public enum AgentRunStatus
-{
-    Running,
-    Completed,
-    Stopped,
-    LimitReached,
-    Failed,
-}
-
-public sealed record AgentLogEntry(int Step, AgentLogKind Kind, string Message, DateTime Time);
-
-public sealed record AgentRunSummary(AgentRunStatus Status, string Message, int Steps, int Screens, LlmUsage Usage, decimal? CostUsd);
-
-public sealed record AgentRunOptions
-{
-    public required string AppName { get; init; }
-    public required string PackageName { get; init; }
-    public string? LauncherActivity { get; init; }
-    public string? Hints { get; init; }
-    public int MaxSteps { get; init; } = 60;
-    public TimeSpan MaxDuration { get; init; } = TimeSpan.FromMinutes(20);
-
-    /// <summary>Delay between polls while waiting for the screen to settle.</summary>
-    public TimeSpan SettlePoll { get; init; } = TimeSpan.FromMilliseconds(400);
-
-    public TimeSpan SettleTimeout { get; init; } = TimeSpan.FromSeconds(5);
-}
-
-/// <summary>Live updates from a run. Called on the agent's thread; UI implementations must marshal.</summary>
-public interface IAgentObserver
-{
-    void OnLog(AgentLogEntry entry);
-
-    void OnScreen(byte[] png, ScreenNode node);
-
-    void OnNewScreen(ScreenNode node, byte[] png);
-
-    void OnProgress(int stepNumber, CostMeter meter, ScreenGraph graph);
-
-    /// <summary>Safe mode off: ask the user whether to perform a flagged action.</summary>
-    Task<bool> ConfirmAsync(string question);
-}
-
-/// <summary>Pause/resume/stop for a running agent.</summary>
-public sealed class AgentControl : IDisposable
-{
-    private readonly ManualResetEventSlim _running = new(true);
-
-    public bool IsPaused => !_running.IsSet;
-
-    public void Pause() => _running.Reset();
-
-    public void Resume() => _running.Set();
-
-    internal Task WaitIfPausedAsync(CancellationToken ct) =>
-        _running.IsSet ? Task.CompletedTask : Task.Run(() => _running.Wait(ct), ct);
-
-    public void Dispose() => _running.Dispose();
-}
-
 /// <summary>
-/// The observe → decide → act loop. Observes the device (screenshot, UI tree, activity), looks the screen up in the
-/// graph (new screens are saved into the project), asks the strategy for an action, checks it against the
-/// guardrails, executes it and waits for the UI to settle. Handles leaving the app, getting stuck, and the step,
-/// time and cost limits.
+/// The observe → decide → act loop. Each step observes the device (screenshot, UI tree, activity; an open keyboard
+/// is closed first), handles interruptions the same way every time (permission dialogs, "not responding", crashes,
+/// ads, popups, loading, sign-in walls), looks the screen up in the graph (new screens are saved into the project),
+/// asks the strategy for an action, checks it against the guardrails, executes it and waits for the UI to settle.
+/// Recovers from leaving the app, crashes, getting stuck and going in circles; honours step, time, cost and
+/// no-progress limits; supports pause, manual takeover and resuming an earlier run.
 /// </summary>
-public sealed class ExplorationAgent
+public sealed partial class ExplorationAgent
 {
     private const int StuckBackThreshold = 5;
     private const int StuckRelaunchThreshold = 9;
+    private const int MaxLoadingWaits = 5;
+    private const int MaxLoginAttempts = 2;
+    private const int CircleWindow = 12;
 
     private readonly IDevice _device;
     private readonly IAgentStrategy _strategy;
@@ -117,47 +52,89 @@ public sealed class ExplorationAgent
         _store = new AgentRunStore(project);
     }
 
-    public ScreenGraph Graph { get; } = new();
+    public ScreenGraph Graph { get; private set; } = new();
+
+    public long RunId => _runId;
+
+    /// <summary>Per-run counters and the screen/action that led here.</summary>
+    private sealed class RunState
+    {
+        public ScreenNode? Previous;
+        public AgentAction? PreviousAction;
+        public bool JustLaunched = true;
+        public int SameNodeStreak;
+        public int OutsideStreak;
+        public ulong? LastHash;
+        public int NoEffectStreak;
+        public int StepsWithoutNewScreen;
+        public int Crashes;
+        public int LoadingWaits;
+        public int LoginAttempts;
+        public int LoginTakeovers;
+        public readonly Queue<int> RecentNodes = new();
+
+        public void ForgetPath()
+        {
+            Previous = null;
+            PreviousAction = null;
+        }
+    }
 
     public async Task<AgentRunSummary> RunAsync(AgentRunOptions options, AgentControl control, CancellationToken ct)
     {
         ArgumentNullException.ThrowIfNull(options);
         ArgumentNullException.ThrowIfNull(control);
-        _runId = _store.StartRun(_strategy.Name);
+        _runId = _store.StartRun(_strategy.Name, options.ResumeRunId);
         var clock = Stopwatch.StartNew();
         var step = 0;
+        var s = new RunState();
         AgentRunSummary Summary(AgentRunStatus status, string message) =>
             new(status, message, step, Graph.Nodes.Count, _meter.Usage, _meter.IsPaid && _meter.PriceKnown ? _meter.Cost : null);
 
         AgentRunSummary result;
         try
         {
+            if (options.ResumeRunId is { } parent)
+            {
+                Graph = _store.LoadGraph(parent);
+                foreach (var n in Graph.Nodes)
+                {
+                    _store.SaveNode(_runId, n);
+                }
+
+                foreach (var e in Graph.Edges)
+                {
+                    _store.SaveEdge(_runId, e);
+                }
+
+                Log(0, AgentLogKind.Info, $"Continuing the previous run: {Graph.Nodes.Count} screens already found; untried parts come first.");
+            }
+
             Log(0, AgentLogKind.Info, $"Exploring {options.AppName} with {_strategy.Name}. Safe mode {(_guardrails.SafeMode ? "on" : "OFF")}.");
-            // Start from a clean launch so leftovers (an open menu, a half-finished dialog) don't become the root.
+
+            // Start from a clean launch so leftovers (an open menu, a half-finished dialog) don't become the root,
+            // and give a freshly booted device time to calm down before the first observation.
             await _device.ForceStopAsync(options.PackageName, ct);
             await _device.LaunchAsync(options.PackageName, options.LauncherActivity, ct);
-            await Task.Delay(1500, ct);
-
-            ScreenNode? previous = null;
-            AgentAction? previousAction = null;
-            var justLaunched = true;
-            ulong? lastHash = null;
-            var sameNodeStreak = 0;
-            var outsideStreak = 0;
-
-            async Task RelaunchAsync()
-            {
-                await _device.LaunchAsync(options.PackageName, options.LauncherActivity, ct);
-                justLaunched = true;
-                previous = null;
-                previousAction = null;
-                outsideStreak = 0;
-                sameNodeStreak = 0;
-            }
+            await SettleAsync(options with { SettleTimeout = options.WarmupTimeout }, ct);
 
             while (true)
             {
+                if (control.TakeoverReason is { } reason && control.IsPaused)
+                {
+                    Log(step, AgentLogKind.Info, $"Paused while you have control: {reason}");
+                }
+
                 await control.WaitIfPausedAsync(ct);
+                if (control.ConsumeTakeover())
+                {
+                    // Anything may have happened on the device; don't link the next screen to the last action.
+                    s.ForgetPath();
+                    s.SameNodeStreak = 0;
+                    s.LoginAttempts = 0;
+                    Log(step, AgentLogKind.Info, "Continuing after manual control.");
+                }
+
                 ct.ThrowIfCancellationRequested();
                 if (step >= options.MaxSteps)
                 {
@@ -177,50 +154,131 @@ public sealed class ExplorationAgent
                     break;
                 }
 
+                if (s.StepsWithoutNewScreen >= options.NoProgressLimit)
+                {
+                    result = Summary(AgentRunStatus.Completed, $"No new screens in the last {options.NoProgressLimit} steps; the reachable app looks explored.");
+                    break;
+                }
+
                 step++;
                 var (png, ui, activity) = await ObserveAsync(options, ct);
-
-                // Outside the app under test (launcher, permission dialog, browser, store, another app)?
                 var package = activity?.Split('/')[0] ?? ui.RootPackage;
+
+                // ---- Interruptions handled the same way every time, before any strategy decides.
+                var interrupt = ScreenClassifier.Classify(ui, package, options.PackageName);
+                if (interrupt.Kind != InterruptKind.Loading)
+                {
+                    s.LoadingWaits = 0;
+                }
+
+                switch (interrupt.Kind)
+                {
+                    case InterruptKind.PermissionDialog or InterruptKind.Ad or InterruptKind.Popup when interrupt.Target is { } target:
+                        if (_guardrails.Check(new AgentDecision(new AgentAction(ActionKind.Tap, target), ""), ui).Verdict == GuardVerdict.Allowed)
+                        {
+                            Log(step, AgentLogKind.Info, interrupt.Description + ".");
+                            await TapAsync(target, ct);
+                            continue;
+                        }
+
+                        break;
+
+                    case InterruptKind.NotResponding:
+                        Log(step, AgentLogKind.Warning, interrupt.Description + ".");
+                        if (interrupt.Target is { } wait)
+                        {
+                            await TapAsync(wait, ct);
+                        }
+
+                        await Task.Delay(options.Patience, ct);
+                        continue;
+
+                    case InterruptKind.CrashDialog:
+                        if (interrupt.Target is { } close)
+                        {
+                            await TapAsync(close, ct);
+                        }
+
+                        if (await OnCrashAsync(s, step, options, ct) is { } crashed)
+                        {
+                            result = Summary(AgentRunStatus.Failed, crashed);
+                            goto Finished;
+                        }
+
+                        continue;
+
+                    case InterruptKind.Loading when s.LoadingWaits < MaxLoadingWaits:
+                        if (s.LoadingWaits++ == 0)
+                        {
+                            Log(step, AgentLogKind.Info, "Waiting for the screen to finish loading.");
+                        }
+
+                        await Task.Delay(options.Patience, ct);
+                        continue;
+                }
+
+                // ---- Outside the app under test (launcher, Settings, browser, store, another app)?
                 if (package is not null && package != options.PackageName)
                 {
-                    if (previous is not null && previousAction?.Kind == ActionKind.Back)
+                    if (s.Previous is not null && s.PreviousAction?.Kind == ActionKind.Back)
                     {
                         // Back closed the app: that screen is the root. Don't try Back there again.
-                        previous.IsRoot = true;
-                        Log(step, AgentLogKind.Info, $"Back from {previous.DisplayName} closes the app; reopening it.");
-                        await RelaunchAsync();
+                        s.Previous.IsRoot = true;
+                        _store.SaveNode(_runId, s.Previous);
+                        Log(step, AgentLogKind.Info, $"Back from {s.Previous.DisplayName} closes the app; reopening it.");
+                        await RelaunchAsync(s, options, ct);
                     }
-                    else if (++outsideStreak <= 2)
+                    else if (s.PreviousAction is { Kind: not ActionKind.Back } && await _device.GetPidAsync(options.PackageName, ct) is null)
+                    {
+                        if (await OnCrashAsync(s, step, options, ct) is { } crashed)
+                        {
+                            result = Summary(AgentRunStatus.Failed, crashed);
+                            break;
+                        }
+                    }
+                    else if (++s.OutsideStreak <= 2)
                     {
                         Log(step, AgentLogKind.Warning, $"Left the app ({package} in front); pressing back.");
                         await _device.PressKeyAsync(AndroidKey.Back, ct);
-                        previousAction = null;
+                        s.PreviousAction = null;
                     }
                     else
                     {
                         Log(step, AgentLogKind.Warning, "Still outside the app; relaunching it.");
-                        await RelaunchAsync();
+                        await RelaunchAsync(s, options, ct);
                     }
 
                     continue;
                 }
 
-                outsideStreak = 0;
+                s.OutsideStreak = 0;
                 var fingerprint = ScreenFingerprint.From(activity, png, ui);
-                if (previousAction?.Kind == ActionKind.Tap && lastHash == fingerprint.DHash)
+                if (s.PreviousAction?.Kind is ActionKind.Tap && s.LastHash == fingerprint.DHash)
                 {
-                    // Diagnostic: a tap that changes nothing on screen is normal for some controls, but many in a row
-                    // usually mean the device is busy or dropping input.
-                    Log(step, AgentLogKind.Warning, $"The last tap ({previousAction.Element?.Label}) had no visible effect.");
+                    // A tap that changes nothing is normal for some controls; several in a row usually mean the
+                    // device is busy (e.g. just after booting) and dropping input.
+                    if (++s.NoEffectStreak >= 3)
+                    {
+                        Log(step, AgentLogKind.Warning, "Several taps in a row had no visible effect; the device seems busy, so waiting a moment.");
+                        await Task.Delay(options.Patience * 2, ct);
+                        s.NoEffectStreak = 0;
+                    }
+                    else
+                    {
+                        Log(step, AgentLogKind.Warning, $"The last tap ({s.PreviousAction.Element?.Label}) had no visible effect.");
+                    }
+                }
+                else
+                {
+                    s.NoEffectStreak = 0;
                 }
 
-                lastHash = fingerprint.DHash;
+                s.LastHash = fingerprint.DHash;
                 var (node, isNew) = Graph.Observe(fingerprint);
-                if (justLaunched)
+                if (s.JustLaunched)
                 {
                     node.IsRoot = true;
-                    justLaunched = false;
+                    s.JustLaunched = false;
                 }
 
                 node.Known.UnionWith(SystematicStrategy.Candidates(ui).Select(e => e.Key));
@@ -230,8 +288,9 @@ public sealed class ExplorationAgent
                     SaveScreen(node, png, activity);
                 }
 
-                if (previous is not null && previousAction is not null && previous.Id != node.Id &&
-                    Graph.AddEdge(previous.Id, node.Id, previousAction.EdgeLabel, previousAction.Kind == ActionKind.Tap ? previousAction.Element?.Key : null) is { } edge)
+                s.StepsWithoutNewScreen = isNew ? 0 : s.StepsWithoutNewScreen + 1;
+                if (s.Previous is not null && s.PreviousAction is not null && s.Previous.Id != node.Id &&
+                    Graph.AddEdge(s.Previous.Id, node.Id, s.PreviousAction.EdgeLabel, s.PreviousAction.Kind == ActionKind.Tap ? s.PreviousAction.Element?.Key : null) is { } edge)
                 {
                     _store.SaveEdge(_runId, edge);
                 }
@@ -239,31 +298,63 @@ public sealed class ExplorationAgent
                 _observer.OnScreen(png, node);
                 _observer.OnProgress(step, _meter, Graph);
 
-                // Stuck detection: same screen for many steps without discovering anything.
-                sameNodeStreak = previous?.Id == node.Id ? sameNodeStreak + 1 : 0;
-                if (sameNodeStreak >= StuckRelaunchThreshold)
+                // ---- Sign-in walls: test account, guest option, or hand over to the user.
+                if (interrupt.Kind == InterruptKind.Login)
+                {
+                    var outcome = await HandleLoginAsync(s, node, ui, step, options, control, ct);
+                    if (outcome is { } stop)
+                    {
+                        result = Summary(AgentRunStatus.Completed, stop);
+                        break;
+                    }
+
+                    _store.SaveNode(_runId, node);
+                    continue;
+                }
+
+                // ---- Stuck: the same screen for many steps, or going back and forth between two screens.
+                s.SameNodeStreak = s.Previous?.Id == node.Id ? s.SameNodeStreak + 1 : 0;
+                s.RecentNodes.Enqueue(node.Id);
+                while (s.RecentNodes.Count > CircleWindow)
+                {
+                    s.RecentNodes.Dequeue();
+                }
+
+                if (s.SameNodeStreak >= StuckRelaunchThreshold)
                 {
                     Log(step, AgentLogKind.Warning, "Stuck on the same screen; relaunching the app.");
-                    await RelaunchAsync();
+                    await RelaunchAsync(s, options, ct);
+                    continue;
+                }
+
+                if (s.RecentNodes.Count == CircleWindow && s.RecentNodes.Distinct().Count() <= 2 && s.StepsWithoutNewScreen >= CircleWindow)
+                {
+                    Log(step, AgentLogKind.Warning, "Going back and forth between the same screens; restarting from the start screen.");
+                    s.RecentNodes.Clear();
+                    await RelaunchAsync(s, options, ct);
                     continue;
                 }
 
                 AgentDecision decision;
-                if (sameNodeStreak >= StuckBackThreshold && !node.IsRoot)
+                if (s.SameNodeStreak >= StuckBackThreshold && !node.IsRoot)
                 {
                     decision = new AgentDecision(AgentAction.Back(), "This screen isn't changing; backing out.");
                 }
                 else
                 {
                     var context = new AgentContext(options.AppName, options.PackageName, options.Hints, step, options.MaxSteps,
-                        Graph, node, ui, png, _recent.TakeLast(6).ToList());
+                        Graph, node, ui, png, _recent.TakeLast(6).ToList())
+                    {
+                        StepsWithoutNewScreen = s.StepsWithoutNewScreen,
+                        TargetScreens = options.TargetScreens,
+                        Secrets = Secrets(options),
+                    };
                     decision = await _strategy.DecideAsync(context, ct);
                 }
 
                 if (!string.IsNullOrWhiteSpace(decision.ScreenLabel) && string.IsNullOrWhiteSpace(node.Label))
                 {
                     node.Label = decision.ScreenLabel!;
-                    _store.SaveNode(_runId, node);
                 }
 
                 Log(step, AgentLogKind.Thought, decision.Thought);
@@ -274,16 +365,17 @@ public sealed class ExplorationAgent
                 }
 
                 var guard = _guardrails.Check(decision, ui);
-                if (decision.Action.Element is { } target)
+                if (decision.Action.Element is { } chosen)
                 {
-                    node.Tried.Add(target.Key);
+                    node.Tried.Add(chosen.Key);
                 }
 
+                _store.SaveNode(_runId, node); // keep what was tried, so a crash or stop can be resumed
                 if (guard.Verdict == GuardVerdict.Blocked)
                 {
                     Log(step, AgentLogKind.Blocked, $"Blocked: {decision.Action.Describe()} ({guard.Reason}).");
-                    previous = node;
-                    previousAction = null;
+                    s.Previous = node;
+                    s.PreviousAction = null;
                     continue;
                 }
 
@@ -291,18 +383,21 @@ public sealed class ExplorationAgent
                     !await _observer.ConfirmAsync($"The agent wants to: {decision.Action.Describe()}\n\nReason flagged: {guard.Reason}.\n\nAllow it?"))
                 {
                     Log(step, AgentLogKind.Blocked, $"Declined by you: {decision.Action.Describe()}.");
-                    previous = node;
-                    previousAction = null;
+                    s.Previous = node;
+                    s.PreviousAction = null;
                     continue;
                 }
 
-                Log(step, AgentLogKind.Action, decision.Action.Describe());
-                await ExecuteAsync(decision.Action, node, ct);
+                Log(step, AgentLogKind.Action, Mask(decision.Action.Describe(), options));
+                await ExecuteAsync(decision.Action, node, options.Patience, ct);
                 _recent.Add(decision.Action.EdgeLabel);
-                previous = node;
-                previousAction = decision.Action;
+                s.Previous = node;
+                s.PreviousAction = decision.Action;
             }
-        }        catch (OperationCanceledException) when (ct.IsCancellationRequested)
+
+        Finished:;
+        }
+        catch (OperationCanceledException) when (ct.IsCancellationRequested)
         {
             result = Summary(AgentRunStatus.Stopped, "Stopped by you.");
         }
@@ -328,9 +423,191 @@ public sealed class ExplorationAgent
         return result;
     }
 
+    /// <summary>Counts a crash and relaunches; returns a failure message once crashes reach the limit.</summary>
+    private async Task<string?> OnCrashAsync(RunState s, int step, AgentRunOptions options, CancellationToken ct)
+    {
+        s.Crashes++;
+        var after = s.PreviousAction is { } a ? $" after: {Mask(a.Describe(), options)}" : "";
+        Log(step, AgentLogKind.Warning, $"The app closed unexpectedly{after} (crash {s.Crashes} of at most {options.MaxCrashes}).");
+        if (s.Crashes >= options.MaxCrashes)
+        {
+            return $"The app crashed {s.Crashes} times; stopping. Check Logcat on the Emulator page for the cause.";
+        }
+
+        await RelaunchAsync(s, options, ct);
+        return null;
+    }
+
+    private async Task RelaunchAsync(RunState s, AgentRunOptions options, CancellationToken ct)
+    {
+        await _device.LaunchAsync(options.PackageName, options.LauncherActivity, ct);
+        s.JustLaunched = true;
+        s.ForgetPath();
+        s.OutsideStreak = 0;
+        s.SameNodeStreak = 0;
+    }
+
+    // ------------------------------------------------------------------ sign-in walls
+
+    [GeneratedRegex(@"e-?mail|user|login|phone|account|mail", RegexOptions.IgnoreCase)]
+    private static partial Regex UserFieldHint();
+
+    [GeneratedRegex(@"^(sign in|log in|login|log on|sign-in|log-in|continue|next|submit|done|enter|go)$", RegexOptions.IgnoreCase)]
+    private static partial Regex SubmitLabel();
+
+    [GeneratedRegex(@"google|facebook|apple|twitter|github|microsoft|forgot|sign up|create|register|with ", RegexOptions.IgnoreCase)]
+    private static partial Regex NotSubmit();
+
+    [GeneratedRegex(@"guest|skip|not now|later|explore|browse|without (an )?account|demo|try it|look around", RegexOptions.IgnoreCase)]
+    private static partial Regex GuestLabel();
+
+    [GeneratedRegex(@"['""“‘]([^'""”’]{3,})['""”’]")]
+    private static partial Regex Quoted();
+
+    /// <summary>
+    /// Gets past a sign-in screen: type the test account (never through the AI), else take a guest/demo route,
+    /// else (on the start screen) hand over to the user or finish. Returns a stop message, or null to continue.
+    /// </summary>
+    private async Task<string?> HandleLoginAsync(RunState s, ScreenNode node, UiSnapshot ui, int step, AgentRunOptions options, AgentControl control, CancellationToken ct)
+    {
+        var login = options.Login;
+        var password = ui.Elements.FirstOrDefault(e => e.Password);
+        var fields = ui.Elements.Where(e => e.Editable && !e.Password).ToList();
+        var user = fields.FirstOrDefault(e => UserFieldHint().IsMatch($"{e.ResourceName} {e.Hint} {e.Label} {e.Description}"))
+                   ?? fields.Where(e => password is null || e.Bounds.Top < password.Bounds.Top).OrderByDescending(e => e.Bounds.Top).FirstOrDefault()
+                   ?? fields.FirstOrDefault();
+
+        // 1. Test account.
+        if (login.HasCredentials && s.LoginAttempts < MaxLoginAttempts && (user is not null || password is not null))
+        {
+            s.LoginAttempts++;
+            if (user is not null && !string.IsNullOrEmpty(login.Username))
+            {
+                await FillAsync(user, login.Username, ct);
+                node.Tried.Add(user.Key);
+            }
+
+            if (password is not null && !string.IsNullOrEmpty(login.Password))
+            {
+                await FillAsync(password, login.Password, ct);
+                node.Tried.Add(password.Key);
+            }
+
+            var submit = ui.Elements.Where(e => e.Clickable && !e.Editable && !NotSubmit().IsMatch(e.Label))
+                .OrderByDescending(e => e.Label.Contains("sign in", StringComparison.OrdinalIgnoreCase) || e.Label.Contains("log in", StringComparison.OrdinalIgnoreCase))
+                .FirstOrDefault(e => SubmitLabel().IsMatch(e.Label.Trim()) || e.Label.Contains("sign in", StringComparison.OrdinalIgnoreCase) || e.Label.Contains("log in", StringComparison.OrdinalIgnoreCase));
+            if (submit is not null && _guardrails.Check(new AgentDecision(new AgentAction(ActionKind.Tap, submit), ""), ui).Verdict == GuardVerdict.Allowed)
+            {
+                await TapAsync(submit, ct);
+            }
+            else
+            {
+                await _device.PressKeyAsync(AndroidKey.Enter, ct);
+            }
+
+            Log(step, AgentLogKind.Action, $"Signing in with your test account (attempt {s.LoginAttempts} of {MaxLoginAttempts}).");
+            s.Previous = node;
+            s.PreviousAction = submit is null ? null : new AgentAction(ActionKind.Tap, submit);
+            return null;
+        }
+
+        // 2. A way in without an account: the user's hint first, then the usual wording.
+        var hintWords = login.GuestHint is { } hint
+            ? (Quoted().Match(hint) is { Success: true } q ? [q.Groups[1].Value] : hint.Split(' ', StringSplitOptions.RemoveEmptyEntries).Where(w => w.Length >= 4).ToArray())
+            : [];
+        var guest = ui.Elements.Where(e => e.Clickable && !e.Editable && !node.Tried.Contains(e.Key))
+            .FirstOrDefault(e => hintWords.Any(w => e.Label.Contains(w.Trim(), StringComparison.OrdinalIgnoreCase)))
+            ?? ui.Elements.Where(e => e.Clickable && !e.Editable && !node.Tried.Contains(e.Key)).FirstOrDefault(e => GuestLabel().IsMatch(e.Label));
+        if (guest is not null && _guardrails.Check(new AgentDecision(new AgentAction(ActionKind.Tap, guest), ""), ui).Verdict == GuardVerdict.Allowed)
+        {
+            node.Tried.Add(guest.Key);
+            Log(step, AgentLogKind.Action, $"Continuing without an account ('{guest.Label}').");
+            await TapAsync(guest, ct);
+            s.Previous = node;
+            s.PreviousAction = new AgentAction(ActionKind.Tap, guest);
+            return null;
+        }
+
+        // 3. A sign-in panel inside the app (not the start screen) is just a dead end.
+        if (!node.IsRoot)
+        {
+            node.Tried.UnionWith(node.Known);
+            Log(step, AgentLogKind.Info, "A sign-in screen with no test account to use; going back.");
+            await _device.PressKeyAsync(AndroidKey.Back, ct);
+            s.Previous = node;
+            s.PreviousAction = AgentAction.Back();
+            return null;
+        }
+
+        // 4. Already got past this screen earlier (guest route, a login that worked): nothing left to do here.
+        if (Graph.EdgesFrom(node.Id).Any())
+        {
+            return "The app looks fully explored.";
+        }
+
+        // 5. The app can't be used without signing in: ask the user (once), or finish.
+        if (login.AskUser && s.LoginTakeovers == 0)
+        {
+            s.LoginTakeovers++;
+            var reason = s.LoginAttempts > 0
+                ? "Signing in with the test account didn't work. Log in yourself on the Emulator page, then press Resume."
+                : "This app asks you to sign in. Log in on the Emulator page (or add a test account in Explore settings), then press Resume.";
+            Log(step, AgentLogKind.Warning, reason);
+            control.TakeOver(reason);
+            _observer.OnTakeoverRequested(reason);
+            return null;
+        }
+
+        return s.LoginAttempts > 0
+            ? "Couldn't get past the sign-in screen with the test account. Check it in Explore settings, or take over and log in yourself."
+            : "The app requires signing in. Add a test account in Explore settings, or take over and log in yourself.";
+    }
+
+    /// <summary>Types into a field, replacing what's there, then hides the keyboard.</summary>
+    private async Task FillAsync(UiElement field, string value, CancellationToken ct)
+    {
+        await TapAsync(field, ct);
+        await Task.Delay(300, ct);
+        if (!field.IsEmptyField && field.Text.Length > 0)
+        {
+            await _device.PressKeyAsync(AndroidKey.MoveEnd, ct);
+            for (var i = 0; i < Math.Min(field.Text.Length, 64); i++)
+            {
+                await _device.PressKeyAsync(AndroidKey.Delete, ct);
+            }
+        }
+
+        await _device.InputTextAsync(value, ct);
+        await _device.PressKeyAsync(AndroidKey.Escape, ct);
+    }
+
+    private static string[] Secrets(AgentRunOptions o) =>
+        new[] { o.Login.Username, o.Login.Password }.Where(v => !string.IsNullOrEmpty(v)).Select(v => v!).ToArray();
+
+    /// <summary>Hides the test account in anything written to the log.</summary>
+    private static string Mask(string text, AgentRunOptions o)
+    {
+        foreach (var secret in Secrets(o))
+        {
+            text = text.Replace(secret, "[hidden]", StringComparison.Ordinal);
+        }
+
+        return text;
+    }
+
+    // ------------------------------------------------------------------ observing and acting
+
     private async Task<(byte[] Png, UiSnapshot Ui, string? Activity)> ObserveAsync(AgentRunOptions options, CancellationToken ct)
     {
         var png = await SettleAsync(options, ct);
+
+        // A keyboard covers half the screen and isn't part of the app: close it first (Escape; Back could navigate).
+        if (await _device.IsKeyboardShownAsync(ct))
+        {
+            await _device.PressKeyAsync(AndroidKey.Escape, ct);
+            png = await SettleAsync(options, ct);
+        }
+
         var ui = UiHierarchyParser.Parse(await _device.DumpUiHierarchyAsync(ct));
         var activity = await _device.GetForegroundActivityAsync(ct);
         return (png, ui, activity);
@@ -359,18 +636,17 @@ public sealed class ExplorationAgent
         }
     }
 
-    private async Task ExecuteAsync(AgentAction action, ScreenNode node, CancellationToken ct)
+    private Task TapAsync(UiElement e, CancellationToken ct) => _device.TapAsync(e.Bounds.CenterX, e.Bounds.CenterY, ct);
+
+    private async Task ExecuteAsync(AgentAction action, ScreenNode node, TimeSpan patience, CancellationToken ct)
     {
         switch (action.Kind)
         {
             case ActionKind.Tap when action.Element is { } e:
-                await _device.TapAsync(e.Bounds.CenterX, e.Bounds.CenterY, ct);
+                await TapAsync(e, ct);
                 break;
             case ActionKind.Type when action.Element is { } e:
-                await _device.TapAsync(e.Bounds.CenterX, e.Bounds.CenterY, ct);
-                await Task.Delay(300, ct);
-                await _device.InputTextAsync(action.Text ?? "", ct);
-                await _device.PressKeyAsync(AndroidKey.Escape, ct); // hide the keyboard so it doesn't cover the screen
+                await FillAsync(e, action.Text ?? "", ct);
                 break;
             case ActionKind.Scroll:
                 {
@@ -396,7 +672,7 @@ public sealed class ExplorationAgent
                 await _device.PressKeyAsync(AndroidKey.Back, ct);
                 break;
             case ActionKind.Wait:
-                await Task.Delay(1500, ct);
+                await Task.Delay(patience, ct);
                 break;
         }
     }

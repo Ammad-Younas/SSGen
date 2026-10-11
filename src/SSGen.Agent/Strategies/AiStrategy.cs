@@ -73,7 +73,8 @@ public sealed class AiStrategy : IAgentStrategy
         - Never buy, pay, subscribe, delete, send, post, share, call, or sign out. Set "risk" to "high" for any
           action that could cost money, destroy data, or contact anyone; such actions are blocked anyway.
         - Stay inside the app under test. If something else is in front (browser, store, another app), press back.
-        - For text fields, type short realistic demo text (e.g. a search term). Do not enter personal data.
+        - For text fields, type short realistic demo text (e.g. a search term, a note title) so screens show content.
+          Do not enter personal data. Sign-in screens are handled for you; don't try to log in or sign up.
         - Keep "thought" to one short sentence. Give the current screen a 1 to 4 word "screen_label".
         """;
 
@@ -131,6 +132,16 @@ public sealed class AiStrategy : IAgentStrategy
             sb.AppendLine(CultureInfo.InvariantCulture, $"Hints from the user: {c.Hints}");
         }
 
+        if (c.TargetScreens is { } target)
+        {
+            sb.AppendLine(CultureInfo.InvariantCulture, $"The user wants about {target} store screenshots: make sure each main feature gets visited, ideally with real-looking content.");
+        }
+
+        if (c.StepsWithoutNewScreen >= 10)
+        {
+            sb.AppendLine(CultureInfo.InvariantCulture, $"No new screen in the last {c.StepsWithoutNewScreen} steps: try a different part of the app, or stop if everything is explored.");
+        }
+
         sb.AppendLine(CultureInfo.InvariantCulture, $"Screens discovered so far ({c.Graph.Nodes.Count}): {string.Join(", ", c.Graph.Nodes.Select(n => n.DisplayName + (n.IsFinished ? " (fully explored)" : "")))}");
         sb.AppendLine(CultureInfo.InvariantCulture, $"Current screen: {c.Node.DisplayName} (activity {c.Node.ShortActivity ?? "unknown"}, visit #{c.Node.Visits}).");
         if (c.Node.IsRoot)
@@ -163,9 +174,16 @@ public sealed class AiStrategy : IAgentStrategy
             sb.AppendLine("Visible text (no screenshot available): " + text);
         }
 
+        // The test account never goes to a model, even if a field on screen shows it.
+        var prompt = sb.ToString();
+        foreach (var secret in c.Secrets.Where(s => s.Length > 0))
+        {
+            prompt = prompt.Replace(secret, "[hidden]", StringComparison.Ordinal);
+        }
+
         return _vision
-            ? LlmMessage.User(sb.ToString(), new LlmImage(Downscale(c.Screenshot), "image/jpeg"))
-            : LlmMessage.User(sb.ToString());
+            ? LlmMessage.User(prompt, new LlmImage(Downscale(c.Screenshot), "image/jpeg"))
+            : LlmMessage.User(prompt);
     }
 
     /// <summary>JPEG at most 1024 px on the long side: enough detail for UI decisions, far fewer tokens and bytes.</summary>
