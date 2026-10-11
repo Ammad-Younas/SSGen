@@ -56,14 +56,39 @@ src/SSGen.Agent/         # exploration agent: no UI
   Safety/Guardrails.cs       # deterministic blocklist (multilingual, ids, confirm-dialog context, card numbers, AI risk flag)
   Strategies/                # IAgentStrategy: SystematicStrategy (no AI) and AiStrategy (falls back to systematic per step)
   Runs/                      # ExplorationAgent loop (observe/decide/guard/act/settle), AgentRunStore (project.db 0003)
+src/SSGen.Scene/         # the one scene-document format (JSON) + SkiaSharp renderer: no UI
+  SceneDocument.cs           # layers: shape, image, device (procedural frames), text; fills incl. panorama gradients
+  SceneRenderer.cs           # opaque 24-bit output (stores forbid alpha), PNG/JPEG, shadows, rotation
+  TextLayout.cs, Fonts.cs    # shrink-to-fit wrapping; bundled OFL fonts (third_party/fonts) then Windows fonts
+  DeviceGeometry.cs          # original frame proportions (punch-hole phone, island phone, tablet)
+  Palette.cs, Colors.cs      # brand palette from the app icon; WCAG contrast for text colour
+src/SSGen.Templates/     # templates and store specs: no UI
+  Definitions/*.json         # 12 screenshot templates + feature graphic (fractions of the canvas, colour tokens, roles)
+  Presets/store-presets.json # VERIFIED store specs with source URLs and date; %LOCALAPPDATA%\SSGen\store-presets.json overrides
+  TemplateEngine.cs          # template + inputs -> pixel-exact SceneDocument for a preset
+  RenderService.cs           # renders the set per preset into renders/<Store>/<Size>/NN_name.png (+ scene JSON), validates
+src/SSGen.Selection/     # choosing screens: no UI
+  ScreenCandidate.cs         # image metrics (richness, colourfulness, blank, keyboard, dHash)
+  Ranking.cs                 # HeuristicRanker (no AI), StoryPicker (hero first, settings last)
+  AiRanker.cs                # batched vision ranking, cached (vision_cache), caption polish
+  SelectionStore.cs          # selection table (included, order, captions)
 tests/SSGen.Core.Tests/      # xUnit
 tests/SSGen.Emulator.Tests/  # xUnit; EmulatorIntegrationTests is opt-in (see Commands)
 tests/SSGen.Agent.Tests/     # providers via fake HttpMessageHandler, structured output, guardrails, full runs on MockDevice; real-emulator run opt-in
-tools/fetch-deps.ps1         # downloads scrcpy-server, FFmpeg LGPL DLLs, sample APK into third_party/ (git-ignored)
+tests/SSGen.Design.Tests/    # every template x every preset renders and validates; ranking, AI ranking, selection, render pipeline
+tools/fetch-deps.ps1         # downloads scrcpy-server, FFmpeg LGPL DLLs, OFL fonts (Poppins, DM Serif Display), sample APK into third_party/ (git-ignored)
 tools/make-icon.ps1          # regenerates src/SSGen.App/Assets/ssgen.ico (each size drawn natively); every Window sets Icon to it
 ```
 
-Planned projects, each added in the milestone that needs it: `SSGen.Scene` (SkiaSharp scene doc + renderer) and `SSGen.Templates` (M5).
+## Selection, templates, render (M5): rules and lessons
+
+- **Store specs are never typed from memory.** `store-presets.json` holds what the official pages said on its `verified` date, with the URLs. Re-check them before changing anything. Store-wide rules (e.g. Google Play's "long side at most 2x short side") apply to screenshots only; feature graphic (1024x500) and icon (512x512, alpha allowed, 1 MB) have their own.
+- **Scene documents are the contract** between templates, renderer and the M6 editor. Coordinates are canvas pixels; templates use fractions so one template fits every size. Renders are opaque RGB (PNG colour type 2); a test checks every template x preset.
+- **Device frames are drawn in code** (no third-party artwork). App Store sets use the "island" phone; the App Store warning (Android UI in an iPhone-style frame) shows whenever an App Store size is selected.
+- **Ranking without AI** uses image metrics and the screen's own class name + app bar title. Never match keywords against the package name ("privacyfriendlynotes" made every screen "settings-like"). Duplicates = same activity and near-identical pixels; similar layouts are not duplicates.
+- **AI ranking** sends at most 6 screenshots per call, downscaled to 640 px JPEG, and caches results by image hash + model + prompt version. Screens already rejected as blank/keyboard aren't sent. A text-only polish pass makes the chosen set's headlines distinct. Consent, cap and price warnings go through `AiRunGate` (shared with Explore).
+- Agent captures now store the app bar title and visible text per screen (screens.title/ui_text), so headlines work without AI.
+- Status bar demo mode (API 36 verified): `sysui_demo_allowed 1`, then `com.android.systemui.demo` broadcasts (clock 0941, battery 100, network `-e fully true` to drop the "!" marks, notifications hidden); `exit` restores it. The agent turns it on for a run and off afterwards.
 
 ## AI and agent (M3): rules and lessons
 
@@ -148,7 +173,7 @@ To reset first-run state, delete `%LOCALAPPDATA%\SSGen` (it holds app.db, logs a
 | M2 Emulator (AVD mgmt, APK parse/install, live preview, manual control, logcat) | **done** (reviewed) |
 | M3 Provider layer + Agent v1 (providers, settings UI, first-run AI choice, guardrails, systematic + AI explorer, Explore page) | **done** |
 | M4 Agent v2 (interruptions, sign-in + takeover, crash/circle/no-progress recovery, resume, form filling, popups, screen map) | **done** |
-| M5 Selection, templates, render, verified export presets | then **stop for review** |
+| M5 Selection, templates, render, verified export presets (Design page) | **done**, awaiting owner review |
 | M6 Gallery + editor · M7 Export, i18n, installer · M8 Hardening | |
 
 ## Dev machine facts (owner's PC)

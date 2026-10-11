@@ -126,7 +126,7 @@ public sealed class AiRanker : IScreenRanker
         var reject = string.IsNullOrWhiteSpace(s.Reject) || s.Reject is "none" or "null" ? null : s.Reject.Trim().ToLowerInvariant();
         var label = string.IsNullOrWhiteSpace(s.Label) ? c.DisplayName : s.Label.Trim();
         var role = s.Settings ? StoryRole.Settings : StoryRole.Feature;
-        return new ScreenAssessment(c.Id, Math.Round(score, 1), reject, label, ClampWords(s.Headline ?? label, 8), (s.Subheadline ?? "").Trim(), (s.Reasoning ?? "").Trim(), role, "ai");
+        return new ScreenAssessment(c.Id, Math.Round(score, 1), reject, label, ClampWords(s.Headline ?? label, 8), (s.Subheadline ?? "").Trim(), (s.Reasoning ?? "").Trim(), role, "ai") { Group = c.Screen.Activity };
     }
 
     private static string ClampWords(string text, int max)

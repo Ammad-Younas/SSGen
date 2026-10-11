@@ -54,6 +54,7 @@ public sealed partial class AgentViewModel : ObservableObject, IPageActivated, I
     private readonly INavigationService _navigation;
     private readonly ILogger<AgentViewModel> _log;
     private readonly ISecretStore _secrets;
+    private readonly AiRunGate _gate;
     private PageKey _fixPage = PageKey.Home;
     private CancellationTokenSource? _cts;
     private AgentControl? _control;
@@ -62,8 +63,9 @@ public sealed partial class AgentViewModel : ObservableObject, IPageActivated, I
     private bool _loadingOptions;
     private long? _lastRunId;
 
-    public AgentViewModel(EmulatorViewModel emulator, IProjectService projects, AiService ai, ISettingsService settings, IDialogService dialogs, INavigationService navigation, ISecretStore secrets, ILogger<AgentViewModel> log)
+    public AgentViewModel(EmulatorViewModel emulator, IProjectService projects, AiService ai, ISettingsService settings, IDialogService dialogs, INavigationService navigation, ISecretStore secrets, AiRunGate gate, ILogger<AgentViewModel> log)
     {
+        _gate = gate;
         _navigation = navigation;
         _secrets = secrets;
         _emulator = emulator;
@@ -170,6 +172,14 @@ public sealed partial class AgentViewModel : ObservableObject, IPageActivated, I
     [ObservableProperty]
     public partial bool HasSavedPassword { get; set; }
 
+    /// <summary>Android demo mode while exploring: 9:41, full battery, no notifications.</summary>
+    [ObservableProperty]
+    public partial bool CleanStatusBar { get; set; } = true;
+
+    partial void OnCleanStatusBarChanged(bool value) => SaveOption("explore.cleanStatusBar", value ? "1" : "0");
+
+    partial void OnHintsChanged(string value) => SaveOption("explore.hints", value.Trim());
+
     partial void OnTargetScreensChanged(int value) => SaveOption("explore.targetScreens", value.ToString(CultureInfo.InvariantCulture));
 
     partial void OnLoginUsernameChanged(string value) => SaveOption("explore.login.username", value.Trim());
@@ -229,6 +239,8 @@ public sealed partial class AgentViewModel : ObservableObject, IPageActivated, I
         LoginGuestHint = ProjectMeta.Get(p, "explore.login.guestHint") ?? "";
         LoginAskUser = ProjectMeta.Get(p, "explore.login.askUser") != "0";
         HasSavedPassword = _secrets.Load(PasswordSecretName(p)) is { Length: > 0 };
+        CleanStatusBar = ProjectMeta.Get(p, "explore.cleanStatusBar") != "0";
+        Hints = ProjectMeta.Get(p, "explore.hints") ?? "";
         _loadingOptions = false;
     }
 
@@ -488,7 +500,7 @@ public sealed partial class AgentViewModel : ObservableObject, IPageActivated, I
                 var resolved = await _ai.ResolveAsync(AiTask.Exploration, _cts.Token);
                 if (resolved is not null)
                 {
-                    if (PrepareAi(resolved) is not { } prepared)
+                    if (_gate.Prepare(resolved, "To decide where to tap", w => AddLine(new AgentLogEntry(0, AgentLogKind.Warning, w, DateTime.Now))) is not { } prepared)
                     {
                         Status = "Cancelled.";
                         return;
@@ -510,6 +522,7 @@ public sealed partial class AgentViewModel : ObservableObject, IPageActivated, I
                 MaxSteps = Math.Clamp(MaxSteps, 1, 1000),
                 MaxDuration = TimeSpan.FromMinutes(Math.Clamp(MaxMinutes, 1, 240)),
                 TargetScreens = Math.Clamp(TargetScreens, 1, 10),
+                CleanStatusBar = CleanStatusBar,
                 ResumeRunId = resumeRunId,
                 Login = new LoginOptions(
                     string.IsNullOrWhiteSpace(LoginUsername) ? null : LoginUsername.Trim(),
@@ -551,62 +564,6 @@ public sealed partial class AgentViewModel : ObservableObject, IPageActivated, I
             _control = null;
             Refresh();
         }
-    }
-
-    /// <summary>Consent for cloud vision, the first-paid-use cost cap, and the vision-fallback warning.</summary>
-    private (CostMeter Meter, bool Vision)? PrepareAi(ResolvedProvider resolved)
-    {
-        var vision = resolved.Vision;
-        if (vision && resolved.IsPaid && !_settings.Current.CloudScreenshotConsent)
-        {
-            var allow = _dialogs.Confirm("Send screenshots to the cloud?",
-                $"\"{resolved.Profile.Name}\" is a cloud service. To decide where to tap, SSGen sends it downscaled screenshots of the app under test plus the screen's UI text.\n\n" +
-                "Yes = allow (remembered; change it in Settings).\nNo = continue with UI text only (no screenshots).");
-            if (allow)
-            {
-                _settings.Save(_settings.Current with { CloudScreenshotConsent = true });
-            }
-            else
-            {
-                vision = false;
-            }
-        }
-
-        if (!vision)
-        {
-            AddLine(new AgentLogEntry(0, AgentLogKind.Warning,
-                "The model won't see screenshots (no vision support, or not allowed). It explores from the UI text only; screen ranking will be weaker.", DateTime.Now));
-        }
-
-        if (!resolved.IsPaid)
-        {
-            return (new CostMeter(false, null, null), vision);
-        }
-
-        var price = _ai.Profiles.GetPrice(resolved.Provider.Model);
-        var cap = _settings.Current.CostCapUsd;
-        if (cap is null)
-        {
-            var answer = _dialogs.Prompt("Spending cap",
-                "This is the first run with a paid provider. Set a spending cap per run in US dollars; the run stops when the estimated cost reaches it. You can change it in Settings.",
-                "",
-                v => decimal.TryParse(v.TrimStart('$'), NumberStyles.Number, CultureInfo.CurrentCulture, out var d) && d > 0 ? null : "Enter an amount greater than 0, e.g. 1.50");
-            if (answer is null)
-            {
-                return null;
-            }
-
-            cap = decimal.Parse(answer.TrimStart('$'), NumberStyles.Number, CultureInfo.CurrentCulture);
-            _settings.Save(_settings.Current with { CostCapUsd = cap });
-        }
-
-        if (price is null && !_dialogs.Confirm("Price unknown",
-                $"There's no price for \"{resolved.Provider.Model}\" in Settings > AI cost control, so SSGen can count tokens but can't estimate cost or enforce the ${cap:0.00} cap.\n\nThe step and time limits still apply. Continue?"))
-        {
-            return null;
-        }
-
-        return (new CostMeter(true, price, cap), vision);
     }
 
     private bool CanControl() => IsRunning;

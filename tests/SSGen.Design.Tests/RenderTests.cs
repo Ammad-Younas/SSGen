@@ -42,35 +42,49 @@ public sealed class RenderTests : IDisposable
     {
         var (shots, icon) = Samples();
         var palette = PaletteExtractor.FromImage(File.ReadAllBytes(icon));
-        using var assets = new FileAssetResolver();
         var catalog = StorePresetCatalog.BuiltIn();
-        foreach (var preset in catalog.AllPresets.Where(p => p.Kind != PresetKind.Icon))
+        var cases = catalog.AllPresets.Where(p => p.Kind != PresetKind.Icon)
+            .SelectMany(preset => (preset.Kind == PresetKind.FeatureGraphic ? TemplateLibrary.BuiltIn.Where(t => t.IsFeatureGraphic) : TemplateLibrary.Screenshots)
+                .Select(template => (preset, template)))
+            .ToList();
+        var failures = new System.Collections.Concurrent.ConcurrentBag<string>();
+
+        // Independent renders (each has its own surface and assets), so run them in parallel.
+        Parallel.ForEach(cases, item =>
         {
-            var templates = preset.Kind == PresetKind.FeatureGraphic ? TemplateLibrary.BuiltIn.Where(t => t.IsFeatureGraphic) : TemplateLibrary.Screenshots;
-            foreach (var template in templates)
+            var (preset, template) = item;
+            using var assets = new FileAssetResolver();
+            var inputs = new TemplateInputs
             {
-                var inputs = new TemplateInputs
-                {
-                    Headline = "Keep every note in one place",
-                    Subheadline = "Quick lists, sketches and voice memos",
-                    Screenshot = shots[0],
-                    Screenshot2 = shots[^1],
-                    Icon = icon,
-                    AppName = "Notes",
-                    Palette = palette,
-                };
-                var scene = TemplateEngine.Build(template, inputs, preset.Width, preset.Height, preset.Frame, preset.Id);
-                using var image = SceneRenderer.Render(scene, assets);
-                var png = SceneRenderer.Encode(image, ImageFormat.Png);
-
-                Assert.Equal((preset.Width, preset.Height), (image.Width, image.Height));
-                Assert.Equal(2, PngColorType(png)); // truecolour without alpha
-                var errors = PresetValidator.ValidateImage(preset, image.Width, image.Height, "png", PngColorType(png) == 6, png.Length).Where(i => i.IsError).Select(i => i.Message).ToList();
-                Assert.True(errors.Count == 0, $"{preset.Id} / {template.Id}: {string.Join(" ", errors)}");
+                Headline = "Keep every note in one place",
+                Subheadline = "Quick lists, sketches and voice memos",
+                Screenshot = shots[0],
+                Screenshot2 = shots[^1],
+                Icon = icon,
+                AppName = "Notes",
+                Palette = palette,
+            };
+            var scene = TemplateEngine.Build(template, inputs, preset.Width, preset.Height, preset.Frame, preset.Id);
+            using var image = SceneRenderer.Render(scene, assets);
+            var png = SceneRenderer.Encode(image, ImageFormat.Png);
+            if ((image.Width, image.Height) != (preset.Width, preset.Height))
+            {
+                failures.Add($"{preset.Id}/{template.Id}: size {image.Width}x{image.Height}");
             }
-        }
-    }
 
+            if (PngColorType(png) != 2)
+            {
+                failures.Add($"{preset.Id}/{template.Id}: PNG colour type {PngColorType(png)} (expected RGB without alpha)");
+            }
+
+            foreach (var issue in PresetValidator.ValidateImage(preset, image.Width, image.Height, "png", PngColorType(png) == 6, png.Length).Where(i => i.IsError))
+            {
+                failures.Add($"{preset.Id}/{template.Id}: {issue.Message}");
+            }
+        });
+
+        Assert.Empty(failures);
+    }
     [Fact]
     public void Scene_documents_round_trip_through_json()
     {

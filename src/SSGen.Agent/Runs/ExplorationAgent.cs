@@ -118,6 +118,11 @@ public sealed partial class ExplorationAgent
 
             // Start from a clean launch so leftovers (an open menu, a half-finished dialog) don't become the root,
             // and give a freshly booted device time to calm down before the first observation.
+            if (options.CleanStatusBar)
+            {
+                await _device.SetStatusBarDemoAsync(true, ct);
+            }
+
             await _device.ForceStopAsync(options.PackageName, ct);
             await _device.LaunchAsync(options.PackageName, options.LauncherActivity, ct);
             await SettleAsync(options with { SettleTimeout = options.WarmupTimeout }, null, ct);
@@ -421,6 +426,18 @@ public sealed partial class ExplorationAgent
         {
             Log(step, AgentLogKind.Error, ex.Message);
             result = Summary(AgentRunStatus.Failed, ex.Message + (ex.SuggestedFix is { } fix ? " " + fix : ""));
+        }
+
+        if (options.CleanStatusBar)
+        {
+            try
+            {
+                await _device.SetStatusBarDemoAsync(false, CancellationToken.None); // give the user their real status bar back
+            }
+            catch (UserFacingException ex)
+            {
+                _log.LogWarning(ex, "Couldn't leave status bar demo mode");
+            }
         }
 
         foreach (var n in Graph.Nodes)

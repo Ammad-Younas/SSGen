@@ -53,6 +53,9 @@ public sealed record ScreenAssessment(
     string Source)
 {
     public bool Usable => Reject is null;
+
+    /// <summary>Screens of the same kind (activity); the picker spreads the set across groups.</summary>
+    public string? Group { get; init; }
 }
 
 public interface IScreenRanker
@@ -102,7 +105,9 @@ public sealed partial class HeuristicRanker : IScreenRanker
         var results = new List<ScreenAssessment>();
         foreach (var c in candidates)
         {
-            var names = $"{c.Screen.Activity} {c.Screen.Title}";
+            // Only the screen's own class name and title: package names can contain anything
+            // ("privacyfriendlynotes" made every screen look like a privacy/settings page).
+            var names = $"{ShortActivity(c.Screen.Activity)} {c.Screen.Title}";
             var text = c.Screen.UiText ?? "";
             var m = c.Metrics;
             string? reject = m.IsBlank ? RejectReason.Blank
@@ -128,11 +133,14 @@ public sealed partial class HeuristicRanker : IScreenRanker
             score = Math.Round(Math.Clamp(score, 0, 100), 1);
 
             var label = c.DisplayName;
-            results.Add(new ScreenAssessment(c.Id, score, reject, label, Headline(label), "", Explain(c, reject, role), role, "heuristic"));
+            results.Add(new ScreenAssessment(c.Id, score, reject, label, Headline(label), "", Explain(c, reject, role), role, "heuristic") { Group = c.Screen.Activity });
         }
 
         return MarkDuplicates(candidates, results);
     }
+
+    /// <summary>"org.app/.ui.settings.SettingsActivity" → "SettingsActivity".</summary>
+    internal static string ShortActivity(string? activity) => (activity ?? "").Split('/').Last().Split('.').Last();
 
     /// <summary>Near-identical screens keep only the best-scoring one.</summary>
     internal static List<ScreenAssessment> MarkDuplicates(IReadOnlyList<ScreenCandidate> candidates, List<ScreenAssessment> results)
@@ -200,7 +208,18 @@ public static class StoryPicker
     {
         ArgumentNullException.ThrowIfNull(assessments);
         var n = Math.Clamp(count, 1, max);
-        var usable = assessments.Where(a => a.Usable).OrderByDescending(a => a.Score).Take(n).ToList();
+
+        // Greedy, with variety: each screen already picked from the same group (activity) lowers a candidate's
+        // effective score by 30 %, so the set shows different features rather than one screen several ways.
+        var pool = assessments.Where(a => a.Usable).ToList();
+        var usable = new List<ScreenAssessment>();
+        while (usable.Count < n && pool.Count > 0)
+        {
+            var best = pool.MaxBy(a => a.Score * Math.Pow(0.7, usable.Count(u => u.Group is not null && u.Group == a.Group)))!;
+            usable.Add(best);
+            pool.Remove(best);
+        }
+
         if (usable.Count == 0)
         {
             return [];

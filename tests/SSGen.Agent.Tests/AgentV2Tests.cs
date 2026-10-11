@@ -91,6 +91,8 @@ public class AgentV2Tests
         var summary = await Agent(device, project, recorder).RunAsync(Options(new LoginOptions(User, Pass)), new AgentControl(), CancellationToken.None);
 
         Assert.Equal(AgentRunStatus.Completed, summary.Status);
+        Assert.Contains("demo on", device.Actions);   // clean status bar while exploring...
+        Assert.False(device.StatusBarDemo);           // ...and the real one restored afterwards
         Assert.Equal(User, device.TypedText("login", "Email"));
         Assert.Equal(Pass, device.TypedText("login", "Password"));
         Assert.Contains("home:Notes", device.TappedButtons);
@@ -251,6 +253,13 @@ public class AgentV2Tests
         using var control = new AgentControl();
         control.TakeOver("You took over.");
         var run = Agent(device, dir.NewProject(), recorder).RunAsync(Options(), control, CancellationToken.None);
+        // Wait until the agent says it is paused (startup time varies), then check it stays waiting.
+        var deadline = DateTime.UtcNow.AddSeconds(20);
+        while (DateTime.UtcNow < deadline && !recorder.Log.ToArray().Any(l => l.Message.StartsWith("Paused while you have control", StringComparison.Ordinal)))
+        {
+            await Task.Delay(50);
+        }
+
         await Task.Delay(300);
         Assert.False(run.IsCompleted); // waiting for the user
         control.Resume();

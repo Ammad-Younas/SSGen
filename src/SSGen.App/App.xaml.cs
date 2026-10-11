@@ -102,6 +102,7 @@ public partial class App : Application
             sp.GetRequiredService<SSGen.Core.Security.ISecretStore>()));
         services.AddSingleton<SSGen.Ai.AiService>();
         services.AddSingleton<AiProvidersViewModel>();
+        services.AddSingleton<AiRunGate>();
 
         services.AddSingleton<ThemeService>();
         services.AddSingleton<IDialogService, DialogService>();
@@ -113,6 +114,7 @@ public partial class App : Application
             sp.GetRequiredService<Microsoft.Extensions.Logging.ILoggerFactory>()));
         services.AddSingleton<EmulatorViewModel>();
         services.AddSingleton<AgentViewModel>();
+        services.AddSingleton<DesignViewModel>();
 
         services.AddSingleton<MainViewModel>();
         services.AddSingleton<HomeViewModel>();

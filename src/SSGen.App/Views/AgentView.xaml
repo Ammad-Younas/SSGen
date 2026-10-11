@@ -126,6 +126,9 @@
                                     <TextBox Text="{Binding MaxMinutes}" AutomationProperties.Name="Max minutes" />
                                 </StackPanel>
                             </Grid>
+                            <CheckBox IsChecked="{Binding CleanStatusBar}" Margin="0,12,0,0" AutomationProperties.Name="Clean status bar">
+                                <TextBlock Text="Clean status bar (9:41, full battery, no notifications)" TextWrapping="Wrap" />
+                            </CheckBox>
                             <TextBlock Text="Screenshots wanted" Margin="0,12,0,4" Foreground="{DynamicResource TextFillColorPrimaryBrush}" />
                             <TextBox Text="{Binding TargetScreens}" AutomationProperties.Name="Screenshots wanted" Width="80" HorizontalAlignment="Left"
                                      ToolTip="How many store screenshots you want (1 to 10). Guides the AI; used when picking screens later." />

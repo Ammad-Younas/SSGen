@@ -2,7 +2,7 @@
 
 Turn an Android APK into upload-ready store listing screenshots for Google Play and the App Store. The app runs your APK in the Android Emulator, captures its screens (by hand or with an AI agent of your choice), renders them into designed listing images, and exports them at the correct store sizes.
 
-> **Status: milestone M4 (AI providers and exploration).** Projects, settings, the environment setup assistant, the full device pipeline (virtual devices, APK import and install, a live preview you can control, screen capture, logcat) and app exploration (with your own AI provider or the built-in systematic explorer) work. Templates, the editor and export arrive in M5 to M7.
+> **Status: milestone M5 (selection, templates and rendering).** Projects, settings, the environment setup assistant, the full device pipeline (virtual devices, APK import and install, a live preview you can control, screen capture, logcat) and app exploration (with your own AI provider or the built-in systematic explorer) work, and so does designing and rendering store-ready images. The gallery, the full editor and export arrive in M6 and M7.
 
 ## Requirements
 
@@ -77,6 +77,20 @@ API keys are encrypted with Windows DPAPI and can only be read by your Windows a
 - **Limits**: maximum steps and minutes, the cost cap for paid providers, and an automatic stop when nothing new turns up for 25 steps. You can pause, resume or stop a run at any time.
 - The **screen map** shows how the discovered screens connect, as a diagram or a list.
 - **Safe mode** (on by default) never performs purchase, payment, subscribe, delete, send, post, share, call or sign-out actions. It covers several languages and also blocks the "OK" on a dialog about one of those. You can add your own words in **Settings**. With safe mode off, SSGen asks you before each such action.
+
+## Designing your store images
+
+**Design** turns the captured screens into store-ready images:
+
+1. **Rank** the screens. Without AI, SSGen measures each screenshot and skips blank, loading, sign-in, keyboard-covered and duplicate screens; settings and onboarding go last. With AI, a vision model scores each screen for core functionality, visual appeal, information richness, uniqueness and install appeal, flags screens to avoid (including ones showing personal data), and writes a short headline and subheadline. AI results are cached, so ranking again costs nothing.
+2. **Adjust** the set: tick screens in or out, reorder them, and edit any headline. The first screen is the hero.
+3. **Pick a template** (12 designs: headline above or below, full screen with caption, dark with glow, tilted device, two screens, large device, diagonal, minimal, bold dark, panorama across the whole set, phone and tablet) and the **brand colours** (taken from the app icon; editable).
+4. Choose the **store sizes**: Google Play phone, 7" and 10" tablet, feature graphic (1024 × 500) and app icon (512 × 512); App Store iPhone 6.9", 6.5", 6.1" and iPad 13". Sizes and rules come from the official Google Play and App Store pages (sources and the date they were checked are in the settings file; you can edit a copy at `%LOCALAPPDATA%\SSGen\store-presets.json`).
+5. **Render all.** Images go to the project's `renders` folder, one folder per store and size, each checked against the store rules (size, format, no transparency, counts). Each image also gets an editable design file for the editor (M6).
+
+App Store images show your Android screens in an iPhone-style frame. Apple expects screenshots of the actual iOS app, so replace them with real iOS captures if your iOS app looks different.
+
+Exploration turns on a clean status bar (9:41, full battery, no notifications) while it runs, and restores the real one afterwards.
 
 ## AI
 

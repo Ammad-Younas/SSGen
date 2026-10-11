@@ -123,6 +123,28 @@ public sealed partial class AdbDevice : IDevice
         return int.TryParse(first, CultureInfo.InvariantCulture, out var pid) ? pid : null;
     }
 
+    public async Task SetStatusBarDemoAsync(bool enabled, CancellationToken ct = default)
+    {
+        const string demo = "am broadcast -a com.android.systemui.demo -e command";
+        string[] commands = enabled
+            ?
+            [
+                "settings put global sysui_demo_allowed 1",
+                $"{demo} enter",
+                $"{demo} clock -e hhmm 0941",
+                $"{demo} battery -e level 100 -e plugged false",
+                $"{demo} network -e wifi show -e level 4 -e fully true",
+                $"{demo} network -e mobile show -e datatype none -e level 4 -e fully true",
+                $"{demo} notifications -e visible false",
+                $"{demo} status -e volume hide -e bluetooth hide -e alarm hide -e location hide -e sync hide -e mute hide -e speakerphone hide",
+            ]
+            : [$"{demo} exit"];
+        foreach (var command in commands)
+        {
+            await _adb.TryShellAsync(Serial, command, TimeSpan.FromSeconds(15), ct);
+        }
+    }
+
     public async Task<bool> IsKeyboardShownAsync(CancellationToken ct = default)
     {
         var r = await _adb.TryShellAsync(Serial, "dumpsys input_method | grep -E 'mInputShown=|mIsInputViewShown='", TimeSpan.FromSeconds(15), ct);

@@ -51,6 +51,9 @@ public sealed record AgentRunOptions
 
     public LoginOptions Login { get; init; } = new();
 
+    /// <summary>Clean status bar while exploring (Android demo mode: 9:41, full battery, no notifications).</summary>
+    public bool CleanStatusBar { get; init; } = true;
+
     /// <summary>Continue a previous run: its screens and what was tried on them are loaded first.</summary>
     public long? ResumeRunId { get; init; }
 

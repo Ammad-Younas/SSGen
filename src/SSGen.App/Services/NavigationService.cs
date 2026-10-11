@@ -5,6 +5,7 @@ public enum PageKey
     Home,
     Emulator,
     Agent,
+    Design,
     Gallery,
     Editor,
     Export,

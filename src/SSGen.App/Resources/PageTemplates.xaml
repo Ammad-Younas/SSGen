@@ -13,6 +13,9 @@
     <DataTemplate DataType="{x:Type vm:AgentViewModel}">
         <views:AgentView />
     </DataTemplate>
+    <DataTemplate DataType="{x:Type vm:DesignViewModel}">
+        <views:DesignView />
+    </DataTemplate>
     <DataTemplate DataType="{x:Type vm:SetupViewModel}">
         <views:SetupView />
     </DataTemplate>

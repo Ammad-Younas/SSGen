@@ -259,9 +259,9 @@
                                     <TextBox Text="{Binding Model}" Margin="0,0,8,0" AutomationProperties.Name="Model name" ToolTip="Model name, exactly as configured" />
                                     <TextBox Grid.Column="1" Text="{Binding Input}" Margin="0,0,8,0" AutomationProperties.Name="Input price" ToolTip="Input (prompt) price per million tokens" />
                                     <TextBox Grid.Column="2" Text="{Binding Output}" Margin="0,0,8,0" AutomationProperties.Name="Output price" ToolTip="Output price per million tokens" />
-                                    <Button Grid.Column="3" Style="{StaticResource IconButton}" Content="&#xE711;" ToolTip="Remove"
+                                    <Button Grid.Column="3" Style="{StaticResource IconButton}" ToolTip="Remove"
                                             Command="{Binding DataContext.Ai.RemovePriceCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
-                                            CommandParameter="{Binding}" AutomationProperties.Name="Remove price" />
+                                            CommandParameter="{Binding}" AutomationProperties.Name="Remove price" ><TextBlock Style="{StaticResource Icon}" Text="&#xE711;" FontSize="12" /></Button>
                                 </Grid>
                             </DataTemplate>
                         </ItemsControl.ItemTemplate>

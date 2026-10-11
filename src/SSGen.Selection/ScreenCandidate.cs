@@ -68,7 +68,8 @@ public sealed record ScreenMetrics(double Richness, double Colorfulness, double 
             }
         }
 
-        var richness = Math.Clamp(edges / n / 0.18, 0, 1);
+        // Square root: typical app screens are mostly white, and a list with text has only ~3-5 % edge pixels.
+        var richness = Math.Clamp(Math.Sqrt(edges / n / 0.10), 0, 1);
         var (mrg, myb) = (rg / n, yb / n);
         var std = Math.Sqrt(Math.Max(0, (rg2 / n) - (mrg * mrg)) + Math.Max(0, (yb2 / n) - (myb * myb)));
         var mean = Math.Sqrt((mrg * mrg) + (myb * myb));
@@ -128,7 +129,14 @@ public sealed record ScreenCandidate(CapturedScreen Screen, string FullPath, Scr
     public long Id => Screen.Id;
 
     /// <summary>Readable name: the app bar title, else the activity name in words ("ManageCategoriesActivity" → "Manage categories").</summary>
-    public string DisplayName => !string.IsNullOrWhiteSpace(Screen.Title) ? Screen.Title.Trim() : Humanize(Screen.Activity);
+    public string DisplayName => NameFor(Screen);
+
+    /// <summary>The app bar title if known, else the activity name in words.</summary>
+    public static string NameFor(CapturedScreen screen)
+    {
+        ArgumentNullException.ThrowIfNull(screen);
+        return !string.IsNullOrWhiteSpace(screen.Title) ? screen.Title.Trim() : Humanize(screen.Activity);
+    }
 
     internal static string Humanize(string? activity)
     {

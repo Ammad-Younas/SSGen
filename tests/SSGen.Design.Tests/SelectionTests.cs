@@ -105,12 +105,12 @@ public class SelectionTests
     public void Built_in_ranking_rejects_and_orders_a_story()
     {
         using var p = new TempProject();
-        var home = p.AddScreen(TestImages.Screenshot(Teal, seed: 1), "org.app/.ui.main.MainActivity", "Notes", string.Join("\n", Enumerable.Range(1, 20).Select(i => $"Note {i}")));
+        var home = p.AddScreen(TestImages.Screenshot(Teal, seed: 1), "org.privacyfriendly.app/.ui.main.MainActivity", "Notes", string.Join("\n", Enumerable.Range(1, 20).Select(i => $"Note {i}")));
         var detail = p.AddScreen(TestImages.Screenshot(new SKColor(0xB4, 0x23, 0x18), seed: 3), "org.app/.ui.notes.TextNoteActivity", "Text note");
         var settings = p.AddScreen(TestImages.Screenshot(new SKColor(0x4B, 0x55, 0x63), seed: 5), "org.app/.ui.settings.SettingsActivity", "Settings");
         var login = p.AddScreen(TestImages.Screenshot(Teal, seed: 7), "org.app/.auth.LoginActivity", "Sign in");
         var blank = p.AddScreen(Blank(), "org.app/.ui.EmptyActivity");
-        var dup = p.AddScreen(TestImages.Screenshot(Teal, seed: 1), "org.app/.ui.main.MainActivity", "Notes");
+        var dup = p.AddScreen(TestImages.Screenshot(Teal, seed: 1), "org.privacyfriendly.app/.ui.main.MainActivity", "Notes");
 
         var candidates = ScreenRepository.List(p.Project).Select(s => ScreenCandidate.Load(p.Project, s)).ToList();
         var ranked = HeuristicRanker.Rank(candidates).ToDictionary(a => a.ScreenId);
@@ -119,6 +119,7 @@ public class SelectionTests
         Assert.Equal(RejectReason.Blank, ranked[blank.Id].Reject);
         Assert.Equal(RejectReason.Duplicate, ranked[dup.Id].Reject ?? ranked[home.Id].Reject); // one of the twins is dropped
         Assert.Equal(StoryRole.Settings, ranked[settings.Id].Role);
+        Assert.NotEqual(StoryRole.Settings, ranked[home.Id].Role); // package names with "privacy" etc. don't count
         Assert.Equal("Text note", ranked[detail.Id].Headline);
 
         var story = StoryPicker.Pick(ranked.Values.ToList(), count: 6);
@@ -126,6 +127,16 @@ public class SelectionTests
         Assert.Equal(StoryRole.Hero, story[0].Role);
         Assert.Equal(settings.Id, story[^1].ScreenId);      // settings last
         Assert.DoesNotContain(story, a => a.ScreenId == login.Id || a.ScreenId == blank.Id);
+    }
+
+    [Fact]
+    public void Picking_spreads_the_set_across_screen_types()
+    {
+        static ScreenAssessment A(long id, double score, string group) => new(id, score, null, "S" + id, "H", "", "", StoryRole.Feature, "heuristic") { Group = group };
+        var all = new[] { A(1, 90, "main"), A(2, 88, "main"), A(3, 86, "main"), A(4, 70, "detail"), A(5, 60, "settings") };
+        var picked = StoryPicker.Pick(all, 3);
+        // 1 (best), then 4 (another screen type beats a second "main" at 88 x 0.7), then 2.
+        Assert.Equal([1L, 2L, 4L], picked.Select(p => p.ScreenId).Order());
     }
 
     [Theory]

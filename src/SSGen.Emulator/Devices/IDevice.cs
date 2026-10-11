@@ -76,4 +76,10 @@ public interface IDevice
     /// (on API 36: `mInputShown=true` in `dumpsys input_method`; the Escape key hides it).
     /// </summary>
     Task<bool> IsKeyboardShownAsync(CancellationToken ct = default);
+
+    /// <summary>
+    /// Android's status bar demo mode: on = clock 9:41, full battery and signal, no notifications (clean store
+    /// screenshots); off = the real status bar again.
+    /// </summary>
+    Task SetStatusBarDemoAsync(bool enabled, CancellationToken ct = default);
 }

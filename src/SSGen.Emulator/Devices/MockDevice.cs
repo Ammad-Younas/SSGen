@@ -270,6 +270,15 @@ public sealed class MockDevice : IDevice
 
     public Task<bool> IsKeyboardShownAsync(CancellationToken ct = default) => Task.FromResult(KeyboardShown);
 
+    public bool StatusBarDemo { get; private set; }
+
+    public Task SetStatusBarDemoAsync(bool enabled, CancellationToken ct = default)
+    {
+        Actions.Enqueue("demo " + (enabled ? "on" : "off"));
+        StatusBarDemo = enabled;
+        return Task.CompletedTask;
+    }
+
     public static MockButton Btn(string label, int row, string? target, MockElementKind kind = MockElementKind.Button, string? id = null) =>
         new(label, new SKRectI(140, 900 + (row * 260), 940, 1100 + (row * 260)), target, kind, id);
 

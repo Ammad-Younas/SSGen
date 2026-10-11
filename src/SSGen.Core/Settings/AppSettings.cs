@@ -39,6 +39,9 @@ public sealed record AppSettings
     /// </summary>
     public double[]? ExplorePaneWeights { get; init; }
 
+    /// <summary>Design page column proportions (screens, preview, options). Null = defaults.</summary>
+    public double[]? DesignPaneWeights { get; init; }
+
     /// <summary>Left navigation collapsed to icons only.</summary>
     public bool NavCollapsed { get; init; }
 
