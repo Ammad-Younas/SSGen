@@ -86,7 +86,7 @@
                                     <!-- Rows separated by dividers (the first row's top line sits under the header's own divider). -->
                                     <Border Padding="16,10" BorderThickness="0,0,0,1" BorderBrush="{DynamicResource DividerStrokeColorDefaultBrush}">
                                         <DockPanel>
-                                            <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center">
+                                            <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center" Margin="16,0,0,0">
                                                 <Button Content="Open" Margin="0,0,8,0"
                                                         Command="{Binding DataContext.OpenRecentCommand, ElementName=Root}"
                                                         CommandParameter="{Binding}"
