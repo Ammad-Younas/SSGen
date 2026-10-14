@@ -39,6 +39,43 @@ public class UiHierarchyParserTests
     public void Screen_title_comes_from_a_heading_not_from_buttons_or_rows(string xml, string? expected) =>
         Assert.Equal(expected, UiHierarchyParser.Parse(xml).Title);
 
+    /// <summary>A Compose screen: no resource ids, everything a "View", the same bottom bar on every screen.</summary>
+    private static string ComposeScreen(string title, params string[] controls) => $"""
+        <hierarchy rotation="0"><node class="android.view.View" package="com.madi.smarttask" bounds="[0,0][1080,2400]">
+          <node class="android.widget.TextView" text="{title}" package="com.madi.smarttask" enabled="true" bounds="[48,150][700,230]" />
+          {string.Concat(controls.Select((c, i) => $"""<node class="android.view.View" package="com.madi.smarttask" enabled="true" clickable="true" bounds="[48,{400 + (i * 160)}][1032,{520 + (i * 160)}]"><node class="android.widget.TextView" text="{c}" package="com.madi.smarttask" bounds="[80,{420 + (i * 160)}][900,{480 + (i * 160)}]" /></node>"""))}
+          <node class="android.view.View" package="com.madi.smarttask" enabled="true" clickable="true" content-desc="Home" bounds="[0,2250][270,2400]" />
+          <node class="android.view.View" package="com.madi.smarttask" enabled="true" clickable="true" content-desc="Tasks" bounds="[270,2250][540,2400]" />
+          <node class="android.view.View" package="com.madi.smarttask" enabled="true" clickable="true" content-desc="Notifications" bounds="[540,2250][810,2400]" />
+          <node class="android.view.View" package="com.madi.smarttask" enabled="true" clickable="true" content-desc="Setting" bounds="[810,2250][1080,2400]" />
+        </node></hierarchy>
+        """;
+
+    [Fact]
+    public void Compose_screens_without_ids_are_told_apart_by_heading_and_controls()
+    {
+        const string activity = "com.madi.smarttask/.core.presentation.MainActivity";
+        var png = TestPng(SKColors.White);
+        var settings = ScreenFingerprint.From(activity, png, UiHierarchyParser.Parse(ComposeScreen("Settings", "Edit Profile", "Appearance", "Categories")));
+        var profile = ScreenFingerprint.From(activity, png, UiHierarchyParser.Parse(ComposeScreen("Edit Profile", "First Name", "Save", "Change photo")));
+        var settingsAgain = ScreenFingerprint.From(activity, png, UiHierarchyParser.Parse(ComposeScreen("Settings", "Edit Profile", "Appearance", "Categories")));
+        var untitled = ScreenFingerprint.From(activity, png, UiHierarchyParser.Parse(ComposeScreen("", "Edit Profile", "Appearance", "Categories")));
+        var untitledOther = ScreenFingerprint.From(activity, png, UiHierarchyParser.Parse(ComposeScreen("", "Add task", "Filter", "Sort")));
+
+        Assert.False(settings.Matches(profile));          // same pixels, same bottom bar, different heading
+        Assert.True(settings.Matches(settingsAgain));
+        Assert.False(untitled.Matches(untitledOther));    // no heading: the controls' labels differ
+    }
+
+    private static byte[] TestPng(SKColor color)
+    {
+        using var bmp = new SKBitmap(108, 240);
+        bmp.Erase(color);
+        using var img = SKImage.FromBitmap(bmp);
+        using var data = img.Encode(SKEncodedImageFormat.Png, 100);
+        return data.ToArray();
+    }
+
     private const string Xml = """
         <?xml version='1.0' encoding='UTF-8' standalone='yes' ?>
         <hierarchy rotation="0">

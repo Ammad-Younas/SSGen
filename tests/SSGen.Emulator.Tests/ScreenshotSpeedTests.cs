@@ -53,6 +53,25 @@ public class ScreenshotSpeedTests
         using var c = SkiaSharp.SKBitmap.Decode(device);
         Assert.Equal((a.Width, a.Height), (b.Width, b.Height));
         Assert.Equal((a.Width, a.Height), (c.Width, c.Height));
+        _out.WriteLine($"mean luma: screencap {MeanLuma(a):0.0}, gRPC {MeanLuma(b):0.0}, AdbDevice {MeanLuma(c):0.0}");
+        Assert.True(Math.Abs(MeanLuma(a) - MeanLuma(b)) < 12, "gRPC image differs from screencap (black or stale?)");
         Assert.True(grpcMs < adbMs, $"gRPC {grpcMs} ms vs screencap {adbMs} ms");
+    }
+
+    private static double MeanLuma(SkiaSharp.SKBitmap bmp)
+    {
+        double sum = 0;
+        var n = 0;
+        for (var y = 0; y < bmp.Height; y += 16)
+        {
+            for (var x = 0; x < bmp.Width; x += 16)
+            {
+                var px = bmp.GetPixel(x, y);
+                sum += (0.2126 * px.Red) + (0.7152 * px.Green) + (0.0722 * px.Blue);
+                n++;
+            }
+        }
+
+        return sum / n;
     }
 }

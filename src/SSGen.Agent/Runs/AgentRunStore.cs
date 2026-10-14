@@ -131,7 +131,8 @@ public sealed class AgentRunStore
                     reader.IsDBNull(1) ? null : reader.GetString(1),
                     ulong.Parse(reader.GetString(2), NumberStyles.HexNumber, CultureInfo.InvariantCulture),
                     state.Structure.ToHashSet(StringComparer.Ordinal),
-                    state.Selection.ToHashSet(StringComparer.Ordinal));
+                    state.Selection.ToHashSet(StringComparer.Ordinal),
+                    state.Title);
                 var node = graph.Restore(reader.GetInt32(0), fingerprint, reader.GetInt32(4));
                 node.Label = reader.IsDBNull(3) ? "" : reader.GetString(3);
                 node.ScreenId = reader.IsDBNull(5) ? null : reader.GetInt64(5);
@@ -207,6 +208,7 @@ public sealed class AgentRunStore
     {
         public List<string> Structure { get; set; } = [];
         public List<string> Selection { get; set; } = [];
+        public string? Title { get; set; }
         public List<string> Known { get; set; } = [];
         public List<string> Tried { get; set; } = [];
         public Dictionary<string, int> Revisits { get; set; } = [];
@@ -218,6 +220,7 @@ public sealed class AgentRunStore
         {
             Structure = [.. n.Fingerprint.Structure],
             Selection = [.. n.Fingerprint.Selection],
+            Title = n.Fingerprint.Title,
             Known = [.. n.Known],
             Tried = [.. n.Tried],
             Revisits = new Dictionary<string, int>(n.Revisits),
