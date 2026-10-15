@@ -269,6 +269,34 @@ public class AgentV2Tests
         Assert.Contains(recorder.Log, l => l.Message.StartsWith("New screen", StringComparison.Ordinal) && l.Message.Contains("Notes", StringComparison.Ordinal));
     }
 
+    [Fact]
+    public async Task Discovered_screens_reach_Design_only_when_moved_and_can_be_cleared()
+    {
+        using var dir = new TempDir();
+        var project = dir.NewProject();
+        var manual = ScreenRepository.Add(project, [1, 2, 3], "manual", ".Main", 10, 10);
+        Assert.True(manual.InDesign); // a manual capture goes straight to Design
+
+        await Agent(new MockDevice(), project, new Recorder()).RunAsync(Options(), new AgentControl(), CancellationToken.None);
+        var store = new AgentRunStore(project);
+        var run = store.LatestRun()!;
+        var discovered = store.ScreenIds(run.Id);
+        Assert.Equal(5, discovered.Count);
+        Assert.All(ScreenRepository.List(project).Where(s => s.Source == "agent"), s => Assert.False(s.InDesign));
+
+        // "Continue to Design" for the first two only, then clear the exploration.
+        ScreenRepository.SetInDesign(project, discovered.Take(2), true);
+        Assert.Equal(3, store.ClearHistory()); // the three not moved are deleted
+        Assert.Null(store.LatestRun());
+        Assert.Equal(3, ScreenRepository.List(project).Count); // manual + the two moved
+        Assert.All(ScreenRepository.List(project), s => Assert.True(s.InDesign));
+
+        // "Clear design" takes everything off the page but keeps the files.
+        ScreenRepository.SetInDesign(project, null, false);
+        Assert.All(ScreenRepository.List(project), s => Assert.False(s.InDesign));
+        Assert.All(ScreenRepository.List(project), s => Assert.True(File.Exists(s.FullPath(project))));
+    }
+
     // ---------------------------------------------------------------- control, resume, limits
 
     [Fact]

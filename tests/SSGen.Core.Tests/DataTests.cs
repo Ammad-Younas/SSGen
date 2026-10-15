@@ -48,20 +48,29 @@ public class MigrationRunnerTests
         using var dir = new TempDir();
         var path = dir.Combine("project.db");
         var db = new SqliteDatabase(path, MigrationSet.Project);
-        db.Migrate();
-        Assert.Empty(db.Backups()); // a new database has nothing to back up
 
-        // Pretend it's an older schema with data in it, then upgrade.
+        // A real older database: only the first five migrations applied, with data in it.
         using (var c = db.Open())
-        using (var cmd = c.CreateCommand())
         {
-            cmd.CommandText = "INSERT INTO project_meta(key, value) VALUES ('marker', 'kept'); DROP TABLE captions; ALTER TABLE renders DROP COLUMN locale; ALTER TABLE selection DROP COLUMN template_id; PRAGMA user_version = 6;";
+            foreach (var (version, sql) in MigrationRunner.Load(MigrationSet.Project).Where(m => m.Version <= 5))
+            {
+                using var step = c.CreateCommand();
+                step.CommandText = sql + $"\nPRAGMA user_version = {version};";
+                step.ExecuteNonQuery();
+            }
+
+            using var cmd = c.CreateCommand();
+            cmd.CommandText = "INSERT INTO project_meta(key, value) VALUES ('marker', 'kept');";
             cmd.ExecuteNonQuery();
         }
 
         db.Migrate();
         var backup = Assert.Single(db.Backups());
-        Assert.EndsWith("project.db.v6.bak", backup, StringComparison.Ordinal);
+        Assert.EndsWith("project.db.v5.bak", backup, StringComparison.Ordinal);
+
+        var fresh = new SqliteDatabase(dir.Combine("new.db"), MigrationSet.Project);
+        fresh.Migrate();
+        Assert.Empty(fresh.Backups()); // a new database has nothing to back up
         using var copy = new Microsoft.Data.Sqlite.SqliteConnection($"Data Source={backup};Pooling=False");
         copy.Open();
         using var read = copy.CreateCommand();

@@ -90,6 +90,23 @@ public sealed class AgentRunStore
     }
 
     /// <summary>Screens of a run with their screenshot files (for showing a past run's results).</summary>
+    /// <summary>The captured screenshots (screens table ids) of a run's discovered screens.</summary>
+    public IReadOnlyList<long> ScreenIds(long runId)
+    {
+        using var c = _project.Database.Open();
+        using var cmd = c.CreateCommand();
+        cmd.CommandText = "SELECT screen_id FROM screen_nodes WHERE run_id = $r AND screen_id IS NOT NULL ORDER BY node_key;";
+        cmd.Parameters.AddWithValue("$r", runId);
+        using var r = cmd.ExecuteReader();
+        var ids = new List<long>();
+        while (r.Read())
+        {
+            ids.Add(r.GetInt64(0));
+        }
+
+        return ids;
+    }
+
     public IReadOnlyList<SavedScreen> Screens(long runId)
     {
         using var c = _project.Database.Open();
@@ -202,6 +219,26 @@ public sealed class AgentRunStore
     }
 
     private static string Now() => DateTime.UtcNow.ToString("O", CultureInfo.InvariantCulture);
+
+    /// <summary>
+    /// Forgets every exploration run (screen map, steps) and deletes the screenshots they captured that aren't on
+    /// the Design page. Returns how many screenshots were deleted.
+    /// </summary>
+    public int ClearHistory()
+    {
+        var deleted = 0;
+        foreach (var screen in ScreenRepository.List(_project).Where(s => s.Source == "agent" && !s.InDesign))
+        {
+            ScreenRepository.Delete(_project, screen.Id);
+            deleted++;
+        }
+
+        using var c = _project.Database.Open();
+        using var cmd = c.CreateCommand();
+        cmd.CommandText = "DELETE FROM agent_runs;"; // nodes, edges and steps go with them
+        cmd.ExecuteNonQuery();
+        return deleted;
+    }
 
     /// <summary>What a node remembers beyond its pixels: everything the strategies use to avoid repeating work.</summary>
     private sealed class NodeState

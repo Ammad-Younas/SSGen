@@ -389,14 +389,22 @@
                 <!-- Discovered screens -->
                 <Border Grid.Row="2" Style="{StaticResource Card}" Margin="0" Padding="0">
                     <DockPanel>
-                        <Border Style="{StaticResource PanelHeader}">
-                            <StackPanel Orientation="Horizontal">
+                        <Border Style="{StaticResource PanelHeader}" Padding="16,7">
+                            <DockPanel>
+                            <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
+                                <Button Content="Clear" Command="{Binding ClearDiscoveredCommand}" Margin="0,0,8,0"
+                                        ToolTip="Forget the discovered screens and screen map (screenshots already moved to Design stay)" />
+                                <Button Content="Continue to Design" Command="{Binding ContinueToDesignCommand}" Style="{DynamicResource AccentButtonStyle}"
+                                        ToolTip="Move these screenshots to the Screens panel on the Design page" />
+                            </StackPanel>
+                            <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
                                 <Border Style="{StaticResource PanelHeaderIconTile}"><TextBlock Style="{StaticResource PanelHeaderIcon}" Text="&#xE91B;" /></Border>
                                 <TextBlock Style="{StaticResource PanelHeaderTitle}" Text="Discovered screens" />
                                 <Border Style="{StaticResource CountBadge}" ToolTip="Unique screens found in this run">
                                     <TextBlock Text="{Binding Screens.Count}" Style="{StaticResource Caption}" HorizontalAlignment="Center" />
                                 </Border>
                             </StackPanel>
+                            </DockPanel>
                         </Border>
                         <ScrollViewer x:Name="ThumbScroller" Margin="16,12,16,8" HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Disabled"
                                       AutomationProperties.Name="Discovered screens">

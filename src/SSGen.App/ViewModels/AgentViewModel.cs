@@ -129,7 +129,7 @@ public sealed partial class AgentViewModel : ObservableObject, IPageActivated, I
     public partial int MaxMinutes { get; set; } = 20;
 
     [ObservableProperty]
-    [NotifyCanExecuteChangedFor(nameof(StartCommand), nameof(StopCommand), nameof(PauseCommand), nameof(ResumeLastCommand), nameof(TakeOverCommand))]
+    [NotifyCanExecuteChangedFor(nameof(StartCommand), nameof(StopCommand), nameof(PauseCommand), nameof(ResumeLastCommand), nameof(TakeOverCommand), nameof(ClearDiscoveredCommand))]
     [NotifyPropertyChangedFor(nameof(IsIdle))]
     public partial bool IsRunning { get; set; }
 
@@ -313,12 +313,46 @@ public sealed partial class AgentViewModel : ObservableObject, IPageActivated, I
     [RelayCommand]
     private void DismissFinished() => FinishedMessage = null;
 
-    /// <summary>The captured screens are already in the project: the Design page ranks and uses them.</summary>
+    /// <summary>Moves the discovered screenshots (latest run) onto the Design page and opens it.</summary>
     [RelayCommand]
     private void ContinueToDesign()
     {
         FinishedMessage = null;
+        if (_projects.Current is { } project && new AgentRunStore(project).LatestRun() is { } run)
+        {
+            ScreenRepository.SetInDesign(project, new AgentRunStore(project).ScreenIds(run.Id), true);
+        }
+
         _navigation.NavigateTo(PageKey.Design);
+    }
+
+    private bool CanClearDiscovered() => IsIdle;
+
+    /// <summary>Forgets all exploration runs and deletes their screenshots that weren't moved to Design.</summary>
+    [RelayCommand(CanExecute = nameof(CanClearDiscovered))]
+    private void ClearDiscovered()
+    {
+        if (_projects.Current is not { } project)
+        {
+            return;
+        }
+
+        if (!_dialogs.Confirm("Clear discovered screens", "Clear the discovered screens and the screen map of every exploration run?\n\nScreenshots you already moved to Design stay there; the others are deleted. \"Continue last run\" won't be possible afterwards."))
+        {
+            return;
+        }
+
+        var deleted = new AgentRunStore(project).ClearHistory();
+        Screens.Clear();
+        Map.Clear();
+        MapNodes = [];
+        MapEdges = [];
+        Log.Clear();
+        CurrentScreen = null;
+        FinishedMessage = null;
+        _loadedProject = null;
+        Refresh();
+        Status = $"Cleared. {deleted} screenshot(s) deleted.";
     }
 
     private void EnterTakeover(string reason)

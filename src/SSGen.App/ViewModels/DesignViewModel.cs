@@ -234,6 +234,51 @@ public sealed partial class DesignViewModel : ObservableObject, IPageActivated, 
 
     public ObservableCollection<TranslationRowViewModel> TranslationRows { get; } = [];
 
+    /// <summary>Template panel mode: false = clicking a template sets the whole set's design; true = only the selected screen's.</summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(GalleryTemplate), nameof(TemplateModeHint))]
+    public partial bool TemplateForSelectedScreen { get; set; }
+
+    public string TemplateModeHint => TemplateForSelectedScreen
+        ? SelectedCandidate is { } c ? $"Click a design for \"{c.Label}\" only. The other screens keep the set's design." : "Select a screen first."
+        : "Click a design for every screen in the set (screens with their own design keep it).";
+
+    /// <summary>The template highlighted in the gallery: the set's, or the selected screen's in screen mode.</summary>
+    public TemplateCardViewModel? GalleryTemplate
+    {
+        get => TemplateForSelectedScreen && SelectedCandidate is { } c
+            ? Templates.FirstOrDefault(t => t.Template.Id == c.TemplateId) ?? SelectedTemplate
+            : SelectedTemplate;
+        set
+        {
+            if (value is null)
+            {
+                return;
+            }
+
+            if (TemplateForSelectedScreen)
+            {
+                if (SelectedCandidate is not null)
+                {
+                    ScreenTemplate = ScreenTemplateChoices.FirstOrDefault(x => x.Id == (value == SelectedTemplate ? null : value.Template.Id));
+                }
+            }
+            else
+            {
+                SelectedTemplate = value;
+            }
+
+            OnPropertyChanged();
+        }
+    }
+
+    [RelayCommand]
+    private void UseSetDesign()
+    {
+        ScreenTemplate = ScreenTemplateChoices[0];
+        OnPropertyChanged(nameof(GalleryTemplate));
+    }
+
     /// <summary>"Same as the set" followed by every screenshot template.</summary>
     public IReadOnlyList<TemplateChoice> ScreenTemplateChoices =>
         [new(null, $"Same as the set ({SelectedTemplate?.Name ?? "template"})"), .. Templates.Select(t => new TemplateChoice(t.Template.Id, t.Name))];
@@ -252,6 +297,7 @@ public sealed partial class DesignViewModel : ObservableObject, IPageActivated, 
             c.TemplateId = value.Id;
             new SelectionStore(p).SetTemplate(c.ScreenId, value.Id);
             OnPropertyChanged();
+            OnPropertyChanged(nameof(GalleryTemplate));
             RequestPreview();
         }
     }
@@ -343,12 +389,15 @@ public sealed partial class DesignViewModel : ObservableObject, IPageActivated, 
     partial void OnSelectedCandidateChanged(CandidateViewModel? value)
     {
         OnPropertyChanged(nameof(ScreenTemplate));
+        OnPropertyChanged(nameof(GalleryTemplate));
+        OnPropertyChanged(nameof(TemplateModeHint));
         RequestPreview();
         RequestThumbnails();
     }
 
     partial void OnSelectedTemplateChanged(TemplateCardViewModel? value)
     {
+        OnPropertyChanged(nameof(GalleryTemplate));
         OnPropertyChanged(nameof(ScreenTemplateChoices));
         OnPropertyChanged(nameof(ScreenTemplate));
         SaveMeta("design.template", value?.Template.Id ?? "");
@@ -414,7 +463,7 @@ public sealed partial class DesignViewModel : ObservableObject, IPageActivated, 
         LoadTranslations();
     }
 
-    private int ScreenCountOnDisk() => _projects.Current is { } p ? ScreenRepository.List(p).Count : 0;
+    private int ScreenCountOnDisk() => _projects.Current is { } p ? ScreenRepository.List(p).Count(s => s.InDesign) : 0;
 
     // ------------------------------------------------------------------ loading
 
@@ -435,8 +484,8 @@ public sealed partial class DesignViewModel : ObservableObject, IPageActivated, 
             }
 
             _apk = ProjectApkStore.Load(p);
-            var screens = ScreenRepository.List(p);
-            Blocker = screens.Count == 0 ? "No screens captured yet. Explore the app (or use Capture on the Emulator page) first." : null;
+            var screens = ScreenRepository.List(p).Where(s => s.InDesign).ToList();
+            Blocker = screens.Count == 0 ? "No screens here yet. Explore the app and press Continue to Design (or use Capture on the Emulator page)." : null;
 
             var saved = new SelectionStore(p).Load().ToDictionary(i => i.ScreenId);
             foreach (var s in screens)
@@ -550,7 +599,7 @@ public sealed partial class DesignViewModel : ObservableObject, IPageActivated, 
         try
         {
             Status = "Measuring screens…";
-            var screens = ScreenRepository.List(project);
+            var screens = ScreenRepository.List(project).Where(s => s.InDesign).ToList();
             var candidates = await Task.Run(() => screens.Where(s => System.IO.File.Exists(s.FullPath(project))).Select(s => SSGen.Selection.ScreenCandidate.Load(project, s)).ToList());
             var context = new RankingContext(_apk?.Info.DisplayName ?? project.Name, ProjectMeta.Get(project, "explore.hints"), TargetCount);
             IReadOnlyList<ScreenAssessment> ranked;
@@ -1145,7 +1194,7 @@ public sealed partial class DesignViewModel : ObservableObject, IPageActivated, 
         Status = $"Deleted {c.Label}.";
         if (Candidates.Count == 0)
         {
-            Blocker = "No screens captured yet. Explore the app (or use Capture on the Emulator page) first.";
+            Blocker = "No screens here yet. Explore the app and press Continue to Design (or use Capture on the Emulator page).";
         }
     }
 
@@ -1158,12 +1207,13 @@ public sealed partial class DesignViewModel : ObservableObject, IPageActivated, 
             return;
         }
 
-        if (!_dialogs.Confirm("Clear design", "Start the Design page over?\n\nThis removes the ranking, the chosen screens and their order, all captions and translations, and per-screen designs.\n\nYour captured screenshots, the store images already rendered, and the template, colours, store sizes and languages stay."))
+        if (!_dialogs.Confirm("Clear design", "Start the Design page over?\n\nAll screens are taken off this page, and the ranking, captions, translations and per-screen designs are removed.\n\nThe store images already rendered, and the template, colours, store sizes and languages stay. Exploring again and pressing Continue to Design brings screens back."))
         {
             return;
         }
 
         new SelectionStore(p).ClearAll();
+        ScreenRepository.SetInDesign(p, null, false);
         ProjectMeta.Set(p, "design.tagline", "");
         foreach (var language in ExtraLanguages)
         {
@@ -1172,7 +1222,7 @@ public sealed partial class DesignViewModel : ObservableObject, IPageActivated, 
 
         Load();
         LoadTranslations();
-        Status = "Design cleared. Rank the screens again or tick the ones to use.";
+        Status = "Design cleared.";
     }
 
     [RelayCommand]

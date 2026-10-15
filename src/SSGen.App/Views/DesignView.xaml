@@ -188,7 +188,21 @@
                                     <Border Style="{StaticResource CountBadge}"><TextBlock Text="{Binding Templates.Count}" Style="{StaticResource Caption}" HorizontalAlignment="Center" /></Border>
                                 </StackPanel>
                             </Border>
-                            <ListBox ItemsSource="{Binding Templates}" SelectedItem="{Binding SelectedTemplate}" BorderThickness="0" Background="Transparent" Margin="8"
+                            <!-- Which screens a click applies to: the whole set, or only the selected screenshot -->
+                            <StackPanel DockPanel.Dock="Top" Margin="12,8,12,0">
+                                <StackPanel Orientation="Horizontal">
+                                    <RadioButton Content="All screens" GroupName="TemplateMode" Style="{StaticResource TabStripButton}"
+                                                 IsChecked="{Binding TemplateForSelectedScreen, Converter={StaticResource InvertBool}}" />
+                                    <RadioButton Content="Selected screen" GroupName="TemplateMode" Style="{StaticResource TabStripButton}"
+                                                 IsChecked="{Binding TemplateForSelectedScreen}" />
+                                </StackPanel>
+                                <DockPanel Margin="4,4,4,0">
+                                    <Button DockPanel.Dock="Right" Content="Use the set's design" Command="{Binding UseSetDesignCommand}" Padding="8,2" Margin="8,0,0,0"
+                                            Visibility="{Binding TemplateForSelectedScreen, Converter={StaticResource BoolToVisibility}}" />
+                                    <TextBlock Style="{StaticResource Caption}" Text="{Binding TemplateModeHint}" TextWrapping="Wrap" VerticalAlignment="Center" />
+                                </DockPanel>
+                            </StackPanel>
+                            <ListBox ItemsSource="{Binding Templates}" SelectedItem="{Binding GalleryTemplate}" BorderThickness="0" Background="Transparent" Margin="8"
                                      PreviewMouseWheel="OnInnerListWheel"
                                      ScrollViewer.HorizontalScrollBarVisibility="Disabled" ScrollViewer.VerticalScrollBarVisibility="Disabled" AutomationProperties.Name="Templates">
                                 <ListBox.ItemsPanel>
