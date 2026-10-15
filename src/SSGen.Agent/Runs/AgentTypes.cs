@@ -54,6 +54,12 @@ public sealed record AgentRunOptions
     /// <summary>Clean status bar while exploring (Android demo mode: 9:41, full battery, no notifications).</summary>
     public bool CleanStatusBar { get; init; } = true;
 
+    /// <summary>
+    /// On payment, checkout or banking screens, pause and hand control to the user (once per screen) instead of
+    /// only backing out. The agent never fills such screens in either way.
+    /// </summary>
+    public bool PauseOnSensitive { get; init; } = true;
+
     /// <summary>Continue a previous run: its screens and what was tried on them are loaded first.</summary>
     public long? ResumeRunId { get; init; }
 

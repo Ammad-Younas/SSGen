@@ -17,6 +17,8 @@
 
         <DockPanel Margin="0,0,0,12">
             <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Bottom">
+                <Button Content="Delete all images" Command="{Binding DeleteAllCommand}" Margin="0,0,8,0"
+                        ToolTip="Delete every store image of this project (and editor changes); render again on the Design page" />
                 <Button Content="Refresh" Command="{Binding RefreshCommand}" Margin="0,0,8,0" />
                 <Button Content="Open folder" Command="{Binding OpenFolderCommand}" />
             </StackPanel>

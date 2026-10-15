@@ -98,6 +98,15 @@ public sealed class SelectionStore
         return list;
     }
 
+    /// <summary>Forgets the ranking, the chosen set, captions and per-screen designs (the screenshots stay).</summary>
+    public void ClearAll()
+    {
+        using var c = _project.Database.Open();
+        using var cmd = c.CreateCommand();
+        cmd.CommandText = "DELETE FROM selection; DELETE FROM captions;";
+        cmd.ExecuteNonQuery();
+    }
+
     /// <summary>Gives one screen its own design (null = the set's template).</summary>
     public void SetTemplate(long screenId, string? templateId)
     {

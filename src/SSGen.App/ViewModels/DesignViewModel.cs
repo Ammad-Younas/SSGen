@@ -1149,6 +1149,32 @@ public sealed partial class DesignViewModel : ObservableObject, IPageActivated, 
         }
     }
 
+    /// <summary>Starts the Design page over: ranking, set, captions, translations and per-screen designs.</summary>
+    [RelayCommand]
+    private void ClearDesign()
+    {
+        if (_project is not { } p || IsBusy)
+        {
+            return;
+        }
+
+        if (!_dialogs.Confirm("Clear design", "Start the Design page over?\n\nThis removes the ranking, the chosen screens and their order, all captions and translations, and per-screen designs.\n\nYour captured screenshots, the store images already rendered, and the template, colours, store sizes and languages stay."))
+        {
+            return;
+        }
+
+        new SelectionStore(p).ClearAll();
+        ProjectMeta.Set(p, "design.tagline", "");
+        foreach (var language in ExtraLanguages)
+        {
+            ProjectMeta.Set(p, "design.tagline@" + language.Code, "");
+        }
+
+        Load();
+        LoadTranslations();
+        Status = "Design cleared. Rank the screens again or tick the ones to use.";
+    }
+
     [RelayCommand]
     private void OpenRenders()
     {

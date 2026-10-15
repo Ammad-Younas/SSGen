@@ -333,6 +333,14 @@ public sealed partial class ExplorationAgent
                     continue;
                 }
 
+                // ---- Payment and banking screens: the user's call, never the agent's.
+                if (interrupt.Kind == InterruptKind.Sensitive)
+                {
+                    await HandleSensitiveAsync(s, node, step, options, control, ct);
+                    _store.SaveNode(_runId, node);
+                    continue;
+                }
+
                 // ---- Stuck: the same screen for many steps, or going back and forth between two screens.
                 // Staying on one screen is only "stuck" when nothing new gets tried there (forms, toggles, dialogs
                 // legitimately take several in-place actions).
@@ -503,6 +511,31 @@ public sealed partial class ExplorationAgent
     /// Gets past a sign-in screen: type the test account (never through the AI), else take a guest/demo route,
     /// else (on the start screen) hand over to the user or finish. Returns a stop message, or null to continue.
     /// </summary>
+    /// <summary>
+    /// A payment, checkout or banking screen: hand control to the user once (they can fill it in or leave, then
+    /// Resume); if the agent finds itself there again, it leaves without touching anything.
+    /// </summary>
+    private async Task HandleSensitiveAsync(RunState s, ScreenNode node, int step, AgentRunOptions options, AgentControl control, CancellationToken ct)
+    {
+        if (options.PauseOnSensitive && !node.HandedOver)
+        {
+            node.HandedOver = true;
+            const string reason = "This screen asks for payment or banking details, which SSGen never fills in. You have control: fill it in yourself or leave the screen, then press Resume.";
+            Log(step, AgentLogKind.Warning, reason);
+            control.TakeOver(reason);
+            _observer.OnTakeoverRequested(reason);
+            s.Previous = node;
+            s.PreviousAction = null;
+            return;
+        }
+
+        node.Tried.UnionWith(node.Known);
+        Log(step, AgentLogKind.Info, "Leaving the payment screen without touching it.");
+        await _device.PressKeyAsync(AndroidKey.Back, ct);
+        s.Previous = node;
+        s.PreviousAction = AgentAction.Back();
+    }
+
     private async Task<string?> HandleLoginAsync(RunState s, ScreenNode node, UiSnapshot ui, int step, AgentRunOptions options, AgentControl control, CancellationToken ct)
     {
         var login = options.Login;

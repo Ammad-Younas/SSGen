@@ -41,7 +41,7 @@ public sealed record MapEdge(int From, int To, string Label);
 public sealed record ReadyStep(string Title, string Hint, bool Done);
 
 /// <summary>One line of the run log.</summary>
-public sealed record AgentLogLine(string Time, string Glyph, string Kind, string Message);
+public sealed record AgentLogLine(string Time, string Kind, string Message);
 
 /// <summary>Explore page: runs the exploration agent (AI or systematic) on the running device.</summary>
 public sealed partial class AgentViewModel : ObservableObject, IPageActivated, IAgentObserver, IDisposable
@@ -275,6 +275,52 @@ public sealed partial class AgentViewModel : ObservableObject, IPageActivated, I
     [RelayCommand]
     private void OpenEmulator() => _navigation.NavigateTo(PageKey.Emulator);
 
+    /// <summary>Explorer settings card open. Starts closed when no AI provider is set (only Run matters then).</summary>
+    [ObservableProperty]
+    public partial bool ShowSettings { get; set; }
+
+    /// <summary>Sign-in card open (same default as <see cref="ShowSettings"/>).</summary>
+    [ObservableProperty]
+    public partial bool ShowSignIn { get; set; }
+
+    private bool _panelsChosen;
+    private bool _settingPanels;
+
+    partial void OnShowSettingsChanged(bool value) => _panelsChosen |= !_settingPanels;
+
+    partial void OnShowSignInChanged(bool value) => _panelsChosen |= !_settingPanels;
+
+    /// <summary>Opens the cards when AI is available, closes them when not, unless the user already chose.</summary>
+    private void DefaultPanels()
+    {
+        if (_panelsChosen)
+        {
+            return;
+        }
+
+        _settingPanels = true;
+        ShowSettings = AiAvailable;
+        ShowSignIn = AiAvailable;
+        _settingPanels = false;
+    }
+
+    // ---- Finished banner and moving on to Design
+
+    /// <summary>Shown after a run: what was found, with a button to continue on the Design page.</summary>
+    [ObservableProperty]
+    public partial string? FinishedMessage { get; set; }
+
+    [RelayCommand]
+    private void DismissFinished() => FinishedMessage = null;
+
+    /// <summary>The captured screens are already in the project: the Design page ranks and uses them.</summary>
+    [RelayCommand]
+    private void ContinueToDesign()
+    {
+        FinishedMessage = null;
+        _navigation.NavigateTo(PageKey.Design);
+    }
+
     private void EnterTakeover(string reason)
     {
         TakeoverReason = reason;
@@ -427,6 +473,7 @@ public sealed partial class AgentViewModel : ObservableObject, IPageActivated, I
 
         var resolved = _ai.ResolveTask(AiTask.Exploration);
         AiAvailable = resolved is not null;
+        DefaultPanels();
         if (resolved is { } r)
         {
             var local = r.Profile.Type == ProviderType.Ollama || ProviderProfileIsLoopback(r.Profile);
@@ -479,6 +526,7 @@ public sealed partial class AgentViewModel : ObservableObject, IPageActivated, I
 
         CurrentScreen = null;
         IsTakenOver = false;
+        FinishedMessage = null;
         LastRunText = "";
         IsRunning = true;
         IsPaused = false;
@@ -536,6 +584,8 @@ public sealed partial class AgentViewModel : ObservableObject, IPageActivated, I
             var token = _cts.Token;
             var summary = await Task.Run(() => agent.RunAsync(options, control, token));
             Status = $"{summary.Message} {summary.Screens} unique screens in {summary.Steps} steps.";
+            FinishedMessage = $"Exploration finished: {summary.Screens} screen(s) found in {summary.Steps} steps. {summary.Message}";
+            Attention.Request();
             Meter = meter.Describe();
             if (summary.Screens > 0)
             {
@@ -656,7 +706,8 @@ public sealed partial class AgentViewModel : ObservableObject, IPageActivated, I
     void IAgentObserver.OnTakeoverRequested(string reason) => OnUi(() =>
     {
         EnterTakeover(reason);
-        Application.Current?.MainWindow?.Activate(); // the user may be looking elsewhere
+        Attention.Request(); // the user may be looking elsewhere
+        Application.Current?.MainWindow?.Activate();
     });
 
     Task<bool> IAgentObserver.ConfirmAsync(string question) =>
@@ -664,17 +715,7 @@ public sealed partial class AgentViewModel : ObservableObject, IPageActivated, I
 
     private void AddLine(AgentLogEntry e)
     {
-        var glyph = e.Kind switch
-        {
-            AgentLogKind.Thought => "",
-            AgentLogKind.Action => "",
-            AgentLogKind.Blocked => "",
-            AgentLogKind.Screen => "",
-            AgentLogKind.Warning => "",
-            AgentLogKind.Error => "",
-            _ => "",
-        };
-        Log.Add(new AgentLogLine(e.Time.ToString("HH:mm:ss", CultureInfo.CurrentCulture), glyph, e.Kind.ToString(), e.Message));
+        Log.Add(new AgentLogLine(e.Time.ToString("HH:mm:ss", CultureInfo.CurrentCulture), e.Kind.ToString(), e.Message));
         if (Log.Count > 2000)
         {
             Log.RemoveAt(0);

@@ -365,6 +365,49 @@ public class EditorTests
         Assert.Null(RenderStore.List(p.Project).Single(r => r.Position == 0).ScreenId); // the render forgets it
     }
 
+    [Fact]
+    public void Edits_can_be_reset_and_everything_can_be_cleared()
+    {
+        using var p = new TempProject();
+        var shot = p.AddScreen(TestImages.Screenshot(Teal, seed: 3), "x/.SActivity", "Screen");
+        var preset = StorePresetCatalog.BuiltIn().Find("play-phone")!;
+        RenderService.Render(p.Project, new RenderRequest
+        {
+            Presets = [preset],
+            Template = TemplateLibrary.Find("headline-top")!,
+            Items = [new RenderItem(shot.Id, shot.FullPath(p.Project), 1080, 2400, "Screen", "Headline", "")],
+        });
+        var record = RenderStore.List(p.Project).Single();
+        var original = File.ReadAllBytes(record.FullPath(p.Project));
+        var originalScene = File.ReadAllText(record.SceneFullPath(p.Project)!);
+
+        // Two saves: the original kept is the template's, not the first edit.
+        var scene = RenderStore.LoadScene(p.Project, record);
+        scene.Background = new SolidFill("#FFFF0000");
+        var (saved, _) = RenderStore.SaveScene(p.Project, record, scene, preset);
+        scene.Background = new SolidFill("#FF00FF00");
+        RenderStore.SaveScene(p.Project, saved, scene, preset);
+        Assert.NotEqual(original, File.ReadAllBytes(record.FullPath(p.Project)));
+
+        Assert.Equal((1, 0), RenderStore.ResetEdits(p.Project));
+        Assert.Equal(original, File.ReadAllBytes(record.FullPath(p.Project)));
+        Assert.Equal(originalScene, File.ReadAllText(record.SceneFullPath(p.Project)!));
+        Assert.False(RenderStore.List(p.Project).Single().IsEdited);
+        Assert.Equal((0, 0), RenderStore.ResetEdits(p.Project)); // nothing left to reset
+
+        var store = new SSGen.Selection.SelectionStore(p.Project);
+        store.Save(new SSGen.Selection.SelectionItem(shot.Id, true, 0, 50, null, "S", "Headline", "", "", "manual"));
+        new SSGen.Selection.CaptionStore(p.Project).Save(new SSGen.Selection.LocalizedCaption(shot.Id, "ur", "سرخی", "", "manual"));
+        store.ClearAll();
+        Assert.Empty(store.Load());
+        Assert.Empty(new SSGen.Selection.CaptionStore(p.Project).Load("ur"));
+        Assert.Single(SSGen.Core.Projects.ScreenRepository.List(p.Project)); // screenshots stay
+
+        Assert.Equal(1, RenderStore.DeleteAll(p.Project));
+        Assert.Empty(RenderStore.List(p.Project));
+        Assert.False(Directory.Exists(p.Project.RendersDir));
+    }
+
     private static byte[] Solid(SKColor color)
     {
         using var bmp = new SKBitmap(100, 100);

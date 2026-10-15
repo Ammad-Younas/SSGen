@@ -125,6 +125,14 @@ public static class RenderStore
         SceneAssets.MakeRelative(scene, project.Folder);
 
         var file = record.FullPath(project);
+
+        // First edit: keep the template's version so "Reset" can bring it back exactly.
+        if (!record.IsEdited)
+        {
+            CopyIfMissing(file, OriginalOf(file));
+            CopyIfMissing(scenePath, OriginalOf(scenePath));
+        }
+
         var format = Path.GetExtension(file).Equals(".jpg", StringComparison.OrdinalIgnoreCase) ? ImageFormat.Jpeg : ImageFormat.Png;
         byte[] bytes;
         using (var assets = new FileAssetResolver(project.Folder))
@@ -152,6 +160,74 @@ public static class RenderStore
             ? []
             : PresetValidator.ValidateImage(preset, scene.Width, scene.Height, format == ImageFormat.Png ? "png" : "jpeg", hasAlpha: false, bytes.Length);
         return (record with { EditedUtc = edited, Width = scene.Width, Height = scene.Height }, issues);
+    }
+
+    /// <summary>
+    /// Puts edited images back the way the template rendered them (image and design file), for the given records
+    /// or all of them. Returns how many were reset and how many couldn't be (edited before originals were kept:
+    /// render those again on the Design page).
+    /// </summary>
+    public static (int Reset, int Missing) ResetEdits(Project project, IEnumerable<long>? ids = null)
+    {
+        ArgumentNullException.ThrowIfNull(project);
+        var wanted = ids?.ToHashSet();
+        var reset = 0;
+        var missing = 0;
+        foreach (var record in List(project).Where(r => r.IsEdited && (wanted is null || wanted.Contains(r.Id))))
+        {
+            var file = record.FullPath(project);
+            var scene = record.SceneFullPath(project);
+            if (scene is null || !File.Exists(OriginalOf(file)) || !File.Exists(OriginalOf(scene)))
+            {
+                missing++;
+                continue;
+            }
+
+            File.Copy(OriginalOf(file), file, overwrite: true);
+            File.Copy(OriginalOf(scene), scene, overwrite: true);
+            File.Delete(OriginalOf(file));
+            File.Delete(OriginalOf(scene));
+            using var c = project.Database.Open();
+            using var cmd = c.CreateCommand();
+            cmd.CommandText = "UPDATE renders SET edited_utc = NULL WHERE id = $id;";
+            cmd.Parameters.AddWithValue("$id", record.Id);
+            cmd.ExecuteNonQuery();
+            reset++;
+        }
+
+        return (reset, missing);
+    }
+
+    /// <summary>Deletes every rendered image of the project (files, design files and rows). Exports are kept.</summary>
+    public static int DeleteAll(Project project)
+    {
+        ArgumentNullException.ThrowIfNull(project);
+        var count = List(project).Count;
+        using (var c = project.Database.Open())
+        using (var cmd = c.CreateCommand())
+        {
+            cmd.CommandText = "DELETE FROM renders;";
+            cmd.ExecuteNonQuery();
+        }
+
+        if (Directory.Exists(project.RendersDir))
+        {
+            Directory.Delete(project.RendersDir, recursive: true);
+        }
+
+        return count;
+    }
+
+    /// <summary>"01_notes.png" → "01_notes.original.png" (kept next to it; cleared with the preset's folder).</summary>
+    internal static string OriginalOf(string path) =>
+        Path.Combine(Path.GetDirectoryName(path)!, Path.GetFileNameWithoutExtension(path) + ".original" + Path.GetExtension(path));
+
+    private static void CopyIfMissing(string from, string to)
+    {
+        if (File.Exists(from) && !File.Exists(to))
+        {
+            File.Copy(from, to);
+        }
     }
 
     /// <summary>Checks the file on disk against its preset.</summary>

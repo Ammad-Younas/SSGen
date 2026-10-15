@@ -59,6 +59,8 @@
                             <Button Content="Rank with AI" Command="{Binding RankWithAiCommand}" Style="{DynamicResource AccentButtonStyle}" Margin="0,0,8,6"
                                     IsEnabled="{Binding AiAvailable}" />
                             <Button Content="Rank (no AI)" Command="{Binding RankCommand}" Margin="0,0,8,6" />
+                            <Button Content="Clear design" Command="{Binding ClearDesignCommand}" Margin="0,0,8,6"
+                                    ToolTip="Start over: ranking, chosen screens, captions, translations and per-screen designs are removed (screenshots stay)" />
                         </WrapPanel>
                         <TextBlock Style="{StaticResource Caption}" Text="{Binding AiDescription}" TextWrapping="Wrap" />
                         <DockPanel Margin="0,8,0,0">

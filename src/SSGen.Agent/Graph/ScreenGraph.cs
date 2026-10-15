@@ -35,6 +35,9 @@ public sealed class ScreenNode
     /// <summary>Back from here leaves the app (the launch screen), so "go back" is never useful here.</summary>
     public bool IsRoot { get; set; }
 
+    /// <summary>Control was handed to the user here once (payment screen); next time the agent just leaves.</summary>
+    public bool HandedOver { get; set; }
+
     /// <summary>How often each element was re-tapped just to travel to an unfinished screen (loop guard).</summary>
     public Dictionary<string, int> Revisits { get; } = new(StringComparer.Ordinal);
 

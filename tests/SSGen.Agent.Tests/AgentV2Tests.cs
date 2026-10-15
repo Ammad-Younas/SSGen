@@ -242,6 +242,33 @@ public class AgentV2Tests
         Assert.Single(device.Actions, a => a.StartsWith("text ", StringComparison.Ordinal)); // typed once, not again after the text changed
     }
 
+    [Fact]
+    public async Task Payment_screens_are_handed_to_the_user_and_never_filled_in()
+    {
+        using var dir = new TempDir();
+        var device = new MockDevice(
+        [
+            Screen("home", "Home", Btn("Upgrade", 0, "pay"), Btn("Notes", 1, "notes")),
+            Screen("pay", "Checkout", Btn("Card number", 0, null, MockElementKind.TextField, "com.example.mock:id/card"), Btn("Pay now", 1, null)),
+            Screen("notes", "Notes", Btn("First note", 0, null)),
+        ]);
+        var recorder = new Recorder();
+        using var control = new AgentControl();
+        recorder.DuringTakeover = _ => Task.Run(async () =>
+        {
+            await Task.Delay(50); // the user looks, does nothing, and presses Resume
+            control.Resume();
+        });
+
+        var summary = await Agent(device, dir.NewProject(), recorder).RunAsync(Options(), control, CancellationToken.None);
+
+        Assert.Equal(AgentRunStatus.Completed, summary.Status);
+        Assert.Single(recorder.Takeovers, t => t.Contains("payment", StringComparison.OrdinalIgnoreCase)); // once per screen
+        Assert.True(string.IsNullOrEmpty(device.TypedText("pay", "Card number")), "the card field must never be filled in");
+        Assert.Contains(recorder.Log, l => l.Message == "Leaving the payment screen without touching it.");
+        Assert.Contains(recorder.Log, l => l.Message.StartsWith("New screen", StringComparison.Ordinal) && l.Message.Contains("Notes", StringComparison.Ordinal));
+    }
+
     // ---------------------------------------------------------------- control, resume, limits
 
     [Fact]

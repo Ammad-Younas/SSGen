@@ -26,6 +26,12 @@ public enum InterruptKind
 
     /// <summary>Sign-in wall (password field, or a small screen that only offers ways to sign in).</summary>
     Login,
+
+    /// <summary>
+    /// Payment, checkout or banking details: the agent never fills these in. It hands control to the user (who can
+    /// fill them in, or leave) and waits for Resume.
+    /// </summary>
+    Sensitive,
 }
 
 /// <param name="Target">The element to tap to get past it, when there is one.</param>
@@ -54,6 +60,9 @@ public static partial class ScreenClassifier
 
     [GeneratedRegex(@"\b(sign in|log in|login|sign-in|log-in)\b", RegexOptions.IgnoreCase)]
     private static partial Regex SignInText();
+
+    [GeneratedRegex(@"\b(card number|credit card|debit card|cvv|cvc|security code|expiry date|expiration date|billing address|payment method|payment details|add payment|checkout|check out|pay now|place order|complete purchase|confirm purchase|complete payment|bank account|account number|iban|swift code|routing number|upi id|add money|transfer money|send money)\b", RegexOptions.IgnoreCase)]
+    private static partial Regex PaymentText();
 
     [GeneratedRegex(@"(ad_close|close_ad|skip_ad|interstitial_close|ad_skip)", RegexOptions.IgnoreCase)]
     private static partial Regex AdCloseId();
@@ -116,7 +125,14 @@ public static partial class ScreenClassifier
             }
         }
 
-        // 5. Login walls.
+        // 5. Payment, checkout and banking screens: words that only appear there, plus a field to fill in (or
+        //    the words in the screen's heading).
+        if (PaymentText().IsMatch(texts) && (ui.Elements.Any(e => e.Editable) || (ui.Title is { } heading && PaymentText().IsMatch(heading))))
+        {
+            return new Interrupt(InterruptKind.Sensitive, null, "Payment or banking screen");
+        }
+
+        // 6. Login walls.
         if (ui.Elements.Any(e => e.Password) ||
             (ui.Elements.Count <= 6 && SignInText().IsMatch(texts) && ui.Elements.Any(e => e.Editable || SignInText().IsMatch(e.Label))))
         {

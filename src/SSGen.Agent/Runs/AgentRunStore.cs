@@ -214,6 +214,7 @@ public sealed class AgentRunStore
         public Dictionary<string, int> Revisits { get; set; } = [];
         public bool ScrolledDown { get; set; }
         public bool IsRoot { get; set; }
+        public bool HandedOver { get; set; }
         public bool HasScrollable { get; set; }
 
         public static NodeState From(ScreenNode n) => new()
@@ -226,6 +227,7 @@ public sealed class AgentRunStore
             Revisits = new Dictionary<string, int>(n.Revisits),
             ScrolledDown = n.ScrolledDown,
             IsRoot = n.IsRoot,
+            HandedOver = n.HandedOver,
             HasScrollable = n.HasScrollable,
         };
 
@@ -240,6 +242,7 @@ public sealed class AgentRunStore
 
             n.ScrolledDown = ScrolledDown;
             n.IsRoot = IsRoot;
+            n.HandedOver = HandedOver;
             n.HasScrollable = HasScrollable;
         }
     }

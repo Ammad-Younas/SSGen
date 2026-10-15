@@ -13,6 +13,8 @@
     <NoWarn>$(NoWarn);WPF0001;CA1822</NoWarn>
     <!-- Program.Main runs Velopack's install/update hooks before WPF starts. -->
     <StartupObject>SSGen.App.Program</StartupObject>
+    <!-- LibraryImport (taskbar flash) generates unsafe marshalling code. -->
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
   </PropertyGroup>
 
   <ItemGroup>

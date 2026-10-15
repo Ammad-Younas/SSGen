@@ -297,6 +297,34 @@ public sealed partial class GalleryViewModel : ObservableObject, IPageActivated,
     [RelayCommand]
     private void GoDesign() => _navigation.NavigateTo(PageKey.Design);
 
+    /// <summary>Deletes every rendered image of the project (and all edits made to them).</summary>
+    [RelayCommand]
+    private void DeleteAll()
+    {
+        if (_projects.Current is not { } p || Groups.Count == 0)
+        {
+            return;
+        }
+
+        var count = Groups.Sum(g => g.Images.Count);
+        if (!_dialogs.Confirm("Delete all images", $"Delete all {count} store image(s) of this project, including every change made in the editor?\n\nScreenshots, captions and exports stay. Render all on the Design page makes new ones."))
+        {
+            return;
+        }
+
+        try
+        {
+            RenderStore.DeleteAll(p);
+        }
+        catch (IOException ex)
+        {
+            _dialogs.ShowError("Couldn't delete everything", new UserFacingException(ex.Message, "Close any program that has an image from the renders folder open, then try again."));
+        }
+
+        _thumbCache.Clear();
+        Load();
+    }
+
     [RelayCommand]
     private void Refresh() => Load();
 

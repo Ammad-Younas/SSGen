@@ -97,6 +97,10 @@ tools/make-icon.ps1          # regenerates src/SSGen.App/Assets/ssgen.ico (each 
 - **Speed**: emulator screenshots come from the emulator's gRPC `getScreenshot` (about 110 ms against 400 to 700 ms for screencap), falling back to screencap. `uiautomator dump` stays at about 2.3 s whatever the variant (process start-up); avoiding it would need an on-device helper.
 - **Safety of data**: before a database schema upgrade the file is copied with SQLite's backup API to `name.v{old}.bak` (newest three kept); each migration also runs in a transaction.
 - Startup shows the window in about 3 s; setup checks only run on the Environment page.
+- **Payment, checkout and banking screens** (`InterruptKind.Sensitive`: payment words plus a field to fill, or in the heading) are never filled in. The agent hands control to the user once per screen and waits for Resume; if it is still there afterwards it leaves with Back. Login walls work the same way on the start screen.
+- **The user is told** when a run finishes or needs them: `Attention.Request()` plays a sound and flashes the taskbar until SSGen is focused, and Explore shows a pinned banner with "Continue to Design".
+- **Starting over**: Design "Clear design" (selection, captions, translations, per-screen designs; screenshots and renders stay), Gallery "Delete all images" (renders folder and rows), Editor "Reset image" / "Reset all edits". Saving an edit for the first time keeps `name.original.png` and the original design file next to it; reset copies them back. Images edited before originals were kept can only be rendered again.
+- **Single-activity apps need more than activity + ids** to tell screens apart: the fingerprint adds the heading and the labels of id-less tappable controls. Without it every SmartTask screen matched the home screen and Edit Profile was mistaken for a start-screen sign-in wall.
 
 ## Gallery and editor (M6): rules and lessons
 

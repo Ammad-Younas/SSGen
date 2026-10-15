@@ -628,6 +628,76 @@ public sealed partial class EditorViewModel : ObservableObject, IPageActivated, 
         }
     }
 
+    /// <summary>Puts this image back the way the template rendered it.</summary>
+    [RelayCommand]
+    private void ResetImage()
+    {
+        if (_project is not { } p || _record is null || SelectedImage is not { } option)
+        {
+            return;
+        }
+
+        if (!_record.IsEdited && !IsDirty)
+        {
+            Status = "This image hasn't been changed.";
+            return;
+        }
+
+        if (!_dialogs.Confirm("Reset image", $"Undo every change to {_record.DisplayName} and go back to the template's version?"))
+        {
+            return;
+        }
+
+        Editor?.History.Clear();
+        var (reset, missing) = _record.IsEdited ? RenderStore.ResetEdits(p, [_record.Id]) : (0, 0);
+        LoadImages();
+        OpenRecord(Images.FirstOrDefault(i => i.Record.Id == option.Record.Id) ?? option);
+        Status = missing > 0 ? "This image was edited before SSGen kept originals: render it again on the Design page." : "Back to the template's version.";
+        if (reset > 0)
+        {
+            Saved?.Invoke(this, EventArgs.Empty);
+        }
+    }
+
+    /// <summary>Puts every edited image of the project back the way the template rendered it.</summary>
+    [RelayCommand]
+    private void ResetAllEdits()
+    {
+        if (_project is not { } p)
+        {
+            return;
+        }
+
+        var edited = Images.Count(i => i.Record.IsEdited);
+        if (edited == 0 && !IsDirty)
+        {
+            _dialogs.ShowInfo("Nothing to reset", "None of the images has been changed in the editor.");
+            return;
+        }
+
+        if (!_dialogs.Confirm("Reset all edits", $"Undo every change made in the editor to {Math.Max(edited, 1)} image(s) and go back to the template's versions?"))
+        {
+            return;
+        }
+
+        Editor?.History.Clear();
+        var current = SelectedImage?.Record.Id;
+        var (reset, missing) = RenderStore.ResetEdits(p);
+        LoadImages();
+        if ((Images.FirstOrDefault(i => i.Record.Id == current) ?? Images.FirstOrDefault()) is { } open)
+        {
+            OpenRecord(open);
+        }
+
+        Status = $"Reset {reset} image(s).";
+        if (missing > 0)
+        {
+            _dialogs.ShowInfo("Some images weren't reset", $"{missing} image(s) were edited before SSGen kept the originals. Render them again on the Design page to start fresh.");
+        }
+
+        Saved?.Invoke(this, EventArgs.Empty);
+    }
+
     [RelayCommand]
     private void PreviousImage() => Step(-1);
 
