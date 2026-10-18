@@ -133,7 +133,3 @@ SSGen doesn't ship with, or default to, any AI provider. Add your own in **Setti
 **Privacy**: before a cloud model first sees screenshots of your app, SSGen asks for consent. If you decline, the model works from the screen's text only. Local models never need consent.
 
 Without AI, everything works in manual mode.
-
-## Licence notices
-
-See [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
