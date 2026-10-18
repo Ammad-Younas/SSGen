@@ -2,8 +2,6 @@
 
 Turn an Android APK into upload-ready store listing screenshots for Google Play and the App Store. The app runs your APK in the Android Emulator, captures its screens (by hand or with an AI agent of your choice), renders them into designed listing images, and exports them at the correct store sizes.
 
-> **Status: milestone M8 (all planned milestones done).** Projects, settings, the environment setup assistant, the full device pipeline (virtual devices, APK import and install, a live preview you can control, screen capture, logcat) and app exploration (with your own AI provider or the built-in systematic explorer) work, and so do designing, rendering, reviewing, editing, translating and exporting store-ready images, plus a Windows installer.
-
 ## Requirements
 
 - Windows 10 or 11 (x64)
